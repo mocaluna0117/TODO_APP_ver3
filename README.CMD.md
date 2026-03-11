@@ -10,3 +10,5 @@ git push -u origin main
 ### NestJS プロジェクト作成(backend/ で実行)
 npx @nestjs/cli new .　(npmをパッケージマネージャーとして選択)
 
+### GraphQLインストール(backend/ で実行)
+npm install @nestjs/graphql @nestjs/apollo graphql apollo-server-express
