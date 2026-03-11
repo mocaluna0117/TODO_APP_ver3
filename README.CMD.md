@@ -12,3 +12,9 @@ npx @nestjs/cli new .　(npmをパッケージマネージャーとして選択)
 
 ### GraphQLインストール(backend/ で実行)
 npm install @nestjs/graphql @nestjs/apollo graphql apollo-server-express
+
+### Prisma v6 インストール(backend/ で実行)
+npm install -D prisma@6(CLIパッケージだから開発時しか使わない)
+npm install @prisma/client@6(まさにimportしたりするから、dependenciesに入れる)
+### Prisma初期化
+npx prisma init
