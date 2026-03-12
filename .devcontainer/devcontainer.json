@@ -1,0 +1,28 @@
+{
+  "name": "todo_app_backend",
+
+  "dockerComposeFile": "../docker-compose.yml", // 参照するdocker-compose.ymlのパス
+
+  // docker-compose.yml内のサービス名 devcontainerでbackendが開かれるようにするため、docker-compose.yml内のサービス名を指定する
+  // dbを指定した場合、vscodeはpostgreSQLコンテナに接続されてしまい、psqlが動く状態になる　そうすると、npmやnodeが動かない
+  // 開発するのはbackend（つまりnode環境）なので、backendを指定する
+  // docker compose upはdevcontainerを開いたときに自動で実行されるため、dbも自動で立ち上がる
+  "service": "backend",
+
+  // docker-compose.yml内のservice: backendのvolumesで./backend:/appと指定しているため、workspaceFolderも/appにする
+  // これでmacでbackendディレクトリにいるのと同じ状態になる
+  "workspaceFolder": "/todo_app",
+
+  "shutdownAction": "stopCompose", // devcontainerを閉じるときにdocker compose stopをする
+  "customizations": { // vscodeの拡張機能を導入
+    "vscode": {
+      "extensions": [
+        "Prisma.prisma",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "GraphQL.vscode-graphql",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}
