@@ -11,6 +11,25 @@ services:
       - "5500:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  
+  adminer:
+    image: adminer
+    ports:
+      - '8085:8080'      
+  
+  backend:
+    build: ./backend
+    container_name: todo_backend
+    restart: always
+    ports:
+      - "3050:3000"
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/todo_app
+      - /todo_app/node_modules      
 
 volumes:
   postgres_data:
