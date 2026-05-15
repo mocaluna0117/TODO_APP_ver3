@@ -33,6 +33,14 @@ class NotificationService {
     );
 
     await _notificationsPlugin.initialize(initSettings);
+
+    // Android用のパーミッション要求 (Android 13+の通知権限とAndroid 12+のアラーム権限)
+    final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      await androidPlugin.requestNotificationsPermission();
+      await androidPlugin.requestExactAlarmsPermission();
+    }
   }
 
   // 通知をスケジュールする
@@ -44,13 +52,8 @@ class NotificationService {
       return;
     }
 
-    // デフォルトの期限の時間を当日の朝9:00に設定（日付のみ選択しているため）
-    DateTime scheduledTime = DateTime(
-      item.dueDate!.year, 
-      item.dueDate!.month, 
-      item.dueDate!.day, 
-      9, 0, 0
-    );
+    // 設定された期限の時間をそのまま使用する
+    DateTime scheduledTime = item.dueDate!;
 
     switch (timing) {
       case NotificationTiming.atTime:

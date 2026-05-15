@@ -346,14 +346,31 @@ class _TodoHomePageState extends State<TodoHomePage>
   }) {
     return InkWell(
       onTap: () async {
-        final picked = await showDatePicker(
+        final pickedDate = await showDatePicker(
           context: context,
           initialDate: selectedDate ?? DateTime.now(),
           firstDate: DateTime.now().subtract(const Duration(days: 365)),
           lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
           locale: const Locale('ja'),
         );
-        if (picked != null) onDateSelected(picked);
+        if (pickedDate != null) {
+          if (!context.mounted) return;
+          final pickedTime = await showTimePicker(
+            context: context,
+            initialTime: selectedDate != null
+                ? TimeOfDay.fromDateTime(selectedDate)
+                : const TimeOfDay(hour: 9, minute: 0),
+          );
+          if (pickedTime != null) {
+            onDateSelected(DateTime(
+              pickedDate.year,
+              pickedDate.month,
+              pickedDate.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            ));
+          }
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -369,7 +386,7 @@ class _TodoHomePageState extends State<TodoHomePage>
             Expanded(
               child: Text(
                 selectedDate != null
-                    ? DateFormat('yyyy/MM/dd (E)', 'ja').format(selectedDate)
+                    ? DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(selectedDate)
                     : '期限を設定（任意）',
                 style: TextStyle(
                   fontSize: 15,
@@ -405,19 +422,34 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // ─── カードから直接期限を変更 ───
   void _showDatePickerForItem(TodoItem item) async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: item.dueDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: const Locale('ja'),
     );
-    if (picked != null) {
-      setState(() {
-        item.dueDate = picked;
-      });
-      _saveData();
-      NotificationService().scheduleNotification(item, s.notificationTiming);
+    if (pickedDate != null) {
+      if (!context.mounted) return;
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: item.dueDate != null
+            ? TimeOfDay.fromDateTime(item.dueDate!)
+            : const TimeOfDay(hour: 9, minute: 0),
+      );
+      if (pickedTime != null) {
+        setState(() {
+          item.dueDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+        _saveData();
+        NotificationService().scheduleNotification(item, s.notificationTiming);
+      }
     }
   }
 
@@ -762,7 +794,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           ),
           subtitle: item.dueDate != null
               ? Text(
-                  '期限: ${DateFormat('yyyy/MM/dd (E)', 'ja').format(item.dueDate!)}',
+                  '期限: ${DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: item.isOverdue ? Colors.red : Colors.grey.shade500,
