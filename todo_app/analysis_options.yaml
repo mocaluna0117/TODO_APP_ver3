@@ -1,0 +1,11 @@
+# Dartコードを静的解析（lint）するための設定ファイル
+# 静的解析 === 実行しなくてもコードのミスや悪い書き方をチェックする(NodeでいうESLint)
+include: package:flutter_lints/flutter.yaml # おすすめルールセットを丸ごと読み込んでる
+
+linter:
+  # ルールON/OFFと自分用カスタムができる
+  rules:
+    avoid_print: true # printを使うと警告
+    prefer_single_quotes: true # シングルクウォーテーションを優先
+
+# 詳細 → https://dart.dev/guides/language/analysis-options
