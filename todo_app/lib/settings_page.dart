@@ -23,6 +23,7 @@ class _SettingsPageState extends State<SettingsPage> {
   AppSettings get s => widget.settings;
 
   void _notify() {
+    widget.settings.saveToPrefs();
     widget.onSettingsChanged();
     setState(() {});
   }
