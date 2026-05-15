@@ -1,0 +1,651 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart';
+import 'app_settings.dart';
+import 'settings_page.dart';
+import 'notification_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
+  runApp(const MyApp());
+}
+
+// ─────────────────────────────────────────────
+// TODOアイテムのデータモデル
+// ─────────────────────────────────────────────
+class TodoItem {
+  final int id;
+  String title;
+  bool isDone;
+  // category: 'todo' = やること, 'done' = 完了済み, 'future' = 今後やりたいこと
+  String category;
+  DateTime? dueDate;
+
+  TodoItem({
+    int? id,
+    required this.title,
+    this.isDone = false,
+    this.category = 'todo',
+    this.dueDate,
+  }) : id = id ?? DateTime.now().millisecondsSinceEpoch;
+
+  bool get isOverdue =>
+      dueDate != null &&
+      !isDone &&
+      dueDate!.isBefore(DateTime.now().copyWith(hour: 0, minute: 0, second: 0));
+}
+
+// ─────────────────────────────────────────────
+// アプリ本体（StatefulWidget でテーマ変更対応）
+// ─────────────────────────────────────────────
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final AppSettings _settings = AppSettings();
+
+  void _onSettingsChanged() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: _settings.appTitle,
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('ja')],
+      locale: const Locale('ja'),
+      theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF5F5FA),
+        appBarTheme: AppBarTheme(
+          backgroundColor: _settings.primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        tabBarTheme: const TabBarThemeData(
+          labelColor: Colors.white,
+          unselectedLabelColor: Color(0xAAFFFFFF),
+          indicatorColor: Colors.white,
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: _settings.accentColor,
+          foregroundColor: Colors.white,
+        ),
+      ),
+      home: TodoHomePage(
+        settings: _settings,
+        onSettingsChanged: _onSettingsChanged,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// ホームページ（タブ管理）
+// ─────────────────────────────────────────────
+class TodoHomePage extends StatefulWidget {
+  final AppSettings settings;
+  final VoidCallback onSettingsChanged;
+
+  const TodoHomePage({
+    super.key,
+    required this.settings,
+    required this.onSettingsChanged,
+  });
+
+  @override
+  State<TodoHomePage> createState() => _TodoHomePageState();
+}
+
+class _TodoHomePageState extends State<TodoHomePage>
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+  final List<TodoItem> _allItems = [];
+
+  AppSettings get s => widget.settings;
+
+  // 有効なタブのカテゴリキーリスト
+  List<String> get _activeTabKeys {
+    final keys = <String>['todo'];
+    if (s.showDoneTab) keys.add('done');
+    if (s.showFutureTab) keys.add('future');
+    return keys;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _rebuildTabController();
+  }
+
+  @override
+  void didUpdateWidget(covariant TodoHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // タブ数が変わったらコントローラを再生成
+    if (_tabController == null || _tabController!.length != _activeTabKeys.length) {
+      _rebuildTabController();
+    }
+  }
+
+  void _rebuildTabController() {
+    _tabController?.dispose();
+    _tabController = TabController(length: _activeTabKeys.length, vsync: this);
+    _tabController!.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  // タブキーからタブ名を取得
+  String _tabName(String key) {
+    switch (key) {
+      case 'todo': return s.todoTabName;
+      case 'done': return s.doneTabName;
+      case 'future': return s.futureTabName;
+      default: return key;
+    }
+  }
+
+  // カテゴリ別フィルタ（設定された並び順でソート）
+  List<TodoItem> _itemsByCategory(String category) {
+    final items = category == 'done'
+        ? _allItems.where((item) => item.isDone).toList()
+        : _allItems.where((item) => item.category == category && !item.isDone).toList();
+
+    items.sort((a, b) {
+      if (a.dueDate == null && b.dueDate == null) return 0;
+      if (a.dueDate == null) return 1;
+      if (b.dueDate == null) return -1;
+      return s.sortOrder == SortOrder.dueDateAsc
+          ? a.dueDate!.compareTo(b.dueDate!)
+          : b.dueDate!.compareTo(a.dueDate!);
+    });
+    return items;
+  }
+
+  // 現在のタブのカテゴリキー
+  String get _currentTabKey => _activeTabKeys[_tabController!.index];
+
+  // ─── アイテム追加ダイアログ ───
+  void _showAddDialog() {
+    final textController = TextEditingController();
+    final category = _currentTabKey == 'done' ? 'todo' : _currentTabKey;
+    DateTime? selectedDate;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '${_tabName(category)}を追加',
+                        style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold, color: s.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: textController,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: 'タスクを入力...',
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDatePickerRow(
+                        selectedDate: selectedDate,
+                        onDateSelected: (date) => setSheetState(() => selectedDate = date),
+                        onDateCleared: () => setSheetState(() => selectedDate = null),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () { _addItem(textController.text, category, dueDate: selectedDate); Navigator.pop(context); },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: s.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('追加', style: TextStyle(fontSize: 16)),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─── 期限選択行ウィジェット ───
+  Widget _buildDatePickerRow({
+    required DateTime? selectedDate,
+    required ValueChanged<DateTime> onDateSelected,
+    required VoidCallback onDateCleared,
+  }) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: selectedDate ?? DateTime.now(),
+          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+          locale: const Locale('ja'),
+        );
+        if (picked != null) onDateSelected(picked);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5FA),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today, size: 18, color: s.primaryColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                selectedDate != null
+                    ? DateFormat('yyyy/MM/dd (E)', 'ja').format(selectedDate)
+                    : '期限を設定（任意）',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: selectedDate != null ? Colors.black87 : Colors.grey,
+                ),
+              ),
+            ),
+            if (selectedDate != null)
+              GestureDetector(
+                onTap: onDateCleared,
+                child: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addItem(String title, String category, {DateTime? dueDate}) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    final newItem = TodoItem(title: trimmed, category: category, dueDate: dueDate);
+    setState(() { _allItems.add(newItem); });
+    NotificationService().scheduleNotification(newItem, s.notificationTiming);
+  }
+
+  // ─── カードから直接期限を変更 ───
+  void _showDatePickerForItem(TodoItem item) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: item.dueDate ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      locale: const Locale('ja'),
+    );
+    if (picked != null) {
+      setState(() { item.dueDate = picked; });
+      NotificationService().scheduleNotification(item, s.notificationTiming);
+    }
+  }
+
+  void _toggleItem(TodoItem item) {
+    setState(() { item.isDone = !item.isDone; });
+    if (item.isDone) {
+      NotificationService().cancelNotification(item.id);
+    } else {
+      NotificationService().scheduleNotification(item, s.notificationTiming);
+    }
+  }
+
+  void _deleteItem(TodoItem item) {
+    setState(() { _allItems.remove(item); });
+    NotificationService().cancelNotification(item.id);
+  }
+
+  // ─── 削除（確認あり/なし切替） ───
+  Future<bool> _handleDelete(TodoItem item) async {
+    if (!s.showDeleteConfirm) {
+      _deleteItem(item);
+      return true;
+    }
+    return await _showDeleteConfirmDialog(item);
+  }
+
+  Future<bool> _showDeleteConfirmDialog(TodoItem item) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('タスクを削除', style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor)),
+        content: Text('「${item.title}」を削除しますか？\nこの操作は取り消せません。',
+            style: const TextStyle(fontSize: 15, height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル', style: TextStyle(color: Colors.grey, fontSize: 15)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          ),
+        ],
+      ),
+    );
+    if (result == true) { _deleteItem(item); return true; }
+    return false;
+  }
+
+  // ─── 編集ダイアログ ───
+  void _showEditDialog(TodoItem item) {
+    final textController = TextEditingController(text: item.title);
+    DateTime? selectedDate = item.dueDate;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('タスクを編集',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: s.primaryColor)),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: textController,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: 'タスクを入力...',
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDatePickerRow(
+                        selectedDate: selectedDate,
+                        onDateSelected: (date) => setSheetState(() => selectedDate = date),
+                        onDateCleared: () => setSheetState(() => selectedDate = null),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () { _editItem(item, textController.text, dueDate: selectedDate); Navigator.pop(context); },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: s.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('保存', style: TextStyle(fontSize: 16)),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _editItem(TodoItem item, String newTitle, {DateTime? dueDate}) {
+    final trimmed = newTitle.trim();
+    if (trimmed.isEmpty) return;
+    setState(() {
+      item.title = trimmed;
+      item.dueDate = dueDate;
+    });
+    NotificationService().scheduleNotification(item, s.notificationTiming);
+  }
+
+  // ─── 設定ページへ遷移 ───
+  void _openSettings() async {
+    final tabCountBefore = _activeTabKeys.length;
+    final timingBefore = s.notificationTiming;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(
+          settings: s,
+          onSettingsChanged: () {
+            widget.onSettingsChanged();
+            // タブ数が変わった場合のみ再構築
+            if (_tabController == null || _tabController!.length != _activeTabKeys.length) {
+              setState(() { _rebuildTabController(); });
+            }
+          },
+        ),
+      ),
+    );
+    // 戻ってきたとき、タブ数が変わっていたら反映
+    if (_tabController == null || _tabController!.length != _activeTabKeys.length) {
+      _rebuildTabController();
+    }
+    // 通知タイミングが変わっていたら全ての通知を再スケジュール
+    if (timingBefore != s.notificationTiming) {
+      NotificationService().rescheduleAll(_allItems, s.notificationTiming);
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_tabController == null) return const SizedBox.shrink();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          s.appTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _openSettings,
+            tooltip: '設定',
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
+          tabs: _activeTabKeys.map((key) => Tab(
+            child: Text(
+              _tabName(key),
+              textAlign: TextAlign.center,
+              softWrap: true,
+            ),
+          )).toList(),
+          indicatorWeight: 3,
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: _activeTabKeys.map((key) => _buildTodoList(key)).toList(),
+      ),
+      floatingActionButton: _currentTabKey != 'done'
+          ? FloatingActionButton(
+              onPressed: _showAddDialog,
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+
+  // ─── リスト表示 ───
+  Widget _buildTodoList(String category) {
+    final items = _itemsByCategory(category);
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              category == 'done'
+                  ? Icons.check_circle_outline
+                  : category == 'future'
+                      ? Icons.lightbulb_outline
+                      : Icons.inbox_outlined,
+              size: 64, color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              category == 'done'
+                  ? '${s.doneTabName}のタスクはありません'
+                  : '${_tabName(category)}を追加しましょう',
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: items.length,
+      itemBuilder: (_, i) => _buildTodoCard(items[i]),
+    );
+  }
+
+  // ─── 個別カード ───
+  Widget _buildTodoCard(TodoItem item) {
+    return Dismissible(
+      key: ValueKey(item),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _handleDelete(item),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: Colors.white,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          onTap: () => _showEditDialog(item),
+          leading: Checkbox(
+            value: item.isDone,
+            onChanged: (_) => _toggleItem(item),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            activeColor: s.primaryColor,
+          ),
+          title: Text(
+            item.title,
+            style: TextStyle(
+              fontSize: 16,
+              decoration: item.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+              color: item.isDone ? Colors.grey : Colors.black87,
+            ),
+          ),
+          subtitle: item.dueDate != null
+              ? Text(
+                  '期限: ${DateFormat('yyyy/MM/dd (E)', 'ja').format(item.dueDate!)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: item.isOverdue ? Colors.red : Colors.grey.shade500,
+                    fontWeight: item.isOverdue ? FontWeight.bold : FontWeight.normal,
+                  ),
+                )
+              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (item.isDone)
+                IconButton(
+                  icon: Icon(Icons.replay, color: s.accentColor),
+                  onPressed: () => _toggleItem(item),
+                  tooltip: '未完了に戻す',
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Color(0xFFAAAAAA), size: 20),
+                  onPressed: () => _showEditDialog(item),
+                  tooltip: '編集',
+                ),
+              IconButton(
+                icon: Icon(
+                  Icons.calendar_today,
+                  color: item.dueDate != null ? s.primaryColor : const Color(0xFFAAAAAA),
+                  size: 20,
+                ),
+                onPressed: () => _showDatePickerForItem(item),
+                tooltip: '期限を設定',
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 20),
+                onPressed: () => _handleDelete(item),
+                tooltip: '削除',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
