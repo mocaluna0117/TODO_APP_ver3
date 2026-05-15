@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'app_settings.dart';
 import 'settings_page.dart';
@@ -34,6 +36,22 @@ class TodoItem {
       dueDate != null &&
       !isDone &&
       dueDate!.isBefore(DateTime.now().copyWith(hour: 0, minute: 0, second: 0));
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'isDone': isDone,
+        'category': category,
+        'dueDate': dueDate?.toIso8601String(),
+      };
+
+  factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
+        id: json['id'],
+        title: json['title'],
+        isDone: json['isDone'] ?? false,
+        category: json['category'] ?? 'todo',
+        dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
+      );
 }
 
 // ─────────────────────────────────────────────
@@ -48,11 +66,33 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final AppSettings _settings = AppSettings();
+  bool _isSettingsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    await _settings.loadFromPrefs();
+    setState(() {
+      _isSettingsLoaded = true;
+    });
+  }
 
   void _onSettingsChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
+    if (!_isSettingsLoaded) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: _settings.appTitle,
       debugShowCheckedModeBanner: false,
@@ -125,13 +165,33 @@ class _TodoHomePageState extends State<TodoHomePage>
   void initState() {
     super.initState();
     _rebuildTabController();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? itemsJson = prefs.getString('todo_items');
+    if (itemsJson != null) {
+      final List<dynamic> decodedList = jsonDecode(itemsJson);
+      setState(() {
+        _allItems.clear();
+        _allItems.addAll(decodedList.map((e) => TodoItem.fromJson(e)).toList());
+      });
+    }
+  }
+
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String itemsJson = jsonEncode(_allItems.map((e) => e.toJson()).toList());
+    await prefs.setString('todo_items', itemsJson);
   }
 
   @override
   void didUpdateWidget(covariant TodoHomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     // タブ数が変わったらコントローラを再生成
-    if (_tabController == null || _tabController!.length != _activeTabKeys.length) {
+    if (_tabController == null ||
+        _tabController!.length != _activeTabKeys.length) {
       _rebuildTabController();
     }
   }
@@ -151,10 +211,14 @@ class _TodoHomePageState extends State<TodoHomePage>
   // タブキーからタブ名を取得
   String _tabName(String key) {
     switch (key) {
-      case 'todo': return s.todoTabName;
-      case 'done': return s.doneTabName;
-      case 'future': return s.futureTabName;
-      default: return key;
+      case 'todo':
+        return s.todoTabName;
+      case 'done':
+        return s.doneTabName;
+      case 'future':
+        return s.futureTabName;
+      default:
+        return key;
     }
   }
 
@@ -162,7 +226,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   List<TodoItem> _itemsByCategory(String category) {
     final items = category == 'done'
         ? _allItems.where((item) => item.isDone).toList()
-        : _allItems.where((item) => item.category == category && !item.isDone).toList();
+        : _allItems
+              .where((item) => item.category == category && !item.isDone)
+              .toList();
 
     items.sort((a, b) {
       if (a.dueDate == null && b.dueDate == null) return 0;
@@ -192,7 +258,9 @@ class _TodoHomePageState extends State<TodoHomePage>
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Container(
                 padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
                 decoration: const BoxDecoration(
@@ -207,7 +275,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                       Text(
                         '${_tabName(category)}を追加',
                         style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold, color: s.primaryColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: s.primaryColor,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -222,23 +292,37 @@ class _TodoHomePageState extends State<TodoHomePage>
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       _buildDatePickerRow(
                         selectedDate: selectedDate,
-                        onDateSelected: (date) => setSheetState(() => selectedDate = date),
-                        onDateCleared: () => setSheetState(() => selectedDate = null),
+                        onDateSelected: (date) =>
+                            setSheetState(() => selectedDate = date),
+                        onDateCleared: () =>
+                            setSheetState(() => selectedDate = null),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
-                        onPressed: () { _addItem(textController.text, category, dueDate: selectedDate); Navigator.pop(context); },
+                        onPressed: () {
+                          _addItem(
+                            textController.text,
+                            category,
+                            dueDate: selectedDate,
+                          );
+                          Navigator.pop(context);
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: s.primaryColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('追加', style: TextStyle(fontSize: 16)),
                       ),
@@ -307,8 +391,15 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _addItem(String title, String category, {DateTime? dueDate}) {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
-    final newItem = TodoItem(title: trimmed, category: category, dueDate: dueDate);
-    setState(() { _allItems.add(newItem); });
+    final newItem = TodoItem(
+      title: trimmed,
+      category: category,
+      dueDate: dueDate,
+    );
+    setState(() {
+      _allItems.add(newItem);
+    });
+    _saveData();
     NotificationService().scheduleNotification(newItem, s.notificationTiming);
   }
 
@@ -322,13 +413,19 @@ class _TodoHomePageState extends State<TodoHomePage>
       locale: const Locale('ja'),
     );
     if (picked != null) {
-      setState(() { item.dueDate = picked; });
+      setState(() {
+        item.dueDate = picked;
+      });
+      _saveData();
       NotificationService().scheduleNotification(item, s.notificationTiming);
     }
   }
 
   void _toggleItem(TodoItem item) {
-    setState(() { item.isDone = !item.isDone; });
+    setState(() {
+      item.isDone = !item.isDone;
+    });
+    _saveData();
     if (item.isDone) {
       NotificationService().cancelNotification(item.id);
     } else {
@@ -337,7 +434,10 @@ class _TodoHomePageState extends State<TodoHomePage>
   }
 
   void _deleteItem(TodoItem item) {
-    setState(() { _allItems.remove(item); });
+    setState(() {
+      _allItems.remove(item);
+    });
+    _saveData();
     NotificationService().cancelNotification(item.id);
   }
 
@@ -355,23 +455,37 @@ class _TodoHomePageState extends State<TodoHomePage>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('タスクを削除', style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor)),
-        content: Text('「${item.title}」を削除しますか？\nこの操作は取り消せません。',
-            style: const TextStyle(fontSize: 15, height: 1.5)),
+        title: Text(
+          'タスクを削除',
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+        ),
+        content: Text(
+          '「${item.title}」を削除しますか？\nこの操作は取り消せません。',
+          style: const TextStyle(fontSize: 15, height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('キャンセル', style: TextStyle(color: Colors.grey, fontSize: 15)),
+            child: const Text(
+              'キャンセル',
+              style: TextStyle(color: Colors.grey, fontSize: 15),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('削除', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            child: const Text(
+              '削除',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
           ),
         ],
       ),
     );
-    if (result == true) { _deleteItem(item); return true; }
+    if (result == true) {
+      _deleteItem(item);
+      return true;
+    }
     return false;
   }
 
@@ -388,7 +502,9 @@ class _TodoHomePageState extends State<TodoHomePage>
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Container(
                 padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
                 decoration: const BoxDecoration(
@@ -400,8 +516,14 @@ class _TodoHomePageState extends State<TodoHomePage>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('タスクを編集',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: s.primaryColor)),
+                      Text(
+                        'タスクを編集',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: s.primaryColor,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: textController,
@@ -411,25 +533,40 @@ class _TodoHomePageState extends State<TodoHomePage>
                           filled: true,
                           fillColor: const Color(0xFFF5F5FA),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       _buildDatePickerRow(
                         selectedDate: selectedDate,
-                        onDateSelected: (date) => setSheetState(() => selectedDate = date),
-                        onDateCleared: () => setSheetState(() => selectedDate = null),
+                        onDateSelected: (date) =>
+                            setSheetState(() => selectedDate = date),
+                        onDateCleared: () =>
+                            setSheetState(() => selectedDate = null),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
-                        onPressed: () { _editItem(item, textController.text, dueDate: selectedDate); Navigator.pop(context); },
+                        onPressed: () {
+                          _editItem(
+                            item,
+                            textController.text,
+                            dueDate: selectedDate,
+                          );
+                          Navigator.pop(context);
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: s.primaryColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('保存', style: TextStyle(fontSize: 16)),
                       ),
@@ -452,6 +589,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       item.title = trimmed;
       item.dueDate = dueDate;
     });
+    _saveData();
     NotificationService().scheduleNotification(item, s.notificationTiming);
   }
 
@@ -468,15 +606,19 @@ class _TodoHomePageState extends State<TodoHomePage>
           onSettingsChanged: () {
             widget.onSettingsChanged();
             // タブ数が変わった場合のみ再構築
-            if (_tabController == null || _tabController!.length != _activeTabKeys.length) {
-              setState(() { _rebuildTabController(); });
+            if (_tabController == null ||
+                _tabController!.length != _activeTabKeys.length) {
+              setState(() {
+                _rebuildTabController();
+              });
             }
           },
         ),
       ),
     );
     // 戻ってきたとき、タブ数が変わっていたら反映
-    if (_tabController == null || _tabController!.length != _activeTabKeys.length) {
+    if (_tabController == null ||
+        _tabController!.length != _activeTabKeys.length) {
       _rebuildTabController();
     }
     // 通知タイミングが変わっていたら全ての通知を再スケジュール
@@ -494,7 +636,10 @@ class _TodoHomePageState extends State<TodoHomePage>
       appBar: AppBar(
         title: Text(
           s.appTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -508,13 +653,17 @@ class _TodoHomePageState extends State<TodoHomePage>
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.center,
-          tabs: _activeTabKeys.map((key) => Tab(
-            child: Text(
-              _tabName(key),
-              textAlign: TextAlign.center,
-              softWrap: true,
-            ),
-          )).toList(),
+          tabs: _activeTabKeys
+              .map(
+                (key) => Tab(
+                  child: Text(
+                    _tabName(key),
+                    textAlign: TextAlign.center,
+                    softWrap: true,
+                  ),
+                ),
+              )
+              .toList(),
           indicatorWeight: 3,
         ),
       ),
@@ -543,9 +692,10 @@ class _TodoHomePageState extends State<TodoHomePage>
               category == 'done'
                   ? Icons.check_circle_outline
                   : category == 'future'
-                      ? Icons.lightbulb_outline
-                      : Icons.inbox_outlined,
-              size: 64, color: Colors.grey.shade300,
+                  ? Icons.lightbulb_outline
+                  : Icons.inbox_outlined,
+              size: 64,
+              color: Colors.grey.shade300,
             ),
             const SizedBox(height: 12),
             Text(
@@ -587,19 +737,26 @@ class _TodoHomePageState extends State<TodoHomePage>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: Colors.white,
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 4,
+          ),
           onTap: () => _showEditDialog(item),
           leading: Checkbox(
             value: item.isDone,
             onChanged: (_) => _toggleItem(item),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
             activeColor: s.primaryColor,
           ),
           title: Text(
             item.title,
             style: TextStyle(
               fontSize: 16,
-              decoration: item.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+              decoration: item.isDone
+                  ? TextDecoration.lineThrough
+                  : TextDecoration.none,
               color: item.isDone ? Colors.grey : Colors.black87,
             ),
           ),
@@ -609,7 +766,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                   style: TextStyle(
                     fontSize: 12,
                     color: item.isOverdue ? Colors.red : Colors.grey.shade500,
-                    fontWeight: item.isOverdue ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: item.isOverdue
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 )
               : null,
@@ -624,21 +783,31 @@ class _TodoHomePageState extends State<TodoHomePage>
                 )
               else
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Color(0xFFAAAAAA), size: 20),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: Color(0xFFAAAAAA),
+                    size: 20,
+                  ),
                   onPressed: () => _showEditDialog(item),
                   tooltip: '編集',
                 ),
               IconButton(
                 icon: Icon(
                   Icons.calendar_today,
-                  color: item.dueDate != null ? s.primaryColor : const Color(0xFFAAAAAA),
+                  color: item.dueDate != null
+                      ? s.primaryColor
+                      : const Color(0xFFAAAAAA),
                   size: 20,
                 ),
                 onPressed: () => _showDatePickerForItem(item),
                 tooltip: '期限を設定',
               ),
               IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 20),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade300,
+                  size: 20,
+                ),
                 onPressed: () => _handleDelete(item),
                 tooltip: '削除',
               ),

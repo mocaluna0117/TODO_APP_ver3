@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum NotificationTiming {
   none('通知しない'),
@@ -55,6 +56,45 @@ class AppSettings {
     this.accentColor = const Color(0xFF7895CB),
     this.notificationTiming = NotificationTiming.hour1,
   });
+
+  Future<void> saveToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('appTitle', appTitle);
+    await prefs.setString('todoTabName', todoTabName);
+    await prefs.setString('doneTabName', doneTabName);
+    await prefs.setString('futureTabName', futureTabName);
+    await prefs.setBool('showDoneTab', showDoneTab);
+    await prefs.setBool('showFutureTab', showFutureTab);
+    await prefs.setBool('showDeleteConfirm', showDeleteConfirm);
+    await prefs.setInt('sortOrder', sortOrder.index);
+    await prefs.setInt('primaryColor', primaryColor.value);
+    await prefs.setInt('accentColor', accentColor.value);
+    await prefs.setInt('notificationTiming', notificationTiming.index);
+  }
+
+  Future<void> loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    appTitle = prefs.getString('appTitle') ?? appTitle;
+    todoTabName = prefs.getString('todoTabName') ?? todoTabName;
+    doneTabName = prefs.getString('doneTabName') ?? doneTabName;
+    futureTabName = prefs.getString('futureTabName') ?? futureTabName;
+    showDoneTab = prefs.getBool('showDoneTab') ?? showDoneTab;
+    showFutureTab = prefs.getBool('showFutureTab') ?? showFutureTab;
+    showDeleteConfirm = prefs.getBool('showDeleteConfirm') ?? showDeleteConfirm;
+    
+    if (prefs.containsKey('sortOrder')) {
+      sortOrder = SortOrder.values[prefs.getInt('sortOrder')!];
+    }
+    if (prefs.containsKey('primaryColor')) {
+      primaryColor = Color(prefs.getInt('primaryColor')!);
+    }
+    if (prefs.containsKey('accentColor')) {
+      accentColor = Color(prefs.getInt('accentColor')!);
+    }
+    if (prefs.containsKey('notificationTiming')) {
+      notificationTiming = NotificationTiming.values[prefs.getInt('notificationTiming')!];
+    }
+  }
 
   // 選択可能なカラーテーマ一覧
   static const List<ColorThemeOption> colorThemes = [
