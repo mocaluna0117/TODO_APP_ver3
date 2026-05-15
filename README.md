@@ -18,3 +18,8 @@ flutter run
 ## 作業をやめるとき
 devContainerではないホストのPC側のターミナルでdocker compose stopとかdownをすればいい
 そうすると、きちんとdevContainer側も接続が切れる
+
+## iphoneへのデプロイ
+cd todo_app && flutter run --release
+上記、コマンドでデバイスが見つからない場合は、flutter devicesで接続されているデバイスを確認し、
+flutter run -d <デバイスid> --releaseで実行
