@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -12,6 +13,8 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) return;
+
     // タイムゾーンの初期化
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
@@ -45,6 +48,8 @@ class NotificationService {
 
   // 通知をスケジュールする
   Future<void> scheduleNotification(TodoItem item, NotificationTiming timing) async {
+    if (kIsWeb) return;
+
     // 一旦既存の通知をキャンセル
     await cancelNotification(item.id);
 
@@ -104,11 +109,13 @@ class NotificationService {
 
   // 通知をキャンセル
   Future<void> cancelNotification(int id) async {
+    if (kIsWeb) return;
     await _notificationsPlugin.cancel(id);
   }
 
   // 全ての通知を再スケジュール（設定画面でタイミングが変更された時に使用）
   Future<void> rescheduleAll(List<TodoItem> items, NotificationTiming timing) async {
+    if (kIsWeb) return;
     await _notificationsPlugin.cancelAll();
     for (var item in items) {
       if (!item.isDone && item.dueDate != null) {

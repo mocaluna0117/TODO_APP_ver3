@@ -30,7 +30,7 @@ class TodoItem {
     this.isDone = false,
     this.category = 'todo',
     this.dueDate,
-  }) : id = id ?? DateTime.now().millisecondsSinceEpoch;
+  }) : id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
   bool get isOverdue =>
       dueDate != null &&
@@ -46,7 +46,7 @@ class TodoItem {
       };
 
   factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
-        id: json['id'],
+        id: (json['id'] as int) & 0x7FFFFFFF,
         title: json['title'],
         isDone: json['isDone'] ?? false,
         category: json['category'] ?? 'todo',
@@ -284,6 +284,15 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: textController,
                         autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) {
+                          _addItem(
+                            textController.text,
+                            category,
+                            dueDate: selectedDate,
+                          );
+                          Navigator.pop(context);
+                        },
                         decoration: InputDecoration(
                           hintText: 'タスクを入力...',
                           filled: true,
@@ -504,6 +513,7 @@ class _TodoHomePageState extends State<TodoHomePage>
             ),
           ),
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text(
@@ -560,6 +570,15 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: textController,
                         autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) {
+                          _editItem(
+                            item,
+                            textController.text,
+                            dueDate: selectedDate,
+                          );
+                          Navigator.pop(context);
+                        },
                         decoration: InputDecoration(
                           hintText: 'タスクを入力...',
                           filled: true,
