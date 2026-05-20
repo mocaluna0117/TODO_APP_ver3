@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'app_settings.dart';
-import 'notification_service.dart'; // 追加
 
 // ─────────────────────────────────────────────
 // 設定ページ
@@ -39,7 +38,10 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -52,7 +54,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           onSubmitted: (v) {
-            if (v.trim().isNotEmpty) { onSave(v.trim()); }
+            if (v.trim().isNotEmpty) {
+              onSave(v.trim());
+            }
             Navigator.pop(context);
           },
         ),
@@ -64,10 +68,18 @@ class _SettingsPageState extends State<SettingsPage> {
           TextButton(
             onPressed: () {
               final v = controller.text.trim();
-              if (v.isNotEmpty) { onSave(v); }
+              if (v.isNotEmpty) {
+                onSave(v);
+              }
               Navigator.pop(context);
             },
-            child: Text('保存', style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold)),
+            child: Text(
+              '保存',
+              style: TextStyle(
+                color: s.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -86,226 +98,309 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: const Color(0xFFF5F5FA),
       body: SafeArea(
         child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          // ── アプリ名 ──
-          _buildSectionHeader('アプリ名'),
-          _buildCard(
-            children: [
-              ListTile(
-                leading: Icon(Icons.title, color: s.primaryColor),
-                title: const Text('アプリタイトル'),
-                subtitle: Text(s.appTitle),
-                trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                onTap: () => _showTextEditDialog(
-                  title: 'アプリタイトルを変更',
-                  currentValue: s.appTitle,
-                  onSave: (v) { s.appTitle = v; _notify(); },
-                ),
-              ),
-            ],
-          ),
-
-          // ── タブ設定 ──
-          _buildSectionHeader('タブ設定'),
-          _buildCard(
-            children: [
-              // やること（常にON）
-              ListTile(
-                leading: Icon(Icons.inbox, color: s.primaryColor),
-                title: Text(s.todoTabName),
-                subtitle: const Text('常に表示'),
-                trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                onTap: () => _showTextEditDialog(
-                  title: 'タブ名を変更',
-                  currentValue: s.todoTabName,
-                  onSave: (v) { s.todoTabName = v; _notify(); },
-                ),
-              ),
-              _divider(),
-              // 完了済み
-              SwitchListTile(
-                secondary: Icon(Icons.check_circle_outline, color: s.primaryColor),
-                title: Text(s.doneTabName),
-                subtitle: const Text('タブの表示/非表示'),
-                value: s.showDoneTab,
-                activeColor: s.primaryColor,
-                onChanged: (v) { s.showDoneTab = v; _notify(); },
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 56, right: 16, bottom: 8),
-                child: InkWell(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
+            // ── アプリ名 ──
+            _buildSectionHeader('アプリ名'),
+            _buildCard(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.title, color: s.primaryColor),
+                  title: const Text('アプリタイトル'),
+                  subtitle: Text(s.appTitle),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey.shade400,
+                  ),
                   onTap: () => _showTextEditDialog(
-                    title: 'タブ名を変更',
-                    currentValue: s.doneTabName,
-                    onSave: (v) { s.doneTabName = v; _notify(); },
-                  ),
-                  child: Row(
-                    children: [
-                      Text('名前を変更', style: TextStyle(color: s.accentColor, fontSize: 13)),
-                      const SizedBox(width: 4),
-                      Icon(Icons.edit, size: 14, color: s.accentColor),
-                    ],
-                  ),
-                ),
-              ),
-              _divider(),
-              // 今後やりたいこと
-              SwitchListTile(
-                secondary: Icon(Icons.lightbulb_outline, color: s.primaryColor),
-                title: Text(s.futureTabName),
-                subtitle: const Text('タブの表示/非表示'),
-                value: s.showFutureTab,
-                activeColor: s.primaryColor,
-                onChanged: (v) { s.showFutureTab = v; _notify(); },
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 56, right: 16, bottom: 8),
-                child: InkWell(
-                  onTap: () => _showTextEditDialog(
-                    title: 'タブ名を変更',
-                    currentValue: s.futureTabName,
-                    onSave: (v) { s.futureTabName = v; _notify(); },
-                  ),
-                  child: Row(
-                    children: [
-                      Text('名前を変更', style: TextStyle(color: s.accentColor, fontSize: 13)),
-                      const SizedBox(width: 4),
-                      Icon(Icons.edit, size: 14, color: s.accentColor),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // ── 動作設定 ──
-          _buildSectionHeader('動作設定'),
-          _buildCard(
-            children: [
-              SwitchListTile(
-                secondary: Icon(Icons.warning_amber_rounded, color: s.primaryColor),
-                title: const Text('削除時の確認ダイアログ'),
-                subtitle: const Text('削除前に確認を表示する'),
-                value: s.showDeleteConfirm,
-                activeColor: s.primaryColor,
-                onChanged: (v) { s.showDeleteConfirm = v; _notify(); },
-              ),
-              _divider(),
-              ListTile(
-                leading: Icon(Icons.notifications_active, color: s.primaryColor),
-                title: const Text('期限の通知タイミング'),
-                trailing: DropdownButton<NotificationTiming>(
-                  value: s.notificationTiming,
-                  underline: const SizedBox(),
-                  icon: const Icon(Icons.arrow_drop_down),
-                  items: NotificationTiming.values.map((timing) {
-                    return DropdownMenuItem(
-                      value: timing,
-                      child: Text(timing.label),
-                    );
-                  }).toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      s.notificationTiming = v;
+                    title: 'アプリタイトルを変更',
+                    currentValue: s.appTitle,
+                    onSave: (v) {
+                      s.appTitle = v;
                       _notify();
-                      // 通知設定が変更されたら親に通知を再スケジュールさせるフラグとしても使えるが
-                      // ここでは直接呼ばず、親が戻ってきた時にrescheduleAllを呼ぶのが良い
-                    }
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // ── タブ設定 ──
+            _buildSectionHeader('タブ設定'),
+            _buildCard(
+              children: [
+                // やること（常にON）
+                ListTile(
+                  leading: Icon(Icons.inbox, color: s.primaryColor),
+                  title: Text(s.todoTabName),
+                  subtitle: const Text('常に表示'),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey.shade400,
+                  ),
+                  onTap: () => _showTextEditDialog(
+                    title: 'タブ名を変更',
+                    currentValue: s.todoTabName,
+                    onSave: (v) {
+                      s.todoTabName = v;
+                      _notify();
+                    },
+                  ),
+                ),
+                _divider(),
+                // 完了済み
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.check_circle_outline,
+                    color: s.primaryColor,
+                  ),
+                  title: Text(s.doneTabName),
+                  subtitle: const Text('タブの表示/非表示'),
+                  value: s.showDoneTab,
+                  activeThumbColor: s.primaryColor,
+                  onChanged: (v) {
+                    s.showDoneTab = v;
+                    _notify();
                   },
                 ),
-              ),
-            ],
-          ),
-
-          // ── 並び順 ──
-          _buildSectionHeader('並び順'),
-          _buildCard(
-            children: [
-              RadioGroup<SortOrder>(
-                groupValue: s.sortOrder,
-                onChanged: (v) { if (v != null) { s.sortOrder = v; _notify(); } },
-                child: Column(
-                  children: [
-                    RadioListTile<SortOrder>(
-                      secondary: Icon(Icons.arrow_upward, color: s.primaryColor),
-                      title: const Text('期限が近い順（昇順）'),
-                      value: SortOrder.dueDateAsc,
-                      activeColor: s.primaryColor,
-                    ),
-                    _divider(),
-                    RadioListTile<SortOrder>(
-                      secondary: Icon(Icons.arrow_downward, color: s.primaryColor),
-                      title: const Text('期限が遠い順（降順）'),
-                      value: SortOrder.dueDateDesc,
-                      activeColor: s.primaryColor,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // ── カラーテーマ ──
-          _buildSectionHeader('カラーテーマ'),
-          _buildCard(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: AppSettings.colorThemes.map((theme) {
-                    final isSelected = s.primaryColor.value == theme.primary.value;
-                    return GestureDetector(
-                      onTap: () {
-                        s.primaryColor = theme.primary;
-                        s.accentColor = theme.accent;
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: 56,
+                    right: 16,
+                    bottom: 8,
+                  ),
+                  child: InkWell(
+                    onTap: () => _showTextEditDialog(
+                      title: 'タブ名を変更',
+                      currentValue: s.doneTabName,
+                      onSave: (v) {
+                        s.doneTabName = v;
                         _notify();
                       },
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [theme.primary, theme.accent],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              border: isSelected
-                                  ? Border.all(color: Colors.black87, width: 3)
-                                  : null,
-                              boxShadow: isSelected
-                                  ? [BoxShadow(color: theme.primary.withOpacity(0.4), blurRadius: 8)]
-                                  : null,
-                            ),
-                            child: isSelected
-                                ? const Icon(Icons.check, color: Colors.white, size: 24)
-                                : null,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            theme.name,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? theme.primary : Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '名前を変更',
+                          style: TextStyle(color: s.accentColor, fontSize: 13),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.edit, size: 14, color: s.accentColor),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
+                _divider(),
+                // 今後やりたいこと
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.lightbulb_outline,
+                    color: s.primaryColor,
+                  ),
+                  title: Text(s.futureTabName),
+                  subtitle: const Text('タブの表示/非表示'),
+                  value: s.showFutureTab,
+                  activeThumbColor: s.primaryColor,
+                  onChanged: (v) {
+                    s.showFutureTab = v;
+                    _notify();
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: 56,
+                    right: 16,
+                    bottom: 8,
+                  ),
+                  child: InkWell(
+                    onTap: () => _showTextEditDialog(
+                      title: 'タブ名を変更',
+                      currentValue: s.futureTabName,
+                      onSave: (v) {
+                        s.futureTabName = v;
+                        _notify();
+                      },
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '名前を変更',
+                          style: TextStyle(color: s.accentColor, fontSize: 13),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.edit, size: 14, color: s.accentColor),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ── 動作設定 ──
+            _buildSectionHeader('動作設定'),
+            _buildCard(
+              children: [
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.warning_amber_rounded,
+                    color: s.primaryColor,
+                  ),
+                  title: const Text('削除時の確認ダイアログ'),
+                  subtitle: const Text('削除前に確認を表示する'),
+                  value: s.showDeleteConfirm,
+                  activeThumbColor: s.primaryColor,
+                  onChanged: (v) {
+                    s.showDeleteConfirm = v;
+                    _notify();
+                  },
+                ),
+                _divider(),
+                ListTile(
+                  leading: Icon(
+                    Icons.notifications_active,
+                    color: s.primaryColor,
+                  ),
+                  title: const Text('期限の通知タイミング'),
+                  trailing: DropdownButton<NotificationTiming>(
+                    value: s.notificationTiming,
+                    underline: const SizedBox(),
+                    icon: const Icon(Icons.arrow_drop_down),
+                    items: NotificationTiming.values.map((timing) {
+                      return DropdownMenuItem(
+                        value: timing,
+                        child: Text(timing.label),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        s.notificationTiming = v;
+                        _notify();
+                        // 通知設定が変更されたら親に通知を再スケジュールさせるフラグとしても使えるが
+                        // ここでは直接呼ばず、親が戻ってきた時にrescheduleAllを呼ぶのが良い
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // ── 並び順 ──
+            _buildSectionHeader('並び順'),
+            _buildCard(
+              children: [
+                RadioGroup<SortOrder>(
+                  groupValue: s.sortOrder,
+                  onChanged: (v) {
+                    if (v != null) {
+                      s.sortOrder = v;
+                      _notify();
+                    }
+                  },
+                  child: Column(
+                    children: [
+                      RadioListTile<SortOrder>(
+                        secondary: Icon(
+                          Icons.arrow_upward,
+                          color: s.primaryColor,
+                        ),
+                        title: const Text('期限が近い順（昇順）'),
+                        value: SortOrder.dueDateAsc,
+                        activeColor: s.primaryColor,
+                      ),
+                      _divider(),
+                      RadioListTile<SortOrder>(
+                        secondary: Icon(
+                          Icons.arrow_downward,
+                          color: s.primaryColor,
+                        ),
+                        title: const Text('期限が遠い順（降順）'),
+                        value: SortOrder.dueDateDesc,
+                        activeColor: s.primaryColor,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // ── カラーテーマ ──
+            _buildSectionHeader('カラーテーマ'),
+            _buildCard(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: AppSettings.colorThemes.map((theme) {
+                      final isSelected =
+                          s.primaryColor.toARGB32() == theme.primary.toARGB32();
+                      return GestureDetector(
+                        onTap: () {
+                          s.primaryColor = theme.primary;
+                          s.accentColor = theme.accent;
+                          _notify();
+                        },
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [theme.primary, theme.accent],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                                border: isSelected
+                                    ? Border.all(
+                                        color: Colors.black87,
+                                        width: 3,
+                                      )
+                                    : null,
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: theme.primary.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                          blurRadius: 8,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 24,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              theme.name,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? theme.primary
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }
@@ -337,5 +432,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _divider() => Divider(height: 1, indent: 56, color: Colors.grey.shade200);
+  Widget _divider() =>
+      Divider(height: 1, indent: 56, color: Colors.grey.shade200);
 }

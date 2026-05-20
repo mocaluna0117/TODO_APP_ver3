@@ -7,4 +7,7 @@ export class CreateTodoInput {
 
   @Field(() => String, { nullable: true })
   description?: string;
+
+  @Field(() => String, { nullable: true })
+  picture?: string;
 }

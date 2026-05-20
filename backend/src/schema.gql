@@ -6,6 +6,7 @@ type Todo {
   id: Int!
   title: String!
   description: String
+  picture: String
   completed: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -28,4 +29,5 @@ type Mutation {
 input CreateTodoInput {
   title: String!
   description: String
+  picture: String
 }

@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'app_settings.dart';
@@ -23,6 +25,7 @@ class TodoItem {
   // category: 'todo' = やること, 'done' = 完了済み, 'future' = 今後やりたいこと
   String category;
   DateTime? dueDate;
+  String? imageBase64;
 
   TodoItem({
     int? id,
@@ -30,6 +33,7 @@ class TodoItem {
     this.isDone = false,
     this.category = 'todo',
     this.dueDate,
+    this.imageBase64,
   }) : id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
   bool get isOverdue =>
@@ -38,20 +42,22 @@ class TodoItem {
       dueDate!.isBefore(DateTime.now().copyWith(hour: 0, minute: 0, second: 0));
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'isDone': isDone,
-        'category': category,
-        'dueDate': dueDate?.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'isDone': isDone,
+    'category': category,
+    'dueDate': dueDate?.toIso8601String(),
+    'imageBase64': imageBase64,
+  };
 
   factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
-        id: (json['id'] as int) & 0x7FFFFFFF,
-        title: json['title'],
-        isDone: json['isDone'] ?? false,
-        category: json['category'] ?? 'todo',
-        dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
-      );
+    id: (json['id'] as int) & 0x7FFFFFFF,
+    title: json['title'],
+    isDone: json['isDone'] ?? false,
+    category: json['category'] ?? 'todo',
+    dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
+    imageBase64: json['imageBase64'] ?? json['picture'],
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -87,9 +93,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     if (!_isSettingsLoaded) {
       return const MaterialApp(
-        home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
@@ -150,6 +154,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     with TickerProviderStateMixin {
   TabController? _tabController;
   final List<TodoItem> _allItems = [];
+  final ImagePicker _imagePicker = ImagePicker();
 
   AppSettings get s => widget.settings;
 
@@ -182,7 +187,9 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
-    final String itemsJson = jsonEncode(_allItems.map((e) => e.toJson()).toList());
+    final String itemsJson = jsonEncode(
+      _allItems.map((e) => e.toJson()).toList(),
+    );
     await prefs.setString('todo_items', itemsJson);
   }
 
@@ -249,6 +256,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     final textController = TextEditingController();
     final category = _currentTabKey == 'done' ? 'todo' : _currentTabKey;
     DateTime? selectedDate;
+    String? selectedImageBase64;
 
     showModalBottomSheet(
       context: context,
@@ -290,6 +298,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                             textController.text,
                             category,
                             dueDate: selectedDate,
+                            imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
                         },
@@ -316,12 +325,20 @@ class _TodoHomePageState extends State<TodoHomePage>
                             setSheetState(() => selectedDate = null),
                       ),
                       const SizedBox(height: 12),
+                      _buildImagePickerRow(
+                        imageBase64: selectedImageBase64,
+                        onImageChanged: (imageBase64) => setSheetState(
+                          () => selectedImageBase64 = imageBase64,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: () {
                           _addItem(
                             textController.text,
                             category,
                             dueDate: selectedDate,
+                            imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
                         },
@@ -347,6 +364,27 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
+  Future<String?> _pickImageBase64() async {
+    final pickedImage = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      imageQuality: 85,
+    );
+    if (pickedImage == null) return null;
+
+    final bytes = await pickedImage.readAsBytes();
+    return base64Encode(bytes);
+  }
+
+  Uint8List? _decodeImage(String? imageBase64) {
+    if (imageBase64 == null || imageBase64.isEmpty) return null;
+    try {
+      return base64Decode(imageBase64);
+    } on FormatException {
+      return null;
+    }
+  }
+
   // ─── 期限選択行ウィジェット ───
   Widget _buildDatePickerRow({
     required DateTime? selectedDate,
@@ -363,7 +401,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           locale: const Locale('ja'),
         );
         if (pickedDate != null) {
-          if (!context.mounted) return;
+          if (!mounted) return;
           final pickedTime = await showTimePicker(
             context: context,
             initialTime: selectedDate != null
@@ -371,13 +409,15 @@ class _TodoHomePageState extends State<TodoHomePage>
                 : const TimeOfDay(hour: 9, minute: 0),
           );
           if (pickedTime != null) {
-            onDateSelected(DateTime(
-              pickedDate.year,
-              pickedDate.month,
-              pickedDate.day,
-              pickedTime.hour,
-              pickedTime.minute,
-            ));
+            onDateSelected(
+              DateTime(
+                pickedDate.year,
+                pickedDate.month,
+                pickedDate.day,
+                pickedTime.hour,
+                pickedTime.minute,
+              ),
+            );
           }
         }
       },
@@ -395,7 +435,10 @@ class _TodoHomePageState extends State<TodoHomePage>
             Expanded(
               child: Text(
                 selectedDate != null
-                    ? DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(selectedDate)
+                    ? DateFormat(
+                        'yyyy/MM/dd (E) HH:mm',
+                        'ja',
+                      ).format(selectedDate)
                     : '期限を設定（任意）',
                 style: TextStyle(
                   fontSize: 15,
@@ -414,13 +457,82 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
-  void _addItem(String title, String category, {DateTime? dueDate}) {
+  Widget _buildImagePickerRow({
+    required String? imageBase64,
+    required ValueChanged<String?> onImageChanged,
+  }) {
+    final imageBytes = _decodeImage(imageBase64);
+
+    return InkWell(
+      onTap: () async {
+        try {
+          final pickedImageBase64 = await _pickImageBase64();
+          if (pickedImageBase64 != null) {
+            onImageChanged(pickedImageBase64);
+          }
+        } catch (_) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('画像を選択できませんでした')));
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5FA),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.image_outlined, size: 20, color: s.primaryColor),
+            const SizedBox(width: 10),
+            if (imageBytes != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(
+                  imageBytes,
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                imageBytes != null ? '画像を変更' : '画像を添付（任意）',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: imageBytes != null ? Colors.black87 : Colors.grey,
+                ),
+              ),
+            ),
+            if (imageBytes != null)
+              GestureDetector(
+                onTap: () => onImageChanged(null),
+                child: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addItem(
+    String title,
+    String category, {
+    DateTime? dueDate,
+    String? imageBase64,
+  }) {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
     final newItem = TodoItem(
       title: trimmed,
       category: category,
       dueDate: dueDate,
+      imageBase64: imageBase64,
     );
     setState(() {
       _allItems.add(newItem);
@@ -439,7 +551,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       locale: const Locale('ja'),
     );
     if (pickedDate != null) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       final pickedTime = await showTimePicker(
         context: context,
         initialTime: item.dueDate != null
@@ -535,6 +647,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _showEditDialog(TodoItem item) {
     final textController = TextEditingController(text: item.title);
     DateTime? selectedDate = item.dueDate;
+    String? selectedImageBase64 = item.imageBase64;
 
     showModalBottomSheet(
       context: context,
@@ -576,6 +689,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                             item,
                             textController.text,
                             dueDate: selectedDate,
+                            imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
                         },
@@ -602,12 +716,20 @@ class _TodoHomePageState extends State<TodoHomePage>
                             setSheetState(() => selectedDate = null),
                       ),
                       const SizedBox(height: 12),
+                      _buildImagePickerRow(
+                        imageBase64: selectedImageBase64,
+                        onImageChanged: (imageBase64) => setSheetState(
+                          () => selectedImageBase64 = imageBase64,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: () {
                           _editItem(
                             item,
                             textController.text,
                             dueDate: selectedDate,
+                            imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
                         },
@@ -633,12 +755,18 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
-  void _editItem(TodoItem item, String newTitle, {DateTime? dueDate}) {
+  void _editItem(
+    TodoItem item,
+    String newTitle, {
+    DateTime? dueDate,
+    String? imageBase64,
+  }) {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
     setState(() {
       item.title = trimmed;
       item.dueDate = dueDate;
+      item.imageBase64 = imageBase64;
     });
     _saveData();
     NotificationService().scheduleNotification(item, s.notificationTiming);
@@ -646,7 +774,6 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // ─── 設定ページへ遷移 ───
   void _openSettings() async {
-    final tabCountBefore = _activeTabKeys.length;
     final timingBefore = s.notificationTiming;
 
     await Navigator.push(
@@ -811,18 +938,7 @@ class _TodoHomePageState extends State<TodoHomePage>
               color: item.isDone ? Colors.grey : Colors.black87,
             ),
           ),
-          subtitle: item.dueDate != null
-              ? Text(
-                  '期限: ${DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: item.isOverdue ? Colors.red : Colors.grey.shade500,
-                    fontWeight: item.isOverdue
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                )
-              : null,
+          subtitle: _buildTodoSubtitle(item),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -865,6 +981,43 @@ class _TodoHomePageState extends State<TodoHomePage>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget? _buildTodoSubtitle(TodoItem item) {
+    final imageBytes = _decodeImage(item.imageBase64);
+    if (item.dueDate == null && imageBytes == null) return null;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (item.dueDate != null)
+            Text(
+              '期限: ${DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: item.isOverdue ? Colors.red : Colors.grey.shade500,
+                fontWeight: item.isOverdue
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+            ),
+          if (imageBytes != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.memory(
+                imageBytes,
+                width: 120,
+                height: 84,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

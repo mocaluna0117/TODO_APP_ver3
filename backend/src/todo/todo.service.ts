@@ -11,9 +11,9 @@ export class TodoService {
   }
 
   create(input: CreateTodoInput) {
-    const { title, description } = input;
+    const { title, description, picture } = input;
     return this.prisma.todo.create({
-      data: { title, description },
+      data: { title, description, picture },
     });
   }
 }

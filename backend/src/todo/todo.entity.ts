@@ -11,6 +11,9 @@ export class Todo {
   @Field(() => String, { nullable: true })
   description?: string;
 
+  @Field(() => String, { nullable: true })
+  picture?: string;
+
   @Field()
   completed: boolean;
 

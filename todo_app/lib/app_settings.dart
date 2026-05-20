@@ -67,8 +67,8 @@ class AppSettings {
     await prefs.setBool('showFutureTab', showFutureTab);
     await prefs.setBool('showDeleteConfirm', showDeleteConfirm);
     await prefs.setInt('sortOrder', sortOrder.index);
-    await prefs.setInt('primaryColor', primaryColor.value);
-    await prefs.setInt('accentColor', accentColor.value);
+    await prefs.setInt('primaryColor', primaryColor.toARGB32());
+    await prefs.setInt('accentColor', accentColor.toARGB32());
     await prefs.setInt('notificationTiming', notificationTiming.index);
   }
 
@@ -81,7 +81,7 @@ class AppSettings {
     showDoneTab = prefs.getBool('showDoneTab') ?? showDoneTab;
     showFutureTab = prefs.getBool('showFutureTab') ?? showFutureTab;
     showDeleteConfirm = prefs.getBool('showDeleteConfirm') ?? showDeleteConfirm;
-    
+
     if (prefs.containsKey('sortOrder')) {
       sortOrder = SortOrder.values[prefs.getInt('sortOrder')!];
     }
@@ -92,7 +92,8 @@ class AppSettings {
       accentColor = Color(prefs.getInt('accentColor')!);
     }
     if (prefs.containsKey('notificationTiming')) {
-      notificationTiming = NotificationTiming.values[prefs.getInt('notificationTiming')!];
+      notificationTiming =
+          NotificationTiming.values[prefs.getInt('notificationTiming')!];
     }
   }
 
