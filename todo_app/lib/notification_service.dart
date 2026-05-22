@@ -11,8 +11,11 @@ class NotificationService {
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  Future<void>? _initFuture;
 
-  Future<void> init() async {
+  Future<void> init() => _initFuture ??= _init();
+
+  Future<void> _init() async {
     if (kIsWeb) return;
 
     // タイムゾーンの初期化
@@ -35,7 +38,7 @@ class NotificationService {
       iOS: initSettingsIOS,
     );
 
-    await _notificationsPlugin.initialize(initSettings);
+    await _notificationsPlugin.initialize(settings: initSettings);
 
     // Android用のパーミッション要求 (Android 13+の通知権限とAndroid 12+のアラーム権限)
     final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
@@ -49,6 +52,8 @@ class NotificationService {
   // 通知をスケジュールする
   Future<void> scheduleNotification(TodoItem item, NotificationTiming timing) async {
     if (kIsWeb) return;
+
+    await init();
 
     // 一旦既存の通知をキャンセル
     await cancelNotification(item.id);
@@ -96,26 +101,26 @@ class NotificationService {
     );
 
     await _notificationsPlugin.zonedSchedule(
-      item.id,
-      '期限が近づいています',
-      '「${item.title}」の期限が迫っています！',
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      details,
+      id: item.id,
+      title: '期限が近づいています',
+      body: '「${item.title}」の期限が迫っています！',
+      scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
   // 通知をキャンセル
   Future<void> cancelNotification(int id) async {
     if (kIsWeb) return;
-    await _notificationsPlugin.cancel(id);
+    await init();
+    await _notificationsPlugin.cancel(id: id);
   }
 
   // 全ての通知を再スケジュール（設定画面でタイミングが変更された時に使用）
   Future<void> rescheduleAll(List<TodoItem> items, NotificationTiming timing) async {
     if (kIsWeb) return;
+    await init();
     await _notificationsPlugin.cancelAll();
     for (var item in items) {
       if (!item.isDone && item.dueDate != null) {

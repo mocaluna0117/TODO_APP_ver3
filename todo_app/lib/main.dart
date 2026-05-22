@@ -9,9 +9,8 @@ import 'app_settings.dart';
 import 'settings_page.dart';
 import 'notification_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService().init();
   runApp(const MyApp());
 }
 
@@ -21,6 +20,7 @@ void main() async {
 class TodoItem {
   final int id;
   String title;
+  String? description;
   bool isDone;
   // category: 'todo' = やること, 'done' = 完了済み, 'future' = 今後やりたいこと
   String category;
@@ -30,6 +30,7 @@ class TodoItem {
   TodoItem({
     int? id,
     required this.title,
+    this.description,
     this.isDone = false,
     this.category = 'todo',
     this.dueDate,
@@ -44,6 +45,7 @@ class TodoItem {
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
+    'description': description,
     'isDone': isDone,
     'category': category,
     'dueDate': dueDate?.toIso8601String(),
@@ -53,6 +55,7 @@ class TodoItem {
   factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
     id: (json['id'] as int) & 0x7FFFFFFF,
     title: json['title'],
+    description: json['description'],
     isDone: json['isDone'] ?? false,
     category: json['category'] ?? 'todo',
     dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
@@ -254,6 +257,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   // ─── アイテム追加ダイアログ ───
   void _showAddDialog() {
     final textController = TextEditingController();
+    final descriptionController = TextEditingController();
     final category = _currentTabKey == 'done' ? 'todo' : _currentTabKey;
     DateTime? selectedDate;
     String? selectedImageBase64;
@@ -292,16 +296,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: textController,
                         autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) {
-                          _addItem(
-                            textController.text,
-                            category,
-                            dueDate: selectedDate,
-                            imageBase64: selectedImageBase64,
-                          );
-                          Navigator.pop(context);
-                        },
+                        textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
                           hintText: 'タスクを入力...',
                           filled: true,
@@ -314,6 +309,33 @@ class _TodoHomePageState extends State<TodoHomePage>
                             horizontal: 16,
                             vertical: 14,
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: descriptionController,
+                        textInputAction: TextInputAction.done,
+                        minLines: 2,
+                        maxLines: 4,
+                        onSubmitted: (_) {
+                          _addItem(
+                            textController.text,
+                            category,
+                            description: descriptionController.text,
+                            dueDate: selectedDate,
+                            imageBase64: selectedImageBase64,
+                          );
+                          Navigator.pop(context);
+                        },
+                        decoration: InputDecoration(
+                          hintText: '概要を入力（任意）',
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -337,6 +359,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                           _addItem(
                             textController.text,
                             category,
+                            description: descriptionController.text,
                             dueDate: selectedDate,
                             imageBase64: selectedImageBase64,
                           );
@@ -523,6 +546,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _addItem(
     String title,
     String category, {
+    String? description,
     DateTime? dueDate,
     String? imageBase64,
   }) {
@@ -530,6 +554,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     if (trimmed.isEmpty) return;
     final newItem = TodoItem(
       title: trimmed,
+      description: _normalizeOptionalText(description),
       category: category,
       dueDate: dueDate,
       imageBase64: imageBase64,
@@ -646,6 +671,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   // ─── 編集ダイアログ ───
   void _showEditDialog(TodoItem item) {
     final textController = TextEditingController(text: item.title);
+    final descriptionController = TextEditingController(
+      text: item.description ?? '',
+    );
     DateTime? selectedDate = item.dueDate;
     String? selectedImageBase64 = item.imageBase64;
 
@@ -683,16 +711,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: textController,
                         autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) {
-                          _editItem(
-                            item,
-                            textController.text,
-                            dueDate: selectedDate,
-                            imageBase64: selectedImageBase64,
-                          );
-                          Navigator.pop(context);
-                        },
+                        textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
                           hintText: 'タスクを入力...',
                           filled: true,
@@ -705,6 +724,33 @@ class _TodoHomePageState extends State<TodoHomePage>
                             horizontal: 16,
                             vertical: 14,
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: descriptionController,
+                        textInputAction: TextInputAction.done,
+                        minLines: 2,
+                        maxLines: 4,
+                        onSubmitted: (_) {
+                          _editItem(
+                            item,
+                            textController.text,
+                            description: descriptionController.text,
+                            dueDate: selectedDate,
+                            imageBase64: selectedImageBase64,
+                          );
+                          Navigator.pop(context);
+                        },
+                        decoration: InputDecoration(
+                          hintText: '概要を入力（任意）',
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -728,6 +774,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                           _editItem(
                             item,
                             textController.text,
+                            description: descriptionController.text,
                             dueDate: selectedDate,
                             imageBase64: selectedImageBase64,
                           );
@@ -758,6 +805,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _editItem(
     TodoItem item,
     String newTitle, {
+    String? description,
     DateTime? dueDate,
     String? imageBase64,
   }) {
@@ -765,6 +813,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     if (trimmed.isEmpty) return;
     setState(() {
       item.title = trimmed;
+      item.description = _normalizeOptionalText(description);
       item.dueDate = dueDate;
       item.imageBase64 = imageBase64;
     });
@@ -987,13 +1036,30 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   Widget? _buildTodoSubtitle(TodoItem item) {
     final imageBytes = _decodeImage(item.imageBase64);
-    if (item.dueDate == null && imageBytes == null) return null;
+    final description = item.description;
+    if (description == null && item.dueDate == null && imageBytes == null) {
+      return null;
+    }
 
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (description != null)
+            Text(
+              description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: item.isDone ? Colors.grey.shade500 : Colors.black54,
+              ),
+            ),
+          if (description != null &&
+              (item.dueDate != null || imageBytes != null))
+            const SizedBox(height: 8),
           if (item.dueDate != null)
             Text(
               '期限: ${DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!)}',
@@ -1020,5 +1086,11 @@ class _TodoHomePageState extends State<TodoHomePage>
         ],
       ),
     );
+  }
+
+  String? _normalizeOptionalText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
   }
 }
