@@ -878,8 +878,8 @@ class _TodoHomePageState extends State<TodoHomePage>
         ],
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.center,
+          isScrollable: false,
+          labelPadding: EdgeInsets.zero,
           tabs: _activeTabKeys
               .map(
                 (key) => Tab(
