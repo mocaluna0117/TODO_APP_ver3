@@ -296,7 +296,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: textController,
                         autofocus: true,
+                        keyboardType: TextInputType.text,
                         textInputAction: TextInputAction.next,
+                        hintLocales: const [Locale('ja', 'JP')],
                         decoration: InputDecoration(
                           hintText: 'タスクを入力...',
                           filled: true,
@@ -314,7 +316,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                       const SizedBox(height: 12),
                       TextField(
                         controller: descriptionController,
+                        keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.done,
+                        hintLocales: const [Locale('ja', 'JP')],
                         minLines: 2,
                         maxLines: 4,
                         onSubmitted: (_) {
