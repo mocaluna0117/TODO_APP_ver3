@@ -358,7 +358,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _showAddDialog() {
     final textController = TextEditingController();
     final descriptionController = TextEditingController();
-    final category = _currentTabKey == 'done' || _currentTabKey == 'today'
+    final isFromTodayTab = _currentTabKey == 'today';
+    final category = _currentTabKey == 'done' || isFromTodayTab
         ? 'todo'
         : _currentTabKey;
     DateTime? selectedDate;
@@ -465,13 +466,22 @@ class _TodoHomePageState extends State<TodoHomePage>
                         ),
                       ],
                       const SizedBox(height: 12),
-                      _buildDatePickerRow(
-                        selectedDate: selectedDate,
-                        onDateSelected: (date) =>
-                            setSheetState(() => selectedDate = date),
-                        onDateCleared: () =>
-                            setSheetState(() => selectedDate = null),
-                      ),
+                      if (isFromTodayTab)
+                        _buildTimeOnlyPickerRow(
+                          selectedDate: selectedDate,
+                          onTimeSelected: (date) =>
+                              setSheetState(() => selectedDate = date),
+                          onTimeCleared: () =>
+                              setSheetState(() => selectedDate = null),
+                        )
+                      else
+                        _buildDatePickerRow(
+                          selectedDate: selectedDate,
+                          onDateSelected: (date) =>
+                              setSheetState(() => selectedDate = date),
+                          onDateCleared: () =>
+                              setSheetState(() => selectedDate = null),
+                        ),
                       const SizedBox(height: 12),
                       _buildRecurrencePicker(
                         selectedRecurrenceRule: selectedRecurrenceRule,
@@ -606,6 +616,64 @@ class _TodoHomePageState extends State<TodoHomePage>
             if (selectedDate != null)
               GestureDetector(
                 onTap: onDateCleared,
+                child: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeOnlyPickerRow({
+    required DateTime? selectedDate,
+    required ValueChanged<DateTime> onTimeSelected,
+    required VoidCallback onTimeCleared,
+  }) {
+    return InkWell(
+      onTap: () async {
+        final pickedTime = await _pickDueTime(
+          selectedDate != null
+              ? TimeOfDay.fromDateTime(selectedDate)
+              : const TimeOfDay(hour: 9, minute: 0),
+        );
+        if (pickedTime != null) {
+          final today = DateTime.now();
+          onTimeSelected(
+            DateTime(
+              today.year,
+              today.month,
+              today.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            ),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5FA),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.access_time, size: 18, color: s.primaryColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                selectedDate != null
+                    ? DateFormat('HH:mm').format(selectedDate)
+                    : '時間を設定（任意）',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: selectedDate != null ? Colors.black87 : Colors.grey,
+                ),
+              ),
+            ),
+            if (selectedDate != null)
+              GestureDetector(
+                onTap: onTimeCleared,
                 child: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
               ),
           ],
