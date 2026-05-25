@@ -369,34 +369,37 @@ class _TodoHomePageState extends State<TodoHomePage>
     var selectedRecurrenceRule = RecurrenceRule.none;
     var selectedTaskPriority = TaskPriority.none;
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).viewInsets.bottom -
-                    16,
-              ),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            return Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 16,
+                  right: 16,
                 ),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                child: Material(
+                  color: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.85,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       Text(
                         '${_tabName(category)}を追加',
                         style: TextStyle(
@@ -534,7 +537,10 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
-            );
+            ),
+          ),
+        ),
+      );
           },
         );
       },
@@ -1530,32 +1536,35 @@ class _TodoHomePageState extends State<TodoHomePage>
       text: item.description ?? '',
     );
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
       builder: (context) {
-        return ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height -
-                MediaQuery.of(context).padding.top -
-                MediaQuery.of(context).viewInsets.bottom -
-                16,
-          ),
-          child: Container(
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              right: 16,
             ),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+            child: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                   Text(
                     '「${s.todoTabName}」に移動',
                     style: TextStyle(
@@ -1638,7 +1647,10 @@ class _TodoHomePageState extends State<TodoHomePage>
               ),
             ),
           ),
-        );
+        ),
+      ),
+    ),
+  );
       },
     );
   }
@@ -1651,34 +1663,37 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
     var selectedTaskPriority = item.priority;
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).viewInsets.bottom -
-                    16,
-              ),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            return Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 16,
+                  right: 16,
                 ),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                child: Material(
+                  color: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.85,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       Text(
                         '「${s.futureTabName}」に移動',
                         style: TextStyle(
@@ -1763,7 +1778,10 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
-            );
+            ),
+          ),
+        ),
+      );
           },
         );
       },
@@ -1783,34 +1801,37 @@ class _TodoHomePageState extends State<TodoHomePage>
     var selectedRecurrenceRule = item.recurrenceRule;
     var selectedTaskPriority = item.priority;
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).viewInsets.bottom -
-                    16,
-              ),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            return Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 16,
+                  right: 16,
                 ),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                child: Material(
+                  color: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.85,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       Text(
                         'タスクを編集',
                         style: TextStyle(
@@ -1942,7 +1963,10 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
-            );
+            ),
+          ),
+        ),
+      );
           },
         );
       },
