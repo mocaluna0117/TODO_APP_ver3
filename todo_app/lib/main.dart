@@ -1055,6 +1055,29 @@ class _TodoHomePageState extends State<TodoHomePage>
     }
   }
 
+  void _showTimePickerForItem(TodoItem item) async {
+    final now = DateTime.now();
+    final pickedTime = await _pickDueTime(
+      item.dueDate != null
+          ? TimeOfDay.fromDateTime(item.dueDate!)
+          : const TimeOfDay(hour: 9, minute: 0),
+      minimumDateTime: now,
+    );
+    if (pickedTime != null) {
+      setState(() {
+        item.dueDate = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+      });
+      _saveData();
+      NotificationService().scheduleNotification(item, s.notificationTiming);
+    }
+  }
+
   void _toggleItem(TodoItem item) {
     if (!item.isDone && item.isRecurring && item.dueDate != null) {
       late final DateTime nextDueDate;
@@ -2214,17 +2237,30 @@ class _TodoHomePageState extends State<TodoHomePage>
                   onPressed: () => _showMoveToFutureDialog(item),
                   tooltip: 'やりたいことに戻す',
                 ),
-              IconButton(
-                icon: Icon(
-                  Icons.calendar_today,
-                  color: item.dueDate != null
-                      ? s.primaryColor
-                      : const Color(0xFFAAAAAA),
-                  size: 20,
+              if (category == 'today')
+                IconButton(
+                  icon: Icon(
+                    Icons.access_time,
+                    color: item.dueDate != null
+                        ? s.primaryColor
+                        : const Color(0xFFAAAAAA),
+                    size: 20,
+                  ),
+                  onPressed: () => _showTimePickerForItem(item),
+                  tooltip: '時間を設定',
+                )
+              else
+                IconButton(
+                  icon: Icon(
+                    Icons.calendar_today,
+                    color: item.dueDate != null
+                        ? s.primaryColor
+                        : const Color(0xFFAAAAAA),
+                    size: 20,
+                  ),
+                  onPressed: () => _showDatePickerForItem(item),
+                  tooltip: '期限を設定',
                 ),
-                onPressed: () => _showDatePickerForItem(item),
-                tooltip: '期限を設定',
-              ),
               IconButton(
                 icon: Icon(
                   Icons.delete_outline,
