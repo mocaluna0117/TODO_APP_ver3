@@ -483,12 +483,14 @@ class _TodoHomePageState extends State<TodoHomePage>
                           onDateCleared: () =>
                               setSheetState(() => selectedDate = null),
                         ),
-                      const SizedBox(height: 12),
-                      _buildRecurrencePicker(
-                        selectedRecurrenceRule: selectedRecurrenceRule,
-                        onChanged: (rule) =>
-                            setSheetState(() => selectedRecurrenceRule = rule),
-                      ),
+                      if (!isFromTodayTab) ...[
+                        const SizedBox(height: 12),
+                        _buildRecurrencePicker(
+                          selectedRecurrenceRule: selectedRecurrenceRule,
+                          onChanged: (rule) =>
+                              setSheetState(() => selectedRecurrenceRule = rule),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       _buildImagePickerRow(
                         imageBase64: selectedImageBase64,
