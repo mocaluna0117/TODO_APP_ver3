@@ -205,7 +205,8 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // 有効なタブのカテゴリキーリスト
   List<String> get _activeTabKeys {
-    final keys = <String>['todo', 'today'];
+    final keys = <String>['todo'];
+    if (s.showTodayTab) keys.add('today');
     if (s.showDoneTab) keys.add('done');
     if (s.showFutureTab) keys.add('future');
     return keys;
@@ -267,7 +268,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       case 'todo':
         return s.todoTabName;
       case 'today':
-        return '今日';
+        return s.todayTabName;
       case 'done':
         return s.doneTabName;
       case 'future':
@@ -1642,7 +1643,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                 : category == 'done'
                 ? '${s.doneTabName}のタスクはありません'
                 : category == 'today'
-                ? '今日のタスクはありません'
+                ? '${s.todayTabName}のタスクはありません'
                 : '${_tabName(category)}を追加しましょう',
             style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
           ),

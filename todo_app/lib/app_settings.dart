@@ -23,10 +23,12 @@ class AppSettings {
 
   // タブ名
   String todoTabName;
+  String todayTabName;
   String doneTabName;
   String futureTabName;
 
   // タブ表示ON/OFF（todoは常にtrue）
+  bool showTodayTab;
   bool showDoneTab;
   bool showFutureTab;
 
@@ -49,8 +51,10 @@ class AppSettings {
   AppSettings({
     this.appTitle = 'TODO',
     this.todoTabName = 'やること',
+    this.todayTabName = '今日やること',
     this.doneTabName = '完了済み',
     this.futureTabName = '今後やりたいこと',
+    this.showTodayTab = true,
     this.showDoneTab = true,
     this.showFutureTab = true,
     this.showDeleteConfirm = true,
@@ -65,8 +69,10 @@ class AppSettings {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('appTitle', appTitle);
     await prefs.setString('todoTabName', todoTabName);
+    await prefs.setString('todayTabName', todayTabName);
     await prefs.setString('doneTabName', doneTabName);
     await prefs.setString('futureTabName', futureTabName);
+    await prefs.setBool('showTodayTab', showTodayTab);
     await prefs.setBool('showDoneTab', showDoneTab);
     await prefs.setBool('showFutureTab', showFutureTab);
     await prefs.setBool('showDeleteConfirm', showDeleteConfirm);
@@ -81,8 +87,10 @@ class AppSettings {
     final prefs = await SharedPreferences.getInstance();
     appTitle = prefs.getString('appTitle') ?? appTitle;
     todoTabName = prefs.getString('todoTabName') ?? todoTabName;
+    todayTabName = prefs.getString('todayTabName') ?? todayTabName;
     doneTabName = prefs.getString('doneTabName') ?? doneTabName;
     futureTabName = prefs.getString('futureTabName') ?? futureTabName;
+    showTodayTab = prefs.getBool('showTodayTab') ?? showTodayTab;
     showDoneTab = prefs.getBool('showDoneTab') ?? showDoneTab;
     showFutureTab = prefs.getBool('showFutureTab') ?? showFutureTab;
     showDeleteConfirm = prefs.getBool('showDeleteConfirm') ?? showDeleteConfirm;

@@ -212,6 +212,46 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 _divider(),
+                // 今日やること
+                SwitchListTile(
+                  secondary: Icon(Icons.today_outlined, color: s.primaryColor),
+                  title: Text(s.todayTabName),
+                  subtitle: const Text('タブの表示/非表示'),
+                  value: s.showTodayTab,
+                  activeThumbColor: s.primaryColor,
+                  onChanged: (v) {
+                    s.showTodayTab = v;
+                    _notify();
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: 56,
+                    right: 16,
+                    bottom: 8,
+                  ),
+                  child: InkWell(
+                    onTap: () => _showTextEditDialog(
+                      title: 'タブ名を変更',
+                      currentValue: s.todayTabName,
+                      onSave: (v) {
+                        s.todayTabName = v;
+                        _notify();
+                      },
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '名前を変更',
+                          style: TextStyle(color: s.accentColor, fontSize: 13),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.edit, size: 14, color: s.accentColor),
+                      ],
+                    ),
+                  ),
+                ),
+                _divider(),
                 // 完了済み
                 SwitchListTile(
                   secondary: Icon(
