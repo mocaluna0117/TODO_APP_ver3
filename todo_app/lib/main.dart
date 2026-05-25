@@ -23,6 +23,29 @@ enum RecurrenceRule {
   const RecurrenceRule(this.label);
 }
 
+enum TaskPriority {
+  none('なし'),
+  low('低'),
+  medium('中'),
+  high('高');
+
+  final String label;
+  const TaskPriority(this.label);
+}
+
+Color priorityColor(TaskPriority priority) {
+  switch (priority) {
+    case TaskPriority.high:
+      return Colors.red.shade400;
+    case TaskPriority.medium:
+      return Colors.orange.shade400;
+    case TaskPriority.low:
+      return Colors.blue.shade400;
+    case TaskPriority.none:
+      return Colors.grey;
+  }
+}
+
 String? normalizeTaskTag(Object? value) {
   final tag = value?.toString().trim();
   if (tag == null || tag.isEmpty) return null;
@@ -38,6 +61,15 @@ RecurrenceRule normalizeRecurrenceRule(Object? value) {
     }
   }
   return RecurrenceRule.none;
+}
+
+TaskPriority normalizeTaskPriority(Object? value) {
+  final rawValue = value?.toString();
+  if (rawValue == null || rawValue.isEmpty) return TaskPriority.none;
+  for (final p in TaskPriority.values) {
+    if (rawValue == p.name || rawValue == p.index.toString()) return p;
+  }
+  return TaskPriority.none;
 }
 
 void main() {
@@ -59,6 +91,7 @@ class TodoItem {
   DateTime? dueDate;
   RecurrenceRule recurrenceRule;
   String? imageBase64;
+  TaskPriority priority;
 
   TodoItem({
     int? id,
@@ -70,6 +103,7 @@ class TodoItem {
     this.dueDate,
     this.recurrenceRule = RecurrenceRule.none,
     this.imageBase64,
+    this.priority = TaskPriority.none,
   }) : id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
   bool get isRecurring => recurrenceRule != RecurrenceRule.none;
@@ -89,6 +123,7 @@ class TodoItem {
     'dueDate': dueDate?.toIso8601String(),
     'recurrenceRule': recurrenceRule.name,
     'imageBase64': imageBase64,
+    'priority': priority.name,
   };
 
   factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
@@ -101,6 +136,7 @@ class TodoItem {
     dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
     recurrenceRule: normalizeRecurrenceRule(json['recurrenceRule']),
     imageBase64: json['imageBase64'] ?? json['picture'],
+    priority: normalizeTaskPriority(json['priority']),
   );
 }
 
@@ -329,6 +365,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     String? selectedImageBase64;
     String? selectedTaskTag;
     var selectedRecurrenceRule = RecurrenceRule.none;
+    var selectedTaskPriority = TaskPriority.none;
 
     showModalBottomSheet(
       context: context,
@@ -398,6 +435,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                             dueDate: selectedDate,
                             recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
+                            priority: selectedTaskPriority,
                           );
                           Navigator.pop(context);
                         },
@@ -418,6 +456,14 @@ class _TodoHomePageState extends State<TodoHomePage>
                         onChanged: (tag) =>
                             setSheetState(() => selectedTaskTag = tag),
                       ),
+                      if (category == 'future') ...[
+                        const SizedBox(height: 12),
+                        _buildTaskPriorityPicker(
+                          selectedTaskPriority: selectedTaskPriority,
+                          onChanged: (p) =>
+                              setSheetState(() => selectedTaskPriority = p),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       _buildDatePickerRow(
                         selectedDate: selectedDate,
@@ -450,6 +496,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                             dueDate: selectedDate,
                             recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
+                            priority: selectedTaskPriority,
                           );
                           Navigator.pop(context);
                         },
@@ -777,6 +824,48 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
+  Widget _buildTaskPriorityPicker({
+    required TaskPriority selectedTaskPriority,
+    required ValueChanged<TaskPriority> onChanged,
+  }) {
+    return DropdownButtonFormField<TaskPriority>(
+      initialValue: selectedTaskPriority,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: '優先度',
+        prefixIcon: Icon(Icons.flag_outlined, color: s.primaryColor),
+        filled: true,
+        fillColor: const Color(0xFFF5F5FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      items: TaskPriority.values
+          .map(
+            (p) => DropdownMenuItem(
+              value: p,
+              child: Row(
+                children: [
+                  if (p != TaskPriority.none)
+                    Icon(Icons.flag, size: 16, color: priorityColor(p)),
+                  if (p != TaskPriority.none) const SizedBox(width: 6),
+                  Text(p.label),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (p) {
+        if (p != null) onChanged(p);
+      },
+    );
+  }
+
   void _addItem(
     String title,
     String category, {
@@ -785,6 +874,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     DateTime? dueDate,
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
     String? imageBase64,
+    TaskPriority priority = TaskPriority.none,
   }) {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
@@ -796,6 +886,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       dueDate: dueDate,
       recurrenceRule: recurrenceRule,
       imageBase64: imageBase64,
+      priority: priority,
     );
     setState(() {
       _allItems.add(newItem);
@@ -1249,6 +1340,241 @@ class _TodoHomePageState extends State<TodoHomePage>
     return false;
   }
 
+  // ─── やることに移動ダイアログ ───
+  void _showMoveToTodoDialog(TodoItem item) {
+    final textController = TextEditingController(text: item.title);
+    final descriptionController = TextEditingController(
+      text: item.description ?? '',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '「${s.todoTabName}」に追加',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: s.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '優先度はリセットされます',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: textController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      hintText: 'タスクを入力...',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    textInputAction: TextInputAction.done,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: '概要を入力（任意）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      final trimmed = textController.text.trim();
+                      if (trimmed.isEmpty) return;
+                      setState(() {
+                        item.title = trimmed;
+                        item.description =
+                            _normalizeOptionalText(descriptionController.text);
+                        item.category = 'todo';
+                        item.priority = TaskPriority.none;
+                      });
+                      _saveData();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: s.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      '「${s.todoTabName}」に追加',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── やりたいことに戻すダイアログ ───
+  void _showMoveToFutureDialog(TodoItem item) {
+    final textController = TextEditingController(text: item.title);
+    final descriptionController = TextEditingController(
+      text: item.description ?? '',
+    );
+    var selectedTaskPriority = item.priority;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '「${s.futureTabName}」に移動',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: s.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: textController,
+                        autofocus: true,
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          hintText: 'タスクを入力...',
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: descriptionController,
+                        textInputAction: TextInputAction.done,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: '概要を入力（任意）',
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTaskPriorityPicker(
+                        selectedTaskPriority: selectedTaskPriority,
+                        onChanged: (p) =>
+                            setSheetState(() => selectedTaskPriority = p),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          final trimmed = textController.text.trim();
+                          if (trimmed.isEmpty) return;
+                          setState(() {
+                            item.title = trimmed;
+                            item.description = _normalizeOptionalText(
+                              descriptionController.text,
+                            );
+                            item.category = 'future';
+                            item.priority = selectedTaskPriority;
+                          });
+                          _saveData();
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: s.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          '「${s.futureTabName}」に移動',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // ─── 編集ダイアログ ───
   void _showEditDialog(TodoItem item) {
     final textController = TextEditingController(text: item.title);
@@ -1259,6 +1585,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     String? selectedImageBase64 = item.imageBase64;
     var selectedTaskTag = item.taskTag;
     var selectedRecurrenceRule = item.recurrenceRule;
+    var selectedTaskPriority = item.priority;
 
     showModalBottomSheet(
       context: context,
@@ -1324,6 +1651,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                             dueDate: selectedDate,
                             recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
+                            priority: selectedTaskPriority,
                           );
                           Navigator.pop(context);
                         },
@@ -1344,6 +1672,14 @@ class _TodoHomePageState extends State<TodoHomePage>
                         onChanged: (tag) =>
                             setSheetState(() => selectedTaskTag = tag),
                       ),
+                      if (item.category == 'future') ...[
+                        const SizedBox(height: 12),
+                        _buildTaskPriorityPicker(
+                          selectedTaskPriority: selectedTaskPriority,
+                          onChanged: (p) =>
+                              setSheetState(() => selectedTaskPriority = p),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       _buildDatePickerRow(
                         selectedDate: selectedDate,
@@ -1376,6 +1712,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                             dueDate: selectedDate,
                             recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
+                            priority: selectedTaskPriority,
                           );
                           Navigator.pop(context);
                         },
@@ -1409,6 +1746,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     DateTime? dueDate,
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
     String? imageBase64,
+    TaskPriority priority = TaskPriority.none,
   }) {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
@@ -1420,6 +1758,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       item.dueDate = dueDate;
       item.recurrenceRule = recurrenceRule;
       item.imageBase64 = imageBase64;
+      item.priority = priority;
     });
     _saveData();
     if (item.dueDate == null && hadDueDate) {
@@ -1534,7 +1873,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     vertical: 12,
                   ),
                   itemCount: items.length,
-                  itemBuilder: (_, i) => _buildTodoCard(items[i]),
+                  itemBuilder: (_, i) => _buildTodoCard(items[i], category),
                 ),
         ),
       ],
@@ -1653,7 +1992,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   }
 
   // ─── 個別カード ───
-  Widget _buildTodoCard(TodoItem item) {
+  Widget _buildTodoCard(TodoItem item, String category) {
     return Dismissible(
       key: ValueKey(item),
       direction: DismissDirection.endToStart,
@@ -1717,6 +2056,26 @@ class _TodoHomePageState extends State<TodoHomePage>
                   onPressed: () => _showEditDialog(item),
                   tooltip: '編集',
                 ),
+              if (!item.isDone && item.category == 'future')
+                IconButton(
+                  icon: Icon(
+                    Icons.add_task,
+                    color: s.primaryColor,
+                    size: 20,
+                  ),
+                  onPressed: () => _showMoveToTodoDialog(item),
+                  tooltip: 'やることに追加',
+                ),
+              if (!item.isDone && item.category == 'todo')
+                IconButton(
+                  icon: Icon(
+                    Icons.lightbulb_outline,
+                    color: Colors.orange.shade400,
+                    size: 20,
+                  ),
+                  onPressed: () => _showMoveToFutureDialog(item),
+                  tooltip: 'やりたいことに戻す',
+                ),
               IconButton(
                 icon: Icon(
                   Icons.calendar_today,
@@ -1747,8 +2106,11 @@ class _TodoHomePageState extends State<TodoHomePage>
   Widget? _buildTodoSubtitle(TodoItem item) {
     final imageBytes = _decodeImage(item.imageBase64);
     final description = item.description;
+    final hasTaskPriority =
+        item.category == 'future' && item.priority != TaskPriority.none;
     if (item.taskTag == null &&
         !item.isRecurring &&
+        !hasTaskPriority &&
         description == null &&
         item.dueDate == null &&
         imageBytes == null) {
@@ -1760,8 +2122,9 @@ class _TodoHomePageState extends State<TodoHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (item.taskTag != null || item.isRecurring) _buildTaskLabels(item),
-          if ((item.taskTag != null || item.isRecurring) &&
+          if (item.taskTag != null || item.isRecurring || hasTaskPriority)
+            _buildTaskLabels(item, hasTaskPriority: hasTaskPriority),
+          if ((item.taskTag != null || item.isRecurring || hasTaskPriority) &&
               (description != null ||
                   item.dueDate != null ||
                   imageBytes != null))
@@ -1808,14 +2171,45 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
-  Widget _buildTaskLabels(TodoItem item) {
+  Widget _buildTaskLabels(TodoItem item, {bool hasTaskPriority = false}) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
+        if (hasTaskPriority) _buildTaskPriorityLabel(item),
         if (item.taskTag != null) _buildTaskTagLabel(item),
         if (item.isRecurring) _buildRecurrenceLabel(item),
       ],
+    );
+  }
+
+  Widget _buildTaskPriorityLabel(TodoItem item) {
+    final color = priorityColor(item.priority);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: item.isDone ? 0.08 : 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.flag,
+            size: 11,
+            color: item.isDone ? Colors.grey.shade500 : color,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            item.priority.label,
+            style: TextStyle(
+              color: item.isDone ? Colors.grey.shade500 : color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
