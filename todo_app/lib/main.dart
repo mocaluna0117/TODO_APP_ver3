@@ -2309,7 +2309,7 @@ class _TodoHomePageState extends State<TodoHomePage>
             const SizedBox(height: 8),
           if (item.dueDate != null)
             Text(
-              '期限: ${DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!)}',
+              DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!),
               style: TextStyle(
                 fontSize: 12,
                 color: item.isOverdue ? Colors.red : Colors.grey.shade500,
