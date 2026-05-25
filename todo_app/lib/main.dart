@@ -379,7 +379,7 @@ class _TodoHomePageState extends State<TodoHomePage>
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 8,
+                  top: MediaQuery.of(context).padding.top + 0,
                   left: 16,
                   right: 16,
                 ),
@@ -435,7 +435,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.done,
                         hintLocales: const [Locale('ja', 'JP')],
-                        minLines: 2,
+                        minLines: 1,
                         maxLines: 4,
                         onSubmitted: (_) {
                           _addItem(
@@ -1601,7 +1601,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                   TextField(
                     controller: descriptionController,
                     textInputAction: TextInputAction.done,
-                    minLines: 2,
+                    minLines: 1,
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: '概要を入力（任意）',
@@ -1725,7 +1725,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: descriptionController,
                         textInputAction: TextInputAction.done,
-                        minLines: 2,
+                        minLines: 1,
                         maxLines: 4,
                         decoration: InputDecoration(
                           hintText: '概要を入力（任意）',
@@ -1863,7 +1863,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                       TextField(
                         controller: descriptionController,
                         textInputAction: TextInputAction.done,
-                        minLines: 2,
+                        minLines: 1,
                         maxLines: 4,
                         onSubmitted: (_) {
                           _editItem(
