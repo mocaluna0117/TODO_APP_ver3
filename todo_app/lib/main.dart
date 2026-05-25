@@ -1644,7 +1644,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   }
 
   // ─── 編集ダイアログ ───
-  void _showEditDialog(TodoItem item) {
+  void _showEditDialog(TodoItem item, {String tabKey = ''}) {
+    final isFromTodayTab = tabKey == 'today';
     final textController = TextEditingController(text: item.title);
     final descriptionController = TextEditingController(
       text: item.description ?? '',
@@ -1749,13 +1750,22 @@ class _TodoHomePageState extends State<TodoHomePage>
                         ),
                       ],
                       const SizedBox(height: 12),
-                      _buildDatePickerRow(
-                        selectedDate: selectedDate,
-                        onDateSelected: (date) =>
-                            setSheetState(() => selectedDate = date),
-                        onDateCleared: () =>
-                            setSheetState(() => selectedDate = null),
-                      ),
+                      if (isFromTodayTab)
+                        _buildTimeOnlyPickerRow(
+                          selectedDate: selectedDate,
+                          onTimeSelected: (date) =>
+                              setSheetState(() => selectedDate = date),
+                          onTimeCleared: () =>
+                              setSheetState(() => selectedDate = null),
+                        )
+                      else
+                        _buildDatePickerRow(
+                          selectedDate: selectedDate,
+                          onDateSelected: (date) =>
+                              setSheetState(() => selectedDate = date),
+                          onDateCleared: () =>
+                              setSheetState(() => selectedDate = null),
+                        ),
                       const SizedBox(height: 12),
                       _buildRecurrencePicker(
                         selectedRecurrenceRule: selectedRecurrenceRule,
@@ -2085,7 +2095,7 @@ class _TodoHomePageState extends State<TodoHomePage>
             horizontal: 16,
             vertical: 4,
           ),
-          onTap: () => _showEditDialog(item),
+          onTap: () => _showEditDialog(item, tabKey: category),
           leading: Checkbox(
             value: item.isDone,
             onChanged: (_) => _toggleItem(item),
@@ -2121,7 +2131,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     color: Color(0xFFAAAAAA),
                     size: 20,
                   ),
-                  onPressed: () => _showEditDialog(item),
+                  onPressed: () => _showEditDialog(item, tabKey: category),
                   tooltip: '編集',
                 ),
               if (!item.isDone && item.category == 'future')
