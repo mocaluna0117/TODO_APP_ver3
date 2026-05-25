@@ -205,7 +205,7 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // 有効なタブのカテゴリキーリスト
   List<String> get _activeTabKeys {
-    final keys = <String>['todo'];
+    final keys = <String>['todo', 'today'];
     if (s.showDoneTab) keys.add('done');
     if (s.showFutureTab) keys.add('future');
     return keys;
@@ -266,6 +266,8 @@ class _TodoHomePageState extends State<TodoHomePage>
     switch (key) {
       case 'todo':
         return s.todoTabName;
+      case 'today':
+        return '今日';
       case 'done':
         return s.doneTabName;
       case 'future':
@@ -277,11 +279,17 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // カテゴリ別フィルタ（設定された並び順でソート）
   List<TodoItem> _itemsByCategory(String category) {
-    final items = category == 'done'
-        ? _allItems.where((item) => item.isDone).toList()
-        : _allItems
-              .where((item) => item.category == category && !item.isDone)
-              .toList();
+    final items = switch (category) {
+      'done' => _allItems.where((item) => item.isDone).toList(),
+      'today' =>
+        _allItems
+            .where((item) => !item.isDone && _isDueTodayOrOverdue(item))
+            .toList(),
+      _ =>
+        _allItems
+            .where((item) => item.category == category && !item.isDone)
+            .toList(),
+    };
 
     if (_selectedTaskTagFilter != allTaskCategoriesLabel) {
       items.removeWhere((item) => item.taskTag != _selectedTaskTagFilter);
@@ -298,6 +306,14 @@ class _TodoHomePageState extends State<TodoHomePage>
     return items;
   }
 
+  bool _isDueTodayOrOverdue(TodoItem item) {
+    final dueDate = item.dueDate;
+    if (dueDate == null) return false;
+    final now = DateTime.now();
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    return !dueDate.isAfter(endOfToday);
+  }
+
   // 現在のタブのカテゴリキー
   String get _currentTabKey => _activeTabKeys[_tabController!.index];
 
@@ -305,7 +321,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _showAddDialog() {
     final textController = TextEditingController();
     final descriptionController = TextEditingController();
-    final category = _currentTabKey == 'done' ? 'todo' : _currentTabKey;
+    final category = _currentTabKey == 'done' || _currentTabKey == 'today'
+        ? 'todo'
+        : _currentTabKey;
     DateTime? selectedDate;
     String? selectedImageBase64;
     String? selectedTaskTag;
@@ -1611,6 +1629,8 @@ class _TodoHomePageState extends State<TodoHomePage>
                 ? Icons.check_circle_outline
                 : category == 'future'
                 ? Icons.lightbulb_outline
+                : category == 'today'
+                ? Icons.today_outlined
                 : Icons.inbox_outlined,
             size: 64,
             color: Colors.grey.shade300,
@@ -1621,6 +1641,8 @@ class _TodoHomePageState extends State<TodoHomePage>
                 ? '$_selectedTaskTagFilterのタスクはありません'
                 : category == 'done'
                 ? '${s.doneTabName}のタスクはありません'
+                : category == 'today'
+                ? '今日のタスクはありません'
                 : '${_tabName(category)}を追加しましょう',
             style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
           ),
