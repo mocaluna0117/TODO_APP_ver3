@@ -1528,7 +1528,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '「${s.todoTabName}」に追加',
+                    '「${s.todoTabName}」に移動',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -1600,7 +1600,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                       ),
                     ),
                     child: Text(
-                      '「${s.todoTabName}」に追加',
+                      '「${s.todoTabName}」に移動',
                       style: const TextStyle(fontSize: 16),
                     ),
                   ),
@@ -2213,7 +2213,48 @@ class _TodoHomePageState extends State<TodoHomePage>
               if (item.isDone)
                 IconButton(
                   icon: Icon(Icons.replay, color: s.accentColor),
-                  onPressed: () => _toggleItem(item),
+                  onPressed: () async {
+                    final result = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: Text(
+                          '未完了に戻す',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: s.primaryColor,
+                          ),
+                        ),
+                        content: Text(
+                          '「${item.title}」を未完了に戻しますか？',
+                          style: const TextStyle(fontSize: 15, height: 1.5),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text(
+                              'キャンセル',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                          TextButton(
+                            autofocus: true,
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(
+                              '戻す',
+                              style: TextStyle(
+                                color: s.primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (result == true) _toggleItem(item);
+                  },
                   tooltip: '未完了に戻す',
                 ),
               if (!item.isDone && item.category == 'future')
@@ -2224,7 +2265,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     size: 20,
                   ),
                   onPressed: () => _showMoveToTodoDialog(item),
-                  tooltip: 'やることに追加',
+                  tooltip: 'やることに移動',
                 ),
               if (!item.isDone && item.category == 'todo')
                 IconButton(
