@@ -2206,15 +2206,19 @@ class _TodoHomePageState extends State<TodoHomePage>
             horizontal: 16,
             vertical: 4,
           ),
-          onTap: () => _showEditDialog(item, tabKey: category),
-          leading: Checkbox(
-            value: item.isDone,
-            onChanged: (_) => _completeItemWithFade(item),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            activeColor: s.primaryColor,
-          ),
+          onTap: category == 'done'
+              ? null
+              : () => _showEditDialog(item, tabKey: category),
+          leading: category == 'done'
+              ? null
+              : Checkbox(
+                  value: item.isDone,
+                  onChanged: (_) => _completeItemWithFade(item),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  activeColor: s.primaryColor,
+                ),
           title: Text(
             item.title,
             style: TextStyle(
@@ -2308,7 +2312,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                   onPressed: () => _showTimePickerForItem(item),
                   tooltip: '時間を設定',
                 )
-              else
+              else if (category != 'done')
                 IconButton(
                   icon: Icon(
                     Icons.calendar_today,
