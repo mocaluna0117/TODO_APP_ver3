@@ -742,42 +742,51 @@ class _TodoHomePageState extends State<TodoHomePage>
                 children: [
                   SizedBox(
                     height: 56,
-                    child: Row(
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        CupertinoButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text(
-                            'キャンセル',
-                            style: TextStyle(color: Colors.grey),
+                        Text(
+                          '時刻を選択',
+                          style: TextStyle(
+                            color: s.primaryColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Expanded(
-                          child: Text(
-                            '時刻を選択',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: s.primaryColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text(
+                                'キャンセル',
+                                style: TextStyle(color: Colors.grey),
+                              ),
                             ),
-                          ),
-                        ),
-                        CupertinoButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          onPressed: isValid
-                              ? () => Navigator.pop(
-                                    context,
-                                    TimeOfDay.fromDateTime(selectedDateTime),
-                                  )
-                              : null,
-                          child: Text(
-                            '決定',
-                            style: TextStyle(
-                              color: isValid ? s.primaryColor : Colors.grey,
-                              fontWeight: FontWeight.bold,
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              onPressed: isValid
+                                  ? () => Navigator.pop(
+                                        context,
+                                        TimeOfDay.fromDateTime(selectedDateTime),
+                                      )
+                                  : null,
+                              child: Text(
+                                '決定',
+                                style: TextStyle(
+                                  color: isValid
+                                      ? s.primaryColor
+                                      : Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
