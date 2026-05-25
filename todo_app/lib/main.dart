@@ -2283,9 +2283,9 @@ class _TodoHomePageState extends State<TodoHomePage>
               if (!item.isDone && item.category == 'future')
                 IconButton(
                   icon: Icon(
-                    Icons.add_task,
+                    Icons.arrow_circle_right_outlined,
                     color: s.primaryColor,
-                    size: 20,
+                    size: 22,
                   ),
                   onPressed: () => _showMoveToTodoDialog(item),
                   tooltip: 'やることに移動',
@@ -2293,9 +2293,9 @@ class _TodoHomePageState extends State<TodoHomePage>
               if (!item.isDone && item.category == 'todo')
                 IconButton(
                   icon: Icon(
-                    Icons.lightbulb_outline,
+                    Icons.arrow_circle_left_outlined,
                     color: Colors.orange.shade400,
-                    size: 20,
+                    size: 22,
                   ),
                   onPressed: () => _showMoveToFutureDialog(item),
                   tooltip: 'やりたいことに戻す',
