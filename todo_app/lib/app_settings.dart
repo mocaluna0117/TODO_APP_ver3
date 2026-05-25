@@ -53,7 +53,7 @@ class AppSettings {
     this.todoTabName = 'やること',
     this.todayTabName = '今日やること',
     this.doneTabName = '完了済み',
-    this.futureTabName = '今後やりたいこと',
+    this.futureTabName = 'やりたいこと',
     this.showTodayTab = true,
     this.showDoneTab = true,
     this.showFutureTab = true,
