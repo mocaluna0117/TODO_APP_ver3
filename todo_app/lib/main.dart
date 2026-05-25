@@ -382,17 +382,16 @@ class _TodoHomePageState extends State<TodoHomePage>
                     MediaQuery.of(context).padding.top -
                     16,
               ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                child: Container(
-                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
                 child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -534,7 +533,6 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
-            ),
             );
           },
         );
@@ -1542,17 +1540,16 @@ class _TodoHomePageState extends State<TodoHomePage>
                 MediaQuery.of(context).padding.top -
                 16,
           ),
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+          child: Container(
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: Container(
-              padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
             child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1639,7 +1636,6 @@ class _TodoHomePageState extends State<TodoHomePage>
               ),
             ),
           ),
-        ),
         );
       },
     );
@@ -1666,17 +1662,16 @@ class _TodoHomePageState extends State<TodoHomePage>
                     MediaQuery.of(context).padding.top -
                     16,
               ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                child: Container(
-                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
                 child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1765,7 +1760,6 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
-            ),
             );
           },
         );
@@ -1799,17 +1793,16 @@ class _TodoHomePageState extends State<TodoHomePage>
                     MediaQuery.of(context).padding.top -
                     16,
               ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
+              child: Container(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                child: Container(
-                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
                 child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1945,7 +1938,6 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
-            ),
             );
           },
         );
