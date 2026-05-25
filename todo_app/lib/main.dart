@@ -2206,16 +2206,6 @@ class _TodoHomePageState extends State<TodoHomePage>
                   icon: Icon(Icons.replay, color: s.accentColor),
                   onPressed: () => _toggleItem(item),
                   tooltip: '未完了に戻す',
-                )
-              else
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    color: Color(0xFFAAAAAA),
-                    size: 20,
-                  ),
-                  onPressed: () => _showEditDialog(item, tabKey: category),
-                  tooltip: '編集',
                 ),
               if (!item.isDone && item.category == 'future')
                 IconButton(
