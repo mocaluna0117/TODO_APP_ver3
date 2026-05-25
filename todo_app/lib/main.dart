@@ -2283,7 +2283,7 @@ class _TodoHomePageState extends State<TodoHomePage>
               if (!item.isDone && item.category == 'future')
                 IconButton(
                   icon: Icon(
-                    Icons.arrow_circle_right_outlined,
+                    Icons.arrow_circle_left_outlined,
                     color: s.primaryColor,
                     size: 22,
                   ),
@@ -2293,7 +2293,7 @@ class _TodoHomePageState extends State<TodoHomePage>
               if (!item.isDone && item.category == 'todo')
                 IconButton(
                   icon: Icon(
-                    Icons.arrow_circle_left_outlined,
+                    Icons.arrow_circle_right_outlined,
                     color: Colors.orange.shade400,
                     size: 22,
                   ),
