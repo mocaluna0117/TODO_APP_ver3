@@ -376,16 +376,22 @@ class _TodoHomePageState extends State<TodoHomePage>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    16,
               ),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
+                child: Container(
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -528,6 +534,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
+            ),
             );
           },
         );
@@ -1529,16 +1536,22 @@ class _TodoHomePageState extends State<TodoHomePage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top -
+                16,
           ),
-          child: Container(
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
+            child: Container(
+              padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1626,6 +1639,7 @@ class _TodoHomePageState extends State<TodoHomePage>
               ),
             ),
           ),
+        ),
         );
       },
     );
@@ -1646,16 +1660,22 @@ class _TodoHomePageState extends State<TodoHomePage>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    16,
               ),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
+                child: Container(
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1745,6 +1765,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
+            ),
             );
           },
         );
@@ -1772,16 +1793,22 @@ class _TodoHomePageState extends State<TodoHomePage>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    16,
               ),
-              child: Container(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
+                child: Container(
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1918,6 +1945,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                   ),
                 ),
               ),
+            ),
             );
           },
         );
