@@ -337,6 +337,24 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                 ),
+                _divider(),
+                ListTile(
+                  leading: Icon(Icons.refresh, color: Colors.grey.shade500),
+                  title: Text(
+                    'タブ名をデフォルトに戻す',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  onTap: () {
+                    s.todoTabName = 'やること';
+                    s.todayTabName = '今日やること';
+                    s.doneTabName = '完了済み';
+                    s.futureTabName = 'やりたいこと';
+                    _notify();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('タブ名をデフォルトに戻しました')),
+                    );
+                  },
+                ),
               ],
             ),
 
