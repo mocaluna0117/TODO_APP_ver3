@@ -561,19 +561,26 @@ class _TodoHomePageState extends State<TodoHomePage>
   }) {
     return InkWell(
       onTap: () async {
+        final now = DateTime.now();
         final pickedDate = await showDatePicker(
           context: context,
-          initialDate: selectedDate ?? DateTime.now(),
-          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+          initialDate: selectedDate != null && selectedDate.isAfter(now)
+              ? selectedDate
+              : now,
+          firstDate: DateTime(now.year, now.month, now.day),
+          lastDate: now.add(const Duration(days: 365 * 5)),
           locale: const Locale('ja'),
         );
         if (pickedDate != null) {
           if (!mounted) return;
+          final isToday = pickedDate.year == now.year &&
+              pickedDate.month == now.month &&
+              pickedDate.day == now.day;
           final pickedTime = await _pickDueTime(
             selectedDate != null
                 ? TimeOfDay.fromDateTime(selectedDate)
                 : const TimeOfDay(hour: 9, minute: 0),
+            minimumDateTime: isToday ? now : null,
           );
           if (pickedTime != null) {
             onDateSelected(
@@ -631,13 +638,15 @@ class _TodoHomePageState extends State<TodoHomePage>
   }) {
     return InkWell(
       onTap: () async {
+        final now = DateTime.now();
         final pickedTime = await _pickDueTime(
           selectedDate != null
               ? TimeOfDay.fromDateTime(selectedDate)
               : const TimeOfDay(hour: 9, minute: 0),
+          minimumDateTime: now,
         );
         if (pickedTime != null) {
-          final today = DateTime.now();
+          final today = now;
           onTimeSelected(
             DateTime(
               today.year,
@@ -682,83 +691,127 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
-  Future<TimeOfDay?> _pickDueTime(TimeOfDay initialTime) {
+  Future<TimeOfDay?> _pickDueTime(
+    TimeOfDay initialTime, {
+    DateTime? minimumDateTime,
+  }) {
+    // When a minimum exists, snap the initial time forward if it's already past
+    TimeOfDay effectiveInitial = initialTime;
+    if (minimumDateTime != null) {
+      final minMins = minimumDateTime.hour * 60 + minimumDateTime.minute + 1;
+      final initMins = initialTime.hour * 60 + initialTime.minute;
+      if (initMins < minMins) {
+        effectiveInitial = TimeOfDay(
+          hour: (minMins ~/ 60) % 24,
+          minute: minMins % 60,
+        );
+      }
+    }
+
     final initialDateTime = DateTime(
       2000,
       1,
       1,
-      initialTime.hour,
-      initialTime.minute,
+      effectiveInitial.hour,
+      effectiveInitial.minute,
     );
     var selectedDateTime = initialDateTime;
+
+    bool isValidTime(DateTime dt) {
+      if (minimumDateTime == null) return true;
+      final selMins = dt.hour * 60 + dt.minute;
+      final minMins =
+          minimumDateTime.hour * 60 + minimumDateTime.minute + 1;
+      return selMins >= minMins;
+    }
 
     return showModalBottomSheet<TimeOfDay>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          height: 336,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: Row(
-                  children: [
-                    CupertinoButton(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'キャンセル',
-                        style: TextStyle(color: Colors.grey),
-                      ),
+        return StatefulBuilder(
+          builder: (context, setPickerState) {
+            final isValid = isValidTime(selectedDateTime);
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    height: 56,
+                    child: Row(
+                      children: [
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            'キャンセル',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '時刻を選択',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: s.primaryColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          onPressed: isValid
+                              ? () => Navigator.pop(
+                                    context,
+                                    TimeOfDay.fromDateTime(selectedDateTime),
+                                  )
+                              : null,
+                          child: Text(
+                            '決定',
+                            style: TextStyle(
+                              color: isValid ? s.primaryColor : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    Expanded(
+                  ),
+                  if (!isValid)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
-                        '時刻を選択',
-                        textAlign: TextAlign.center,
+                        '現在時刻より前の時刻は設定できません',
                         style: TextStyle(
-                          color: s.primaryColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade400,
+                          fontSize: 12,
                         ),
                       ),
                     ),
-                    CupertinoButton(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      onPressed: () => Navigator.pop(
-                        context,
-                        TimeOfDay.fromDateTime(selectedDateTime),
-                      ),
-                      child: Text(
-                        '決定',
-                        style: TextStyle(
-                          color: s.primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  SizedBox(
+                    height: 216,
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      initialDateTime: initialDateTime,
+                      use24hFormat: true,
+                      minuteInterval: 1,
+                      onDateTimeChanged: (dateTime) {
+                        selectedDateTime = dateTime;
+                        setPickerState(() {});
+                      },
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom),
+                ],
               ),
-              Divider(height: 1, color: Colors.grey.shade200),
-              Expanded(
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.time,
-                  initialDateTime: initialDateTime,
-                  use24hFormat: true,
-                  minuteInterval: 1,
-                  onDateTimeChanged: (dateTime) {
-                    selectedDateTime = dateTime;
-                  },
-                ),
-              ),
-              SizedBox(height: MediaQuery.of(context).padding.bottom),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -965,19 +1018,26 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // ─── カードから直接期限を変更 ───
   void _showDatePickerForItem(TodoItem item) async {
+    final now = DateTime.now();
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: item.dueDate ?? DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      initialDate: item.dueDate != null && item.dueDate!.isAfter(now)
+          ? item.dueDate!
+          : now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 365 * 5)),
       locale: const Locale('ja'),
     );
     if (pickedDate != null) {
       if (!mounted) return;
+      final isToday = pickedDate.year == now.year &&
+          pickedDate.month == now.month &&
+          pickedDate.day == now.day;
       final pickedTime = await _pickDueTime(
         item.dueDate != null
             ? TimeOfDay.fromDateTime(item.dueDate!)
             : const TimeOfDay(hour: 9, minute: 0),
+        minimumDateTime: isToday ? now : null,
       );
       if (pickedTime != null) {
         setState(() {
