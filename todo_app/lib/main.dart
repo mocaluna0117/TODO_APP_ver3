@@ -236,6 +236,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   final List<TodoItem> _allItems = [];
   final ImagePicker _imagePicker = ImagePicker();
   String _selectedTaskTagFilter = allTaskCategoriesLabel;
+  final Set<int> _fadingOutItems = {};
 
   AppSettings get s => widget.settings;
 
@@ -1085,6 +1086,20 @@ class _TodoHomePageState extends State<TodoHomePage>
       _saveData();
       NotificationService().scheduleNotification(item, s.notificationTiming);
     }
+  }
+
+  void _completeItemWithFade(TodoItem item) {
+    // 繰り返しタスク・完了済み→未完了はアニメーション不要
+    if (item.isDone || (item.isRecurring && item.dueDate != null)) {
+      _toggleItem(item);
+      return;
+    }
+    setState(() => _fadingOutItems.add(item.id));
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(() => _fadingOutItems.remove(item.id));
+      _toggleItem(item);
+    });
   }
 
   void _toggleItem(TodoItem item) {
@@ -2163,7 +2178,11 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // ─── 個別カード ───
   Widget _buildTodoCard(TodoItem item, String category) {
-    return Dismissible(
+    return AnimatedOpacity(
+      opacity: _fadingOutItems.contains(item.id) ? 0.0 : 1.0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+      child: Dismissible(
       key: ValueKey(item),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) => _handleDelete(item),
@@ -2190,7 +2209,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           onTap: () => _showEditDialog(item, tabKey: category),
           leading: Checkbox(
             value: item.isDone,
-            onChanged: (_) => _toggleItem(item),
+            onChanged: (_) => _completeItemWithFade(item),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -2314,7 +2333,8 @@ class _TodoHomePageState extends State<TodoHomePage>
           ),
         ),
       ),
-    );
+    ),  // Dismissible
+    );  // AnimatedOpacity
   }
 
   Widget? _buildTodoSubtitle(TodoItem item) {
