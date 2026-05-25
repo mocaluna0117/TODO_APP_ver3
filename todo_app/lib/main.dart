@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +9,36 @@ import 'package:intl/intl.dart';
 import 'app_settings.dart';
 import 'settings_page.dart';
 import 'notification_service.dart';
+
+const String allTaskCategoriesLabel = 'すべて';
+const String noTaskTagLabel = 'タグなし';
+
+enum RecurrenceRule {
+  none('なし'),
+  daily('毎日'),
+  weekly('毎週'),
+  monthly('毎月');
+
+  final String label;
+  const RecurrenceRule(this.label);
+}
+
+String? normalizeTaskTag(Object? value) {
+  final tag = value?.toString().trim();
+  if (tag == null || tag.isEmpty) return null;
+  return tag;
+}
+
+RecurrenceRule normalizeRecurrenceRule(Object? value) {
+  final rawValue = value?.toString();
+  if (rawValue == null || rawValue.isEmpty) return RecurrenceRule.none;
+  for (final rule in RecurrenceRule.values) {
+    if (rawValue == rule.name || rawValue == rule.index.toString()) {
+      return rule;
+    }
+  }
+  return RecurrenceRule.none;
+}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +55,9 @@ class TodoItem {
   bool isDone;
   // category: 'todo' = やること, 'done' = 完了済み, 'future' = 今後やりたいこと
   String category;
+  String? taskTag;
   DateTime? dueDate;
+  RecurrenceRule recurrenceRule;
   String? imageBase64;
 
   TodoItem({
@@ -33,9 +66,13 @@ class TodoItem {
     this.description,
     this.isDone = false,
     this.category = 'todo',
+    this.taskTag,
     this.dueDate,
+    this.recurrenceRule = RecurrenceRule.none,
     this.imageBase64,
   }) : id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
+
+  bool get isRecurring => recurrenceRule != RecurrenceRule.none;
 
   bool get isOverdue =>
       dueDate != null &&
@@ -48,7 +85,9 @@ class TodoItem {
     'description': description,
     'isDone': isDone,
     'category': category,
+    'taskTag': taskTag,
     'dueDate': dueDate?.toIso8601String(),
+    'recurrenceRule': recurrenceRule.name,
     'imageBase64': imageBase64,
   };
 
@@ -58,7 +97,9 @@ class TodoItem {
     description: json['description'],
     isDone: json['isDone'] ?? false,
     category: json['category'] ?? 'todo',
+    taskTag: normalizeTaskTag(json['taskTag'] ?? json['taskCategory']),
     dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
+    recurrenceRule: normalizeRecurrenceRule(json['recurrenceRule']),
     imageBase64: json['imageBase64'] ?? json['picture'],
   );
 }
@@ -158,6 +199,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   TabController? _tabController;
   final List<TodoItem> _allItems = [];
   final ImagePicker _imagePicker = ImagePicker();
+  String _selectedTaskTagFilter = allTaskCategoriesLabel;
 
   AppSettings get s => widget.settings;
 
@@ -184,6 +226,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       setState(() {
         _allItems.clear();
         _allItems.addAll(decodedList.map((e) => TodoItem.fromJson(e)).toList());
+        _removeUnknownTaskTags();
       });
     }
   }
@@ -240,6 +283,10 @@ class _TodoHomePageState extends State<TodoHomePage>
               .where((item) => item.category == category && !item.isDone)
               .toList();
 
+    if (_selectedTaskTagFilter != allTaskCategoriesLabel) {
+      items.removeWhere((item) => item.taskTag != _selectedTaskTagFilter);
+    }
+
     items.sort((a, b) {
       if (a.dueDate == null && b.dueDate == null) return 0;
       if (a.dueDate == null) return 1;
@@ -261,6 +308,8 @@ class _TodoHomePageState extends State<TodoHomePage>
     final category = _currentTabKey == 'done' ? 'todo' : _currentTabKey;
     DateTime? selectedDate;
     String? selectedImageBase64;
+    String? selectedTaskTag;
+    var selectedRecurrenceRule = RecurrenceRule.none;
 
     showModalBottomSheet(
       context: context,
@@ -326,7 +375,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                             textController.text,
                             category,
                             description: descriptionController.text,
+                            taskTag: selectedTaskTag,
                             dueDate: selectedDate,
+                            recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
@@ -343,12 +394,24 @@ class _TodoHomePageState extends State<TodoHomePage>
                         ),
                       ),
                       const SizedBox(height: 12),
+                      _buildTaskTagPicker(
+                        selectedTaskTag: selectedTaskTag,
+                        onChanged: (tag) =>
+                            setSheetState(() => selectedTaskTag = tag),
+                      ),
+                      const SizedBox(height: 12),
                       _buildDatePickerRow(
                         selectedDate: selectedDate,
                         onDateSelected: (date) =>
                             setSheetState(() => selectedDate = date),
                         onDateCleared: () =>
                             setSheetState(() => selectedDate = null),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildRecurrencePicker(
+                        selectedRecurrenceRule: selectedRecurrenceRule,
+                        onChanged: (rule) =>
+                            setSheetState(() => selectedRecurrenceRule = rule),
                       ),
                       const SizedBox(height: 12),
                       _buildImagePickerRow(
@@ -364,7 +427,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                             textController.text,
                             category,
                             description: descriptionController.text,
+                            taskTag: selectedTaskTag,
                             dueDate: selectedDate,
+                            recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
@@ -429,9 +494,8 @@ class _TodoHomePageState extends State<TodoHomePage>
         );
         if (pickedDate != null) {
           if (!mounted) return;
-          final pickedTime = await showTimePicker(
-            context: context,
-            initialTime: selectedDate != null
+          final pickedTime = await _pickDueTime(
+            selectedDate != null
                 ? TimeOfDay.fromDateTime(selectedDate)
                 : const TimeOfDay(hour: 9, minute: 0),
           );
@@ -481,6 +545,88 @@ class _TodoHomePageState extends State<TodoHomePage>
           ],
         ),
       ),
+    );
+  }
+
+  Future<TimeOfDay?> _pickDueTime(TimeOfDay initialTime) {
+    final initialDateTime = DateTime(
+      2000,
+      1,
+      1,
+      initialTime.hour,
+      initialTime.minute,
+    );
+    var selectedDateTime = initialDateTime;
+
+    return showModalBottomSheet<TimeOfDay>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: 336,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 56,
+                child: Row(
+                  children: [
+                    CupertinoButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'キャンセル',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '時刻を選択',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: s.primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    CupertinoButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      onPressed: () => Navigator.pop(
+                        context,
+                        TimeOfDay.fromDateTime(selectedDateTime),
+                      ),
+                      child: Text(
+                        '決定',
+                        style: TextStyle(
+                          color: s.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.grey.shade200),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: initialDateTime,
+                  use24hFormat: true,
+                  minuteInterval: 1,
+                  onDateTimeChanged: (dateTime) {
+                    selectedDateTime = dateTime;
+                  },
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -547,11 +693,78 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
+  Widget _buildTaskTagPicker({
+    required String? selectedTaskTag,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: selectedTaskTag ?? noTaskTagLabel,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'タグ',
+        prefixIcon: Icon(Icons.label_outline, color: s.primaryColor),
+        filled: true,
+        fillColor: const Color(0xFFF5F5FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      items: [
+        noTaskTagLabel,
+        ...s.taskTags,
+      ].map((tag) => DropdownMenuItem(value: tag, child: Text(tag))).toList(),
+      onChanged: (tag) {
+        if (tag != null) {
+          onChanged(tag == noTaskTagLabel ? null : tag);
+        }
+      },
+    );
+  }
+
+  Widget _buildRecurrencePicker({
+    required RecurrenceRule selectedRecurrenceRule,
+    required ValueChanged<RecurrenceRule> onChanged,
+  }) {
+    return DropdownButtonFormField<RecurrenceRule>(
+      initialValue: selectedRecurrenceRule,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: '繰り返し',
+        prefixIcon: Icon(Icons.repeat, color: s.primaryColor),
+        filled: true,
+        fillColor: const Color(0xFFF5F5FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      items: RecurrenceRule.values
+          .map((rule) => DropdownMenuItem(value: rule, child: Text(rule.label)))
+          .toList(),
+      onChanged: (rule) {
+        if (rule != null) {
+          onChanged(rule);
+        }
+      },
+    );
+  }
+
   void _addItem(
     String title,
     String category, {
     String? description,
+    String? taskTag,
     DateTime? dueDate,
+    RecurrenceRule recurrenceRule = RecurrenceRule.none,
     String? imageBase64,
   }) {
     final trimmed = title.trim();
@@ -560,7 +773,9 @@ class _TodoHomePageState extends State<TodoHomePage>
       title: trimmed,
       description: _normalizeOptionalText(description),
       category: category,
+      taskTag: _normalizeKnownTaskTag(taskTag),
       dueDate: dueDate,
+      recurrenceRule: recurrenceRule,
       imageBase64: imageBase64,
     );
     setState(() {
@@ -581,9 +796,8 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
     if (pickedDate != null) {
       if (!mounted) return;
-      final pickedTime = await showTimePicker(
-        context: context,
-        initialTime: item.dueDate != null
+      final pickedTime = await _pickDueTime(
+        item.dueDate != null
             ? TimeOfDay.fromDateTime(item.dueDate!)
             : const TimeOfDay(hour: 9, minute: 0),
       );
@@ -604,6 +818,25 @@ class _TodoHomePageState extends State<TodoHomePage>
   }
 
   void _toggleItem(TodoItem item) {
+    if (!item.isDone && item.isRecurring && item.dueDate != null) {
+      late final DateTime nextDueDate;
+      setState(() {
+        nextDueDate = _nextRecurringDueDate(item.dueDate!, item.recurrenceRule);
+        item.dueDate = nextDueDate;
+      });
+      _saveData();
+      NotificationService().scheduleNotification(item, s.notificationTiming);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '次回: ${DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(nextDueDate)} に更新しました',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       item.isDone = !item.isDone;
     });
@@ -615,12 +848,337 @@ class _TodoHomePageState extends State<TodoHomePage>
     }
   }
 
+  DateTime _nextRecurringDueDate(DateTime dueDate, RecurrenceRule rule) {
+    var nextDate = dueDate;
+    final now = DateTime.now();
+    do {
+      nextDate = _addRecurrenceInterval(nextDate, rule);
+    } while (!nextDate.isAfter(now));
+    return nextDate;
+  }
+
+  DateTime _addRecurrenceInterval(DateTime date, RecurrenceRule rule) {
+    switch (rule) {
+      case RecurrenceRule.daily:
+        return date.add(const Duration(days: 1));
+      case RecurrenceRule.weekly:
+        return date.add(const Duration(days: 7));
+      case RecurrenceRule.monthly:
+        return _addMonthsClamped(date, 1);
+      case RecurrenceRule.none:
+        return date;
+    }
+  }
+
+  DateTime _addMonthsClamped(DateTime date, int months) {
+    final targetMonthIndex = date.month - 1 + months;
+    final targetYear = date.year + targetMonthIndex ~/ 12;
+    final targetMonth = targetMonthIndex % 12 + 1;
+    final targetDay = date.day.clamp(
+      1,
+      DateUtils.getDaysInMonth(targetYear, targetMonth),
+    );
+    return DateTime(
+      targetYear,
+      targetMonth,
+      targetDay,
+      date.hour,
+      date.minute,
+      date.second,
+      date.millisecond,
+      date.microsecond,
+    );
+  }
+
   void _deleteItem(TodoItem item) {
     setState(() {
       _allItems.remove(item);
     });
     _saveData();
     NotificationService().cancelNotification(item.id);
+  }
+
+  String? _normalizeKnownTaskTag(String? tag) {
+    final normalized = normalizeTaskTag(tag);
+    if (normalized == null || !s.taskTags.contains(normalized)) return null;
+    return normalized;
+  }
+
+  void _renameTaskTag(String oldTag, String newTag) {
+    setState(() {
+      for (final item in _allItems) {
+        if (item.taskTag == oldTag) {
+          item.taskTag = newTag;
+        }
+      }
+      if (_selectedTaskTagFilter == oldTag) {
+        _selectedTaskTagFilter = newTag;
+      }
+    });
+    _saveData();
+  }
+
+  void _deleteTaskTag(String tag) {
+    setState(() {
+      for (final item in _allItems) {
+        if (item.taskTag == tag) {
+          item.taskTag = null;
+        }
+      }
+      if (_selectedTaskTagFilter == tag) {
+        _selectedTaskTagFilter = allTaskCategoriesLabel;
+      }
+    });
+    _saveData();
+  }
+
+  void _removeUnknownTaskTags() {
+    var changed = false;
+    for (final item in _allItems) {
+      if (item.taskTag != null && !s.taskTags.contains(item.taskTag)) {
+        item.taskTag = null;
+        changed = true;
+      }
+    }
+    if (_selectedTaskTagFilter != allTaskCategoriesLabel &&
+        !s.taskTags.contains(_selectedTaskTagFilter)) {
+      _selectedTaskTagFilter = allTaskCategoriesLabel;
+    }
+    if (changed) {
+      _saveData();
+    }
+  }
+
+  void _showAddTaskTagDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'タグを追加',
+          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          hintLocales: const [Locale('ja', 'JP')],
+          decoration: InputDecoration(
+            hintText: 'タグ名',
+            filled: true,
+            fillColor: const Color(0xFFF5F5FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          onSubmitted: (_) {
+            if (_addTaskTagFromHome(controller.text)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('キャンセル', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (_addTaskTagFromHome(controller.text)) {
+                Navigator.pop(context);
+              }
+            },
+            child: Text(
+              '追加',
+              style: TextStyle(
+                color: s.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _addTaskTagFromHome(String value) {
+    final tag = normalizeTaskTag(value);
+    if (tag == null) return false;
+    if (s.taskTags.contains(tag)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('「$tag」はすでにあります')));
+      return false;
+    }
+    setState(() {
+      s.taskTags.add(tag);
+      _selectedTaskTagFilter = tag;
+    });
+    s.saveToPrefs();
+    widget.onSettingsChanged();
+    return true;
+  }
+
+  void _showTaskTagActions(String tag) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.edit, color: s.primaryColor),
+                  title: const Text('タグ名を変更'),
+                  subtitle: Text(tag),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showRenameTaskTagDialog(tag);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red.shade300,
+                  ),
+                  title: const Text('タグを削除'),
+                  subtitle: const Text('このタグが付いたタスクはタグなしになります'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDeleteTaskTagFromHome(tag);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRenameTaskTagDialog(String oldTag) {
+    final controller = TextEditingController(text: oldTag);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'タグ名を変更',
+          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          hintLocales: const [Locale('ja', 'JP')],
+          decoration: InputDecoration(
+            hintText: 'タグ名',
+            filled: true,
+            fillColor: const Color(0xFFF5F5FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          onSubmitted: (_) {
+            if (_renameTaskTagFromHome(oldTag, controller.text)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('キャンセル', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (_renameTaskTagFromHome(oldTag, controller.text)) {
+                Navigator.pop(context);
+              }
+            },
+            child: Text(
+              '保存',
+              style: TextStyle(
+                color: s.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _renameTaskTagFromHome(String oldTag, String value) {
+    final newTag = normalizeTaskTag(value);
+    if (newTag == null) return false;
+    if (newTag == oldTag) return true;
+    if (s.taskTags.contains(newTag)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('「$newTag」はすでにあります')));
+      return false;
+    }
+
+    final index = s.taskTags.indexOf(oldTag);
+    if (index == -1) return false;
+    s.taskTags[index] = newTag;
+    _renameTaskTag(oldTag, newTag);
+    s.saveToPrefs();
+    widget.onSettingsChanged();
+    return true;
+  }
+
+  Future<void> _confirmDeleteTaskTagFromHome(String tag) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'タグを削除',
+          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+        ),
+        content: Text('「$tag」を削除しますか？\nこのタグが付いたタスクはタグなしになります。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text(
+              '削除',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (result != true) return;
+
+    s.taskTags.remove(tag);
+    _deleteTaskTag(tag);
+    s.saveToPrefs();
+    widget.onSettingsChanged();
   }
 
   // ─── 削除（確認あり/なし切替） ───
@@ -680,6 +1238,8 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
     DateTime? selectedDate = item.dueDate;
     String? selectedImageBase64 = item.imageBase64;
+    var selectedTaskTag = item.taskTag;
+    var selectedRecurrenceRule = item.recurrenceRule;
 
     showModalBottomSheet(
       context: context,
@@ -741,7 +1301,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                             item,
                             textController.text,
                             description: descriptionController.text,
+                            taskTag: selectedTaskTag,
                             dueDate: selectedDate,
+                            recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
@@ -758,12 +1320,24 @@ class _TodoHomePageState extends State<TodoHomePage>
                         ),
                       ),
                       const SizedBox(height: 12),
+                      _buildTaskTagPicker(
+                        selectedTaskTag: selectedTaskTag,
+                        onChanged: (tag) =>
+                            setSheetState(() => selectedTaskTag = tag),
+                      ),
+                      const SizedBox(height: 12),
                       _buildDatePickerRow(
                         selectedDate: selectedDate,
                         onDateSelected: (date) =>
                             setSheetState(() => selectedDate = date),
                         onDateCleared: () =>
                             setSheetState(() => selectedDate = null),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildRecurrencePicker(
+                        selectedRecurrenceRule: selectedRecurrenceRule,
+                        onChanged: (rule) =>
+                            setSheetState(() => selectedRecurrenceRule = rule),
                       ),
                       const SizedBox(height: 12),
                       _buildImagePickerRow(
@@ -779,7 +1353,9 @@ class _TodoHomePageState extends State<TodoHomePage>
                             item,
                             textController.text,
                             description: descriptionController.text,
+                            taskTag: selectedTaskTag,
                             dueDate: selectedDate,
+                            recurrenceRule: selectedRecurrenceRule,
                             imageBase64: selectedImageBase64,
                           );
                           Navigator.pop(context);
@@ -810,19 +1386,28 @@ class _TodoHomePageState extends State<TodoHomePage>
     TodoItem item,
     String newTitle, {
     String? description,
+    String? taskTag,
     DateTime? dueDate,
+    RecurrenceRule recurrenceRule = RecurrenceRule.none,
     String? imageBase64,
   }) {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
+    final hadDueDate = item.dueDate != null;
     setState(() {
       item.title = trimmed;
       item.description = _normalizeOptionalText(description);
+      item.taskTag = _normalizeKnownTaskTag(taskTag);
       item.dueDate = dueDate;
+      item.recurrenceRule = recurrenceRule;
       item.imageBase64 = imageBase64;
     });
     _saveData();
-    NotificationService().scheduleNotification(item, s.notificationTiming);
+    if (item.dueDate == null && hadDueDate) {
+      NotificationService().cancelNotification(item.id);
+    } else {
+      NotificationService().scheduleNotification(item, s.notificationTiming);
+    }
   }
 
   // ─── 設定ページへ遷移 ───
@@ -836,6 +1421,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           settings: s,
           onSettingsChanged: () {
             widget.onSettingsChanged();
+            _removeUnknownTaskTags();
             // タブ数が変わった場合のみ再構築
             if (_tabController == null ||
                 _tabController!.length != _activeTabKeys.length) {
@@ -844,6 +1430,8 @@ class _TodoHomePageState extends State<TodoHomePage>
               });
             }
           },
+          onTaskTagRenamed: _renameTaskTag,
+          onTaskTagDeleted: _deleteTaskTag,
         ),
       ),
     );
@@ -914,35 +1502,130 @@ class _TodoHomePageState extends State<TodoHomePage>
   // ─── リスト表示 ───
   Widget _buildTodoList(String category) {
     final items = _itemsByCategory(category);
-    if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              category == 'done'
-                  ? Icons.check_circle_outline
-                  : category == 'future'
-                  ? Icons.lightbulb_outline
-                  : Icons.inbox_outlined,
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              category == 'done'
-                  ? '${s.doneTabName}のタスクはありません'
-                  : '${_tabName(category)}を追加しましょう',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
-            ),
-          ],
+
+    return Column(
+      children: [
+        _buildTaskTagFilter(),
+        Expanded(
+          child: items.isEmpty
+              ? _buildEmptyListMessage(category)
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) => _buildTodoCard(items[i]),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTaskTagFilter() {
+    if (s.taskTags.isEmpty) {
+      return Container(
+        height: 52,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: ActionChip(
+          avatar: Icon(Icons.label_outline, color: s.primaryColor, size: 18),
+          label: const Text('タグを追加'),
+          backgroundColor: Colors.white,
+          side: BorderSide(color: Colors.grey.shade300),
+          labelStyle: TextStyle(
+            color: s.primaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+          onPressed: _showAddTaskTagDialog,
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: items.length,
-      itemBuilder: (_, i) => _buildTodoCard(items[i]),
+
+    final tags = [allTaskCategoriesLabel, ...s.taskTags];
+
+    return Container(
+      height: 52,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: tags.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == tags.length) {
+            return ActionChip(
+              avatar: Icon(Icons.add, color: s.primaryColor, size: 18),
+              label: const Text('タグを追加'),
+              backgroundColor: Colors.white,
+              side: BorderSide(color: Colors.grey.shade300),
+              labelStyle: TextStyle(
+                color: s.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+              onPressed: _showAddTaskTagDialog,
+            );
+          }
+
+          final tag = tags[index];
+          final isSelected = tag == _selectedTaskTagFilter;
+          final canEditTag = tag != allTaskCategoriesLabel;
+
+          return GestureDetector(
+            onLongPress: canEditTag ? () => _showTaskTagActions(tag) : null,
+            child: ChoiceChip(
+              label: Text(tag),
+              selected: isSelected,
+              showCheckmark: false,
+              selectedColor: s.primaryColor,
+              backgroundColor: Colors.white,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+              side: BorderSide(
+                color: isSelected ? s.primaryColor : Colors.grey.shade300,
+              ),
+              onSelected: (_) {
+                setState(() {
+                  _selectedTaskTagFilter = tag;
+                });
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyListMessage(String category) {
+    final hasTagFilter = _selectedTaskTagFilter != allTaskCategoriesLabel;
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            category == 'done'
+                ? Icons.check_circle_outline
+                : category == 'future'
+                ? Icons.lightbulb_outline
+                : Icons.inbox_outlined,
+            size: 64,
+            color: Colors.grey.shade300,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            hasTagFilter
+                ? '$_selectedTaskTagFilterのタスクはありません'
+                : category == 'done'
+                ? '${s.doneTabName}のタスクはありません'
+                : '${_tabName(category)}を追加しましょう',
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1041,7 +1724,11 @@ class _TodoHomePageState extends State<TodoHomePage>
   Widget? _buildTodoSubtitle(TodoItem item) {
     final imageBytes = _decodeImage(item.imageBase64);
     final description = item.description;
-    if (description == null && item.dueDate == null && imageBytes == null) {
+    if (item.taskTag == null &&
+        !item.isRecurring &&
+        description == null &&
+        item.dueDate == null &&
+        imageBytes == null) {
       return null;
     }
 
@@ -1050,6 +1737,12 @@ class _TodoHomePageState extends State<TodoHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (item.taskTag != null || item.isRecurring) _buildTaskLabels(item),
+          if ((item.taskTag != null || item.isRecurring) &&
+              (description != null ||
+                  item.dueDate != null ||
+                  imageBytes != null))
+            const SizedBox(height: 8),
           if (description != null)
             Text(
               description,
@@ -1087,6 +1780,64 @@ class _TodoHomePageState extends State<TodoHomePage>
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskLabels(TodoItem item) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (item.taskTag != null) _buildTaskTagLabel(item),
+        if (item.isRecurring) _buildRecurrenceLabel(item),
+      ],
+    );
+  }
+
+  Widget _buildTaskTagLabel(TodoItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: s.primaryColor.withValues(alpha: item.isDone ? 0.08 : 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        item.taskTag!,
+        style: TextStyle(
+          color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecurrenceLabel(TodoItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: s.accentColor.withValues(alpha: item.isDone ? 0.08 : 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.repeat,
+            size: 11,
+            color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            item.recurrenceRule.label,
+            style: TextStyle(
+              color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );

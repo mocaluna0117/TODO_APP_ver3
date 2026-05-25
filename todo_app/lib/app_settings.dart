@@ -43,6 +43,9 @@ class AppSettings {
   // 通知タイミング
   NotificationTiming notificationTiming;
 
+  // タグ
+  List<String> taskTags;
+
   AppSettings({
     this.appTitle = 'TODO',
     this.todoTabName = 'やること',
@@ -55,7 +58,8 @@ class AppSettings {
     this.primaryColor = const Color(0xFF4A55A2),
     this.accentColor = const Color(0xFF7895CB),
     this.notificationTiming = NotificationTiming.hour1,
-  });
+    List<String>? taskTags,
+  }) : taskTags = _normalizeTaskTags(taskTags ?? []);
 
   Future<void> saveToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,6 +74,7 @@ class AppSettings {
     await prefs.setInt('primaryColor', primaryColor.toARGB32());
     await prefs.setInt('accentColor', accentColor.toARGB32());
     await prefs.setInt('notificationTiming', notificationTiming.index);
+    await prefs.setStringList('taskTags', taskTags);
   }
 
   Future<void> loadFromPrefs() async {
@@ -95,6 +100,18 @@ class AppSettings {
       notificationTiming =
           NotificationTiming.values[prefs.getInt('notificationTiming')!];
     }
+    taskTags = _normalizeTaskTags(prefs.getStringList('taskTags') ?? taskTags);
+  }
+
+  static List<String> _normalizeTaskTags(List<String> tags) {
+    final normalized = <String>[];
+    for (final tag in tags) {
+      final trimmed = tag.trim();
+      if (trimmed.isNotEmpty && !normalized.contains(trimmed)) {
+        normalized.add(trimmed);
+      }
+    }
+    return normalized;
   }
 
   // 選択可能なカラーテーマ一覧

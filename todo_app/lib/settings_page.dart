@@ -7,11 +7,15 @@ import 'app_settings.dart';
 class SettingsPage extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
+  final void Function(String oldTag, String newTag)? onTaskTagRenamed;
+  final ValueChanged<String>? onTaskTagDeleted;
 
   const SettingsPage({
     super.key,
     required this.settings,
     required this.onSettingsChanged,
+    this.onTaskTagRenamed,
+    this.onTaskTagDeleted,
   });
 
   @override
@@ -25,6 +29,67 @@ class _SettingsPageState extends State<SettingsPage> {
     widget.settings.saveToPrefs();
     widget.onSettingsChanged();
     setState(() {});
+  }
+
+  void _showDuplicateTagMessage(String tag) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('「$tag」はすでにあります')));
+  }
+
+  void _addTaskTag(String tag) {
+    if (s.taskTags.contains(tag)) {
+      _showDuplicateTagMessage(tag);
+      return;
+    }
+    s.taskTags.add(tag);
+    _notify();
+  }
+
+  void _renameTaskTag(String oldTag, String newTag) {
+    if (oldTag == newTag) return;
+    if (s.taskTags.contains(newTag)) {
+      _showDuplicateTagMessage(newTag);
+      return;
+    }
+    final index = s.taskTags.indexOf(oldTag);
+    if (index == -1) return;
+    s.taskTags[index] = newTag;
+    widget.onTaskTagRenamed?.call(oldTag, newTag);
+    _notify();
+  }
+
+  Future<void> _confirmDeleteTaskTag(String tag) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'タグを削除',
+          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+        ),
+        content: Text('「$tag」を削除しますか？\nこのタグが付いたタスクはタグなしになります。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text(
+              '削除',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (result != true) return;
+
+    s.taskTags.remove(tag);
+    widget.onTaskTagDeleted?.call(tag);
+    _notify();
   }
 
   // ─── テキスト編集用ダイアログ ───
@@ -230,6 +295,71 @@ class _SettingsPageState extends State<SettingsPage> {
                         Icon(Icons.edit, size: 14, color: s.accentColor),
                       ],
                     ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ── タグ ──
+            _buildSectionHeader('タグ'),
+            _buildCard(
+              children: [
+                if (s.taskTags.isEmpty)
+                  ListTile(
+                    leading: Icon(Icons.label_outline, color: s.primaryColor),
+                    title: const Text('タグはまだありません'),
+                    subtitle: const Text('必要なタグを追加してタスクに付けられます'),
+                  )
+                else
+                  ...s.taskTags.map(
+                    (tag) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            Icons.label_outline,
+                            color: s.primaryColor,
+                          ),
+                          title: Text(tag),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: s.accentColor),
+                                tooltip: 'タグ名を変更',
+                                onPressed: () => _showTextEditDialog(
+                                  title: 'タグ名を変更',
+                                  currentValue: tag,
+                                  onSave: (v) => _renameTaskTag(tag, v),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red.shade300,
+                                ),
+                                tooltip: 'タグを削除',
+                                onPressed: () => _confirmDeleteTaskTag(tag),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (tag != s.taskTags.last) _divider(),
+                      ],
+                    ),
+                  ),
+                if (s.taskTags.isNotEmpty) _divider(),
+                ListTile(
+                  leading: Icon(Icons.add, color: s.primaryColor),
+                  title: const Text('タグを追加'),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey.shade400,
+                  ),
+                  onTap: () => _showTextEditDialog(
+                    title: 'タグを追加',
+                    currentValue: '',
+                    onSave: _addTaskTag,
                   ),
                 ),
               ],

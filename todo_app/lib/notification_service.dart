@@ -10,7 +10,8 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   Future<void>? _initFuture;
 
   Future<void> init() => _initFuture ??= _init();
@@ -25,13 +26,14 @@ class NotificationService {
     // Android用の初期化設定（アプリアイコンを指定）
     const AndroidInitializationSettings initSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+
     // iOS用の初期化設定（権限の要求を含む）
-    const DarwinInitializationSettings initSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const DarwinInitializationSettings initSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings initSettings = InitializationSettings(
       android: initSettingsAndroid,
@@ -41,8 +43,10 @@ class NotificationService {
     await _notificationsPlugin.initialize(settings: initSettings);
 
     // Android用のパーミッション要求 (Android 13+の通知権限とAndroid 12+のアラーム権限)
-    final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin != null) {
       await androidPlugin.requestNotificationsPermission();
       await androidPlugin.requestExactAlarmsPermission();
@@ -50,15 +54,22 @@ class NotificationService {
   }
 
   // 通知をスケジュールする
-  Future<void> scheduleNotification(TodoItem item, NotificationTiming timing) async {
+  Future<void> scheduleNotification(
+    TodoItem item,
+    NotificationTiming timing,
+  ) async {
     if (kIsWeb) return;
+
+    if (item.dueDate == null) {
+      return;
+    }
 
     await init();
 
     // 一旦既存の通知をキャンセル
     await cancelNotification(item.id);
 
-    if (item.isDone || item.dueDate == null || timing == NotificationTiming.none) {
+    if (item.isDone || timing == NotificationTiming.none) {
       return;
     }
 
@@ -87,14 +98,15 @@ class NotificationService {
       return;
     }
 
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'todo_app_channel',
-      'Todo Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'todo_app_channel',
+          'Todo Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
-    
+
     const NotificationDetails details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
@@ -118,7 +130,10 @@ class NotificationService {
   }
 
   // 全ての通知を再スケジュール（設定画面でタイミングが変更された時に使用）
-  Future<void> rescheduleAll(List<TodoItem> items, NotificationTiming timing) async {
+  Future<void> rescheduleAll(
+    List<TodoItem> items,
+    NotificationTiming timing,
+  ) async {
     if (kIsWeb) return;
     await init();
     await _notificationsPlugin.cancelAll();
