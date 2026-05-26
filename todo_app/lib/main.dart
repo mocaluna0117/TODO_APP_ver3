@@ -379,10 +379,23 @@ class _TodoHomePageState extends State<TodoHomePage>
             final topInset = mediaQuery.padding.top;
             final keyboardInset = mediaQuery.viewInsets.bottom;
             final topOffset = topInset + 4;
-            final bottomGap = keyboardInset > 0 ? 4.0 : 16.0;
+            final bottomGap = keyboardInset > 0 ? 20.0 : 16.0;
             final maxModalHeight =
                 (mediaQuery.size.height - topOffset - keyboardInset - bottomGap)
-                    .clamp(240.0, mediaQuery.size.height * 0.85);
+                    .clamp(240.0, mediaQuery.size.height * 0.8);
+            void submit() {
+              _addItem(
+                textController.text,
+                category,
+                description: descriptionController.text,
+                taskTag: selectedTaskTag,
+                dueDate: selectedDate,
+                recurrenceRule: selectedRecurrenceRule,
+                imageBase64: selectedImageBase64,
+                priority: selectedTaskPriority,
+              );
+              Navigator.pop(context);
+            }
 
             return Align(
               alignment: Alignment.topCenter,
@@ -398,162 +411,150 @@ class _TodoHomePageState extends State<TodoHomePage>
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: maxModalHeight),
                     child: Container(
-                      padding: const EdgeInsets.only(
-                        left: 24,
-                        right: 24,
-                        top: 24,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              '${_tabName(category)}を追加',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: s.primaryColor,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Flexible(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    '${_tabName(category)}を追加',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: s.primaryColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextField(
+                                    controller: textController,
+                                    autofocus: true,
+                                    keyboardType: TextInputType.text,
+                                    textInputAction: TextInputAction.next,
+                                    hintLocales: const [Locale('ja', 'JP')],
+                                    decoration: InputDecoration(
+                                      hintText: 'タスクを入力...',
+                                      filled: true,
+                                      fillColor: const Color(0xFFF5F5FA),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 14,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                    controller: descriptionController,
+                                    keyboardType: TextInputType.multiline,
+                                    textInputAction: TextInputAction.done,
+                                    hintLocales: const [Locale('ja', 'JP')],
+                                    minLines: 1,
+                                    maxLines: 4,
+                                    onSubmitted: (_) => submit(),
+                                    decoration: InputDecoration(
+                                      hintText: '概要を入力（任意）',
+                                      filled: true,
+                                      fillColor: const Color(0xFFF5F5FA),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildTaskTagPicker(
+                                    selectedTaskTag: selectedTaskTag,
+                                    onChanged: (tag) => setSheetState(
+                                      () => selectedTaskTag = tag,
+                                    ),
+                                  ),
+                                  if (category == 'future') ...[
+                                    const SizedBox(height: 12),
+                                    _buildTaskPriorityPicker(
+                                      selectedTaskPriority:
+                                          selectedTaskPriority,
+                                      onChanged: (p) => setSheetState(
+                                        () => selectedTaskPriority = p,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 12),
+                                  if (isFromTodayTab)
+                                    _buildTimeOnlyPickerRow(
+                                      selectedDate: selectedDate,
+                                      onTimeSelected: (date) => setSheetState(
+                                        () => selectedDate = date,
+                                      ),
+                                      onTimeCleared: () => setSheetState(
+                                        () => selectedDate = null,
+                                      ),
+                                    )
+                                  else
+                                    _buildDatePickerRow(
+                                      selectedDate: selectedDate,
+                                      onDateSelected: (date) => setSheetState(
+                                        () => selectedDate = date,
+                                      ),
+                                      onDateCleared: () => setSheetState(
+                                        () => selectedDate = null,
+                                      ),
+                                    ),
+                                  if (!isFromTodayTab) ...[
+                                    const SizedBox(height: 12),
+                                    _buildRecurrencePicker(
+                                      selectedRecurrenceRule:
+                                          selectedRecurrenceRule,
+                                      onChanged: (rule) => setSheetState(
+                                        () => selectedRecurrenceRule = rule,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 12),
+                                  _buildImagePickerRow(
+                                    imageBase64: selectedImageBase64,
+                                    onImageChanged: (imageBase64) =>
+                                        setSheetState(
+                                          () =>
+                                              selectedImageBase64 = imageBase64,
+                                        ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: textController,
-                              autofocus: true,
-                              keyboardType: TextInputType.text,
-                              textInputAction: TextInputAction.next,
-                              hintLocales: const [Locale('ja', 'JP')],
-                              decoration: InputDecoration(
-                                hintText: 'タスクを入力...',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F5FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: s.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: descriptionController,
-                              keyboardType: TextInputType.multiline,
-                              textInputAction: TextInputAction.done,
-                              hintLocales: const [Locale('ja', 'JP')],
-                              minLines: 1,
-                              maxLines: 4,
-                              onSubmitted: (_) {
-                                _addItem(
-                                  textController.text,
-                                  category,
-                                  description: descriptionController.text,
-                                  taskTag: selectedTaskTag,
-                                  dueDate: selectedDate,
-                                  recurrenceRule: selectedRecurrenceRule,
-                                  imageBase64: selectedImageBase64,
-                                  priority: selectedTaskPriority,
-                                );
-                                Navigator.pop(context);
-                              },
-                              decoration: InputDecoration(
-                                hintText: '概要を入力（任意）',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F5FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.all(16),
-                              ),
+                            child: const Text(
+                              '追加',
+                              style: TextStyle(fontSize: 16),
                             ),
-                            const SizedBox(height: 12),
-                            _buildTaskTagPicker(
-                              selectedTaskTag: selectedTaskTag,
-                              onChanged: (tag) =>
-                                  setSheetState(() => selectedTaskTag = tag),
-                            ),
-                            if (category == 'future') ...[
-                              const SizedBox(height: 12),
-                              _buildTaskPriorityPicker(
-                                selectedTaskPriority: selectedTaskPriority,
-                                onChanged: (p) => setSheetState(
-                                  () => selectedTaskPriority = p,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            if (isFromTodayTab)
-                              _buildTimeOnlyPickerRow(
-                                selectedDate: selectedDate,
-                                onTimeSelected: (date) =>
-                                    setSheetState(() => selectedDate = date),
-                                onTimeCleared: () =>
-                                    setSheetState(() => selectedDate = null),
-                              )
-                            else
-                              _buildDatePickerRow(
-                                selectedDate: selectedDate,
-                                onDateSelected: (date) =>
-                                    setSheetState(() => selectedDate = date),
-                                onDateCleared: () =>
-                                    setSheetState(() => selectedDate = null),
-                              ),
-                            if (!isFromTodayTab) ...[
-                              const SizedBox(height: 12),
-                              _buildRecurrencePicker(
-                                selectedRecurrenceRule: selectedRecurrenceRule,
-                                onChanged: (rule) => setSheetState(
-                                  () => selectedRecurrenceRule = rule,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            _buildImagePickerRow(
-                              imageBase64: selectedImageBase64,
-                              onImageChanged: (imageBase64) => setSheetState(
-                                () => selectedImageBase64 = imageBase64,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                _addItem(
-                                  textController.text,
-                                  category,
-                                  description: descriptionController.text,
-                                  taskTag: selectedTaskTag,
-                                  dueDate: selectedDate,
-                                  recurrenceRule: selectedRecurrenceRule,
-                                  imageBase64: selectedImageBase64,
-                                  priority: selectedTaskPriority,
-                                );
-                                Navigator.pop(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: s.primaryColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                '追加',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1835,171 +1836,180 @@ class _TodoHomePageState extends State<TodoHomePage>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final mediaQuery = MediaQuery.of(context);
+            final topInset = mediaQuery.padding.top;
+            final keyboardInset = mediaQuery.viewInsets.bottom;
+            final topOffset = topInset + 4;
+            final bottomGap = keyboardInset > 0 ? 20.0 : 16.0;
+            final maxModalHeight =
+                (mediaQuery.size.height - topOffset - keyboardInset - bottomGap)
+                    .clamp(240.0, mediaQuery.size.height * 0.8);
+            void submit() {
+              _editItem(
+                item,
+                textController.text,
+                description: descriptionController.text,
+                taskTag: selectedTaskTag,
+                dueDate: selectedDate,
+                recurrenceRule: selectedRecurrenceRule,
+                imageBase64: selectedImageBase64,
+                priority: selectedTaskPriority,
+              );
+              Navigator.pop(context);
+            }
+
             return Align(
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 8,
+                  top: topOffset,
                   left: 16,
                   right: 16,
+                  bottom: keyboardInset + bottomGap,
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.85,
-                    ),
+                    constraints: BoxConstraints(maxHeight: maxModalHeight),
                     child: Container(
-                      padding: const EdgeInsets.only(
-                        left: 24,
-                        right: 24,
-                        top: 24,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'タスクを編集',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: s.primaryColor,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Flexible(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'タスクを編集',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: s.primaryColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextField(
+                                    controller: textController,
+                                    autofocus: true,
+                                    textInputAction: TextInputAction.next,
+                                    decoration: InputDecoration(
+                                      hintText: 'タスクを入力...',
+                                      filled: true,
+                                      fillColor: const Color(0xFFF5F5FA),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 14,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                    controller: descriptionController,
+                                    textInputAction: TextInputAction.done,
+                                    minLines: 1,
+                                    maxLines: 4,
+                                    onSubmitted: (_) => submit(),
+                                    decoration: InputDecoration(
+                                      hintText: '概要を入力（任意）',
+                                      filled: true,
+                                      fillColor: const Color(0xFFF5F5FA),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildTaskTagPicker(
+                                    selectedTaskTag: selectedTaskTag,
+                                    onChanged: (tag) => setSheetState(
+                                      () => selectedTaskTag = tag,
+                                    ),
+                                  ),
+                                  if (item.category == 'future') ...[
+                                    const SizedBox(height: 12),
+                                    _buildTaskPriorityPicker(
+                                      selectedTaskPriority:
+                                          selectedTaskPriority,
+                                      onChanged: (p) => setSheetState(
+                                        () => selectedTaskPriority = p,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 12),
+                                  if (isFromTodayTab)
+                                    _buildTimeOnlyPickerRow(
+                                      selectedDate: selectedDate,
+                                      onTimeSelected: (date) => setSheetState(
+                                        () => selectedDate = date,
+                                      ),
+                                      onTimeCleared: () => setSheetState(
+                                        () => selectedDate = null,
+                                      ),
+                                    )
+                                  else
+                                    _buildDatePickerRow(
+                                      selectedDate: selectedDate,
+                                      onDateSelected: (date) => setSheetState(
+                                        () => selectedDate = date,
+                                      ),
+                                      onDateCleared: () => setSheetState(
+                                        () => selectedDate = null,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 12),
+                                  _buildRecurrencePicker(
+                                    selectedRecurrenceRule:
+                                        selectedRecurrenceRule,
+                                    onChanged: (rule) => setSheetState(
+                                      () => selectedRecurrenceRule = rule,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildImagePickerRow(
+                                    imageBase64: selectedImageBase64,
+                                    onImageChanged: (imageBase64) =>
+                                        setSheetState(
+                                          () =>
+                                              selectedImageBase64 = imageBase64,
+                                        ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: textController,
-                              autofocus: true,
-                              textInputAction: TextInputAction.next,
-                              decoration: InputDecoration(
-                                hintText: 'タスクを入力...',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F5FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: s.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: descriptionController,
-                              textInputAction: TextInputAction.done,
-                              minLines: 1,
-                              maxLines: 4,
-                              onSubmitted: (_) {
-                                _editItem(
-                                  item,
-                                  textController.text,
-                                  description: descriptionController.text,
-                                  taskTag: selectedTaskTag,
-                                  dueDate: selectedDate,
-                                  recurrenceRule: selectedRecurrenceRule,
-                                  imageBase64: selectedImageBase64,
-                                  priority: selectedTaskPriority,
-                                );
-                                Navigator.pop(context);
-                              },
-                              decoration: InputDecoration(
-                                hintText: '概要を入力（任意）',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F5FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.all(16),
-                              ),
+                            child: const Text(
+                              '保存',
+                              style: TextStyle(fontSize: 16),
                             ),
-                            const SizedBox(height: 12),
-                            _buildTaskTagPicker(
-                              selectedTaskTag: selectedTaskTag,
-                              onChanged: (tag) =>
-                                  setSheetState(() => selectedTaskTag = tag),
-                            ),
-                            if (item.category == 'future') ...[
-                              const SizedBox(height: 12),
-                              _buildTaskPriorityPicker(
-                                selectedTaskPriority: selectedTaskPriority,
-                                onChanged: (p) => setSheetState(
-                                  () => selectedTaskPriority = p,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            if (isFromTodayTab)
-                              _buildTimeOnlyPickerRow(
-                                selectedDate: selectedDate,
-                                onTimeSelected: (date) =>
-                                    setSheetState(() => selectedDate = date),
-                                onTimeCleared: () =>
-                                    setSheetState(() => selectedDate = null),
-                              )
-                            else
-                              _buildDatePickerRow(
-                                selectedDate: selectedDate,
-                                onDateSelected: (date) =>
-                                    setSheetState(() => selectedDate = date),
-                                onDateCleared: () =>
-                                    setSheetState(() => selectedDate = null),
-                              ),
-                            const SizedBox(height: 12),
-                            _buildRecurrencePicker(
-                              selectedRecurrenceRule: selectedRecurrenceRule,
-                              onChanged: (rule) => setSheetState(
-                                () => selectedRecurrenceRule = rule,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildImagePickerRow(
-                              imageBase64: selectedImageBase64,
-                              onImageChanged: (imageBase64) => setSheetState(
-                                () => selectedImageBase64 = imageBase64,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                _editItem(
-                                  item,
-                                  textController.text,
-                                  description: descriptionController.text,
-                                  taskTag: selectedTaskTag,
-                                  dueDate: selectedDate,
-                                  recurrenceRule: selectedRecurrenceRule,
-                                  imageBase64: selectedImageBase64,
-                                  priority: selectedTaskPriority,
-                                );
-                                Navigator.pop(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: s.primaryColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                '保存',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
