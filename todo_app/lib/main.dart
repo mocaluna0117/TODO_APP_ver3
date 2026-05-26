@@ -413,7 +413,10 @@ class _TodoHomePageState extends State<TodoHomePage>
     final category = _currentTabKey == 'done' || isFromTodayTab
         ? 'todo'
         : _currentTabKey;
-    DateTime? selectedDate;
+    final now = DateTime.now();
+    DateTime? selectedDate = isFromTodayTab
+        ? DateTime(now.year, now.month, now.day, 23, 59)
+        : null;
     var selectedImageBase64List = <String>[];
     String? selectedTaskTag;
     var selectedRecurrenceRule = RecurrenceRule.none;
