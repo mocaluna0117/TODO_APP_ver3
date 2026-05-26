@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'app_settings.dart';
 import 'settings_page.dart';
@@ -2409,22 +2407,33 @@ class _TodoHomePageState extends State<TodoHomePage>
         'tasks': completedItems.map((item) => item.toJson()).toList(),
       };
       const encoder = JsonEncoder.withIndent('  ');
-      final directory = await getTemporaryDirectory();
+      final jsonText = encoder.convert(payload);
+      final jsonBytes = Uint8List.fromList(utf8.encode(jsonText));
       final fileName =
           'todo_completed_${DateFormat('yyyyMMdd_HHmmss').format(exportedAt)}.json';
-      final file = File('${directory.path}/$fileName');
-      await file.writeAsString(encoder.convert(payload));
+      final renderBox = context.findRenderObject() as RenderBox?;
+      final shareOrigin = renderBox == null
+          ? null
+          : renderBox.localToGlobal(Offset.zero) & renderBox.size;
 
       await SharePlus.instance.share(
         ShareParams(
           files: [
-            XFile(file.path, mimeType: 'application/json', name: fileName),
+            XFile.fromData(
+              jsonBytes,
+              mimeType: 'application/json',
+              name: fileName,
+            ),
           ],
+          fileNameOverrides: [fileName],
           subject: '完了済みタスクのバックアップ',
           text: '完了済みタスク ${completedItems.length}件のバックアップです。',
+          sharePositionOrigin: shareOrigin,
         ),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Failed to export completed tasks: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
