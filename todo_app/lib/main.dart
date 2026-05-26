@@ -36,13 +36,39 @@ enum TaskPriority {
 Color priorityColor(TaskPriority priority) {
   switch (priority) {
     case TaskPriority.high:
-      return Colors.red.shade400;
+      return Colors.amber.shade700;
     case TaskPriority.medium:
-      return Colors.orange.shade400;
+      return Colors.amber.shade600;
     case TaskPriority.low:
-      return Colors.blue.shade400;
+      return Colors.amber.shade500;
     case TaskPriority.none:
       return Colors.grey;
+  }
+}
+
+int priorityStarCount(TaskPriority priority) {
+  switch (priority) {
+    case TaskPriority.high:
+      return 3;
+    case TaskPriority.medium:
+      return 2;
+    case TaskPriority.low:
+      return 1;
+    case TaskPriority.none:
+      return 0;
+  }
+}
+
+TaskPriority priorityFromStarCount(int count) {
+  switch (count) {
+    case 3:
+      return TaskPriority.high;
+    case 2:
+      return TaskPriority.medium;
+    case 1:
+      return TaskPriority.low;
+    default:
+      return TaskPriority.none;
   }
 }
 
@@ -991,41 +1017,82 @@ class _TodoHomePageState extends State<TodoHomePage>
     required TaskPriority selectedTaskPriority,
     required ValueChanged<TaskPriority> onChanged,
   }) {
-    return DropdownButtonFormField<TaskPriority>(
-      initialValue: selectedTaskPriority,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: '優先度',
-        prefixIcon: Icon(Icons.flag_outlined, color: s.primaryColor),
-        filled: true,
-        fillColor: const Color(0xFFF5F5FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+    final selectedStars = priorityStarCount(selectedTaskPriority);
+
+    return Container(
+      padding: const EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5FA),
+        borderRadius: BorderRadius.circular(12),
       ),
-      items: TaskPriority.values
-          .map(
-            (p) => DropdownMenuItem(
-              value: p,
-              child: Row(
-                children: [
-                  if (p != TaskPriority.none)
-                    Icon(Icons.flag, size: 16, color: priorityColor(p)),
-                  if (p != TaskPriority.none) const SizedBox(width: 6),
-                  Text(p.label),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (p) {
-        if (p != null) onChanged(p);
-      },
+      child: Row(
+        children: [
+          Icon(Icons.star_outline_rounded, color: s.primaryColor),
+          const SizedBox(width: 10),
+          const Text(
+            '優先度',
+            style: TextStyle(fontSize: 15, color: Colors.black87),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(3, (index) {
+              final starNumber = index + 1;
+              final isSelected = selectedStars >= starNumber;
+
+              return IconButton(
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 36,
+                  height: 36,
+                ),
+                padding: EdgeInsets.zero,
+                tooltip: '$starNumberつ星',
+                icon: Icon(
+                  isSelected ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: isSelected
+                      ? priorityColor(selectedTaskPriority)
+                      : Colors.grey.shade400,
+                  size: 26,
+                ),
+                onPressed: () => onChanged(priorityFromStarCount(starNumber)),
+              );
+            }),
+          ),
+          if (selectedTaskPriority != TaskPriority.none)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints.tightFor(width: 32, height: 36),
+              padding: EdgeInsets.zero,
+              tooltip: '優先度を解除',
+              icon: Icon(Icons.close, size: 18, color: Colors.grey.shade500),
+              onPressed: () => onChanged(TaskPriority.none),
+            )
+          else
+            const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityStars(
+    TaskPriority priority, {
+    double size = 14,
+    Color? color,
+  }) {
+    final selectedStars = priorityStarCount(priority);
+    final activeColor = color ?? priorityColor(priority);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        final isSelected = index < selectedStars;
+        return Icon(
+          isSelected ? Icons.star_rounded : Icons.star_border_rounded,
+          size: size,
+          color: isSelected ? activeColor : Colors.grey.shade400,
+        );
+      }),
     );
   }
 
@@ -2533,19 +2600,10 @@ class _TodoHomePageState extends State<TodoHomePage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.flag,
-            size: 11,
+          _buildPriorityStars(
+            item.priority,
+            size: 12,
             color: item.isDone ? Colors.grey.shade500 : color,
-          ),
-          const SizedBox(width: 3),
-          Text(
-            item.priority.label,
-            style: TextStyle(
-              color: item.isDone ? Colors.grey.shade500 : color,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
           ),
         ],
       ),
