@@ -34,6 +34,7 @@ class AppSettings {
 
   // 削除確認ダイアログ表示ON/OFF
   bool showDeleteConfirm;
+  bool enableSwipeDelete;
 
   // 並び順
   SortOrder sortOrder;
@@ -58,6 +59,7 @@ class AppSettings {
     this.showDoneTab = true,
     this.showFutureTab = true,
     this.showDeleteConfirm = true,
+    this.enableSwipeDelete = false,
     this.sortOrder = SortOrder.dueDateAsc,
     this.primaryColor = const Color(0xFF4A55A2),
     this.accentColor = const Color(0xFF7895CB),
@@ -76,6 +78,7 @@ class AppSettings {
     await prefs.setBool('showDoneTab', showDoneTab);
     await prefs.setBool('showFutureTab', showFutureTab);
     await prefs.setBool('showDeleteConfirm', showDeleteConfirm);
+    await prefs.setBool('enableSwipeDelete', enableSwipeDelete);
     await prefs.setInt('sortOrder', sortOrder.index);
     await prefs.setInt('primaryColor', primaryColor.toARGB32());
     await prefs.setInt('accentColor', accentColor.toARGB32());
@@ -94,6 +97,7 @@ class AppSettings {
     showDoneTab = prefs.getBool('showDoneTab') ?? showDoneTab;
     showFutureTab = prefs.getBool('showFutureTab') ?? showFutureTab;
     showDeleteConfirm = prefs.getBool('showDeleteConfirm') ?? showDeleteConfirm;
+    enableSwipeDelete = prefs.getBool('enableSwipeDelete') ?? enableSwipeDelete;
 
     if (prefs.containsKey('sortOrder')) {
       sortOrder = SortOrder.values[prefs.getInt('sortOrder')!];

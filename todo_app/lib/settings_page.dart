@@ -442,6 +442,18 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
                 _divider(),
+                SwitchListTile(
+                  secondary: Icon(Icons.swipe_left_alt, color: s.primaryColor),
+                  title: const Text('スワイプで削除'),
+                  subtitle: const Text('タスクを左にスワイプして削除する'),
+                  value: s.enableSwipeDelete,
+                  activeThumbColor: s.primaryColor,
+                  onChanged: (v) {
+                    s.enableSwipeDelete = v;
+                    _notify();
+                  },
+                ),
+                _divider(),
                 ListTile(
                   leading: Icon(
                     Icons.notifications_active,

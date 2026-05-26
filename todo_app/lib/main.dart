@@ -2633,7 +2633,9 @@ class _TodoHomePageState extends State<TodoHomePage>
       curve: Curves.easeOut,
       child: Dismissible(
         key: ValueKey(item),
-        direction: DismissDirection.endToStart,
+        direction: s.enableSwipeDelete
+            ? DismissDirection.endToStart
+            : DismissDirection.none,
         confirmDismiss: (_) => _handleDelete(item),
         background: Container(
           alignment: Alignment.centerRight,
