@@ -447,7 +447,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     Icons.notifications_active,
                     color: s.primaryColor,
                   ),
-                  title: const Text('期限の通知タイミング'),
+                  title: const Text(
+                    '期限の通知タイミング',
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
                   trailing: DropdownButton<NotificationTiming>(
                     value: s.notificationTiming,
                     underline: const SizedBox(),
