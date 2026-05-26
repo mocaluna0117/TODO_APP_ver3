@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'app_settings.dart';
 import 'settings_page.dart';
 import 'notification_service.dart';
@@ -2387,6 +2390,48 @@ class _TodoHomePageState extends State<TodoHomePage>
     }
   }
 
+  Future<void> _exportCompletedTasks() async {
+    final completedItems = _allItems.where((item) => item.isDone).toList();
+    if (completedItems.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('完了済みタスクがありません')));
+      return;
+    }
+
+    try {
+      final exportedAt = DateTime.now();
+      final payload = {
+        'formatVersion': 1,
+        'type': 'completed_tasks',
+        'exportedAt': exportedAt.toIso8601String(),
+        'taskCount': completedItems.length,
+        'tasks': completedItems.map((item) => item.toJson()).toList(),
+      };
+      const encoder = JsonEncoder.withIndent('  ');
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'todo_completed_${DateFormat('yyyyMMdd_HHmmss').format(exportedAt)}.json';
+      final file = File('${directory.path}/$fileName');
+      await file.writeAsString(encoder.convert(payload));
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile(file.path, mimeType: 'application/json', name: fileName),
+          ],
+          subject: '完了済みタスクのバックアップ',
+          text: '完了済みタスク ${completedItems.length}件のバックアップです。',
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('エクスポートできませんでした')));
+    }
+  }
+
   // ─── 設定ページへ遷移 ───
   void _openSettings() async {
     final timingBefore = s.notificationTiming;
@@ -2409,6 +2454,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           },
           onTaskTagRenamed: _renameTaskTag,
           onTaskTagDeleted: _deleteTaskTag,
+          onExportCompletedTasks: _exportCompletedTasks,
         ),
       ),
     );

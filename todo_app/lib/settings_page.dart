@@ -9,6 +9,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback onSettingsChanged;
   final void Function(String oldTag, String newTag)? onTaskTagRenamed;
   final ValueChanged<String>? onTaskTagDeleted;
+  final Future<void> Function()? onExportCompletedTasks;
 
   const SettingsPage({
     super.key,
@@ -16,6 +17,7 @@ class SettingsPage extends StatefulWidget {
     required this.onSettingsChanged,
     this.onTaskTagRenamed,
     this.onTaskTagDeleted,
+    this.onExportCompletedTasks,
   });
 
   @override
@@ -419,6 +421,23 @@ class _SettingsPageState extends State<SettingsPage> {
                     currentValue: '',
                     onSave: _addTaskTag,
                   ),
+                ),
+              ],
+            ),
+
+            // ── バックアップ ──
+            _buildSectionHeader('バックアップ'),
+            _buildCard(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.ios_share, color: s.primaryColor),
+                  title: const Text('完了済みタスクを書き出す'),
+                  subtitle: const Text('JSONファイルとして共有する'),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey.shade400,
+                  ),
+                  onTap: widget.onExportCompletedTasks,
                 ),
               ],
             ),
