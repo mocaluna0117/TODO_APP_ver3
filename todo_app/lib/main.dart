@@ -98,6 +98,29 @@ TaskPriority normalizeTaskPriority(Object? value) {
   return TaskPriority.none;
 }
 
+List<String> normalizeImageBase64List(Map<String, dynamic> json) {
+  final images = <String>[];
+  final imageList = json['imageBase64List'];
+  if (imageList is List) {
+    for (final image in imageList) {
+      final value = image?.toString();
+      if (value != null && value.isNotEmpty) {
+        images.add(value);
+      }
+    }
+  }
+
+  final legacyImage = json['imageBase64'] ?? json['picture'];
+  if (legacyImage != null) {
+    final value = legacyImage.toString();
+    if (value.isNotEmpty && !images.contains(value)) {
+      images.add(value);
+    }
+  }
+
+  return images;
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
@@ -116,7 +139,7 @@ class TodoItem {
   String? taskTag;
   DateTime? dueDate;
   RecurrenceRule recurrenceRule;
-  String? imageBase64;
+  List<String> imageBase64List;
   TaskPriority priority;
 
   TodoItem({
@@ -128,9 +151,10 @@ class TodoItem {
     this.taskTag,
     this.dueDate,
     this.recurrenceRule = RecurrenceRule.none,
-    this.imageBase64,
+    List<String>? imageBase64List,
     this.priority = TaskPriority.none,
-  }) : id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
+  }) : imageBase64List = imageBase64List ?? [],
+       id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
   bool get isRecurring => recurrenceRule != RecurrenceRule.none;
 
@@ -148,7 +172,7 @@ class TodoItem {
     'taskTag': taskTag,
     'dueDate': dueDate?.toIso8601String(),
     'recurrenceRule': recurrenceRule.name,
-    'imageBase64': imageBase64,
+    'imageBase64List': imageBase64List,
     'priority': priority.name,
   };
 
@@ -161,7 +185,7 @@ class TodoItem {
     taskTag: normalizeTaskTag(json['taskTag'] ?? json['taskCategory']),
     dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
     recurrenceRule: normalizeRecurrenceRule(json['recurrenceRule']),
-    imageBase64: json['imageBase64'] ?? json['picture'],
+    imageBase64List: normalizeImageBase64List(json),
     priority: normalizeTaskPriority(json['priority']),
   );
 }
@@ -390,7 +414,7 @@ class _TodoHomePageState extends State<TodoHomePage>
         ? 'todo'
         : _currentTabKey;
     DateTime? selectedDate;
-    String? selectedImageBase64;
+    var selectedImageBase64List = <String>[];
     String? selectedTaskTag;
     var selectedRecurrenceRule = RecurrenceRule.none;
     var selectedTaskPriority = TaskPriority.none;
@@ -417,7 +441,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                 taskTag: selectedTaskTag,
                 dueDate: selectedDate,
                 recurrenceRule: selectedRecurrenceRule,
-                imageBase64: selectedImageBase64,
+                imageBase64List: selectedImageBase64List,
                 priority: selectedTaskPriority,
               );
               Navigator.pop(context);
@@ -553,11 +577,11 @@ class _TodoHomePageState extends State<TodoHomePage>
                                   ],
                                   const SizedBox(height: 12),
                                   _buildImagePickerRow(
-                                    imageBase64: selectedImageBase64,
-                                    onImageChanged: (imageBase64) =>
+                                    imageBase64List: selectedImageBase64List,
+                                    onImagesChanged: (imageBase64List) =>
                                         setSheetState(
-                                          () =>
-                                              selectedImageBase64 = imageBase64,
+                                          () => selectedImageBase64List =
+                                              imageBase64List,
                                         ),
                                   ),
                                 ],
@@ -593,16 +617,19 @@ class _TodoHomePageState extends State<TodoHomePage>
     );
   }
 
-  Future<String?> _pickImageBase64() async {
-    final pickedImage = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
+  Future<List<String>> _pickImageBase64List() async {
+    final pickedImages = await _imagePicker.pickMultiImage(
       maxWidth: 1600,
       imageQuality: 85,
     );
-    if (pickedImage == null) return null;
+    if (pickedImages.isEmpty) return [];
 
-    final bytes = await pickedImage.readAsBytes();
-    return base64Encode(bytes);
+    final encodedImages = <String>[];
+    for (final pickedImage in pickedImages) {
+      final bytes = await pickedImage.readAsBytes();
+      encodedImages.add(base64Encode(bytes));
+    }
+    return encodedImages;
   }
 
   Uint8List? _decodeImage(String? imageBase64) {
@@ -612,6 +639,91 @@ class _TodoHomePageState extends State<TodoHomePage>
     } on FormatException {
       return null;
     }
+  }
+
+  List<Uint8List> _decodeImages(List<String> imageBase64List) {
+    return imageBase64List
+        .map(_decodeImage)
+        .whereType<Uint8List>()
+        .toList(growable: false);
+  }
+
+  void _showImagePreview(Uint8List imageBytes) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: SafeArea(
+          child: Dismissible(
+            key: const ValueKey('image-preview'),
+            direction: DismissDirection.vertical,
+            onDismissed: (_) => Navigator.pop(context),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Navigator.pop(context),
+                    child: Center(
+                      child: InteractiveViewer(
+                        minScale: 0.8,
+                        maxScale: 4,
+                        child: GestureDetector(
+                          onTap: () {},
+                          child: Image.memory(
+                            imageBytes,
+                            fit: BoxFit.contain,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      tooltip: '閉じる',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 20,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: s.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        side: const BorderSide(color: Colors.white24),
+                      ),
+                      elevation: 4,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.keyboard_arrow_down),
+                    label: const Text('閉じる'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ─── 期限選択行ウィジェット ───
@@ -886,17 +998,17 @@ class _TodoHomePageState extends State<TodoHomePage>
   }
 
   Widget _buildImagePickerRow({
-    required String? imageBase64,
-    required ValueChanged<String?> onImageChanged,
+    required List<String> imageBase64List,
+    required ValueChanged<List<String>> onImagesChanged,
   }) {
-    final imageBytes = _decodeImage(imageBase64);
+    final imageBytesList = _decodeImages(imageBase64List);
 
     return InkWell(
       onTap: () async {
         try {
-          final pickedImageBase64 = await _pickImageBase64();
-          if (pickedImageBase64 != null) {
-            onImageChanged(pickedImageBase64);
+          final pickedImageBase64List = await _pickImageBase64List();
+          if (pickedImageBase64List.isNotEmpty) {
+            onImagesChanged([...imageBase64List, ...pickedImageBase64List]);
           }
         } catch (_) {
           if (!mounted) return;
@@ -912,36 +1024,118 @@ class _TodoHomePageState extends State<TodoHomePage>
           color: const Color(0xFFF5F5FA),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(Icons.image_outlined, size: 20, color: s.primaryColor),
-            const SizedBox(width: 10),
-            if (imageBytes != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.memory(
-                  imageBytes,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
+            if (imageBytesList.isNotEmpty) ...[
+              SizedBox(
+                height: 320,
+                child: PageView.builder(
+                  itemCount: imageBytesList.length,
+                  itemBuilder: (context, index) {
+                    final imageBytes = imageBytesList[index];
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTap: () => _showImagePreview(imageBytes),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(
+                                imageBytes,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 34,
+                                height: 34,
+                              ),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              tooltip: 'この画像を削除',
+                              onPressed: () {
+                                final nextImages = [...imageBase64List]
+                                  ..removeAt(index);
+                                onImagesChanged(nextImages);
+                              },
+                            ),
+                          ),
+                        ),
+                        if (imageBytesList.length > 1)
+                          Positioned(
+                            left: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${index + 1}/${imageBytesList.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(height: 10),
             ],
-            Expanded(
-              child: Text(
-                imageBytes != null ? '画像を変更' : '画像を添付（任意）',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: imageBytes != null ? Colors.black87 : Colors.grey,
+            Row(
+              children: [
+                Icon(Icons.image_outlined, size: 20, color: s.primaryColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    imageBytesList.isNotEmpty
+                        ? '画像を追加（${imageBytesList.length}枚）'
+                        : '画像を添付（任意）',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: imageBytesList.isNotEmpty
+                          ? Colors.black87
+                          : Colors.grey,
+                    ),
+                  ),
                 ),
-              ),
+                if (imageBytesList.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => onImagesChanged([]),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+              ],
             ),
-            if (imageBytes != null)
-              GestureDetector(
-                onTap: () => onImageChanged(null),
-                child: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
-              ),
           ],
         ),
       ),
@@ -1103,7 +1297,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     String? taskTag,
     DateTime? dueDate,
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
-    String? imageBase64,
+    List<String> imageBase64List = const [],
     TaskPriority priority = TaskPriority.none,
   }) {
     final trimmed = title.trim();
@@ -1115,7 +1309,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       taskTag: _normalizeKnownTaskTag(taskTag),
       dueDate: dueDate,
       recurrenceRule: recurrenceRule,
-      imageBase64: imageBase64,
+      imageBase64List: imageBase64List,
       priority: priority,
     );
     setState(() {
@@ -1273,6 +1467,25 @@ class _TodoHomePageState extends State<TodoHomePage>
       date.millisecond,
       date.microsecond,
     );
+  }
+
+  String _formatTodoCardDueDate(DateTime dueDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final dueDay = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final timeText = DateFormat('HH:mm').format(dueDate);
+
+    if (dueDate.isBefore(now)) {
+      return DateFormat('M/d(E) HH:mm', 'ja').format(dueDate);
+    }
+    if (dueDay == today) {
+      return '今日 $timeText';
+    }
+    if (dueDay == tomorrow) {
+      return '明日 $timeText';
+    }
+    return DateFormat('M/d(E) HH:mm', 'ja').format(dueDate);
   }
 
   void _deleteItem(TodoItem item) {
@@ -1892,7 +2105,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       text: item.description ?? '',
     );
     DateTime? selectedDate = item.dueDate;
-    String? selectedImageBase64 = item.imageBase64;
+    var selectedImageBase64List = [...item.imageBase64List];
     var selectedTaskTag = item.taskTag;
     var selectedRecurrenceRule = item.recurrenceRule;
     var selectedTaskPriority = item.priority;
@@ -1919,7 +2132,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                 taskTag: selectedTaskTag,
                 dueDate: selectedDate,
                 recurrenceRule: selectedRecurrenceRule,
-                imageBase64: selectedImageBase64,
+                imageBase64List: selectedImageBase64List,
                 priority: selectedTaskPriority,
               );
               Navigator.pop(context);
@@ -2049,11 +2262,11 @@ class _TodoHomePageState extends State<TodoHomePage>
                                   ),
                                   const SizedBox(height: 12),
                                   _buildImagePickerRow(
-                                    imageBase64: selectedImageBase64,
-                                    onImageChanged: (imageBase64) =>
+                                    imageBase64List: selectedImageBase64List,
+                                    onImagesChanged: (imageBase64List) =>
                                         setSheetState(
-                                          () =>
-                                              selectedImageBase64 = imageBase64,
+                                          () => selectedImageBase64List =
+                                              imageBase64List,
                                         ),
                                   ),
                                 ],
@@ -2096,7 +2309,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     String? taskTag,
     DateTime? dueDate,
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
-    String? imageBase64,
+    List<String> imageBase64List = const [],
     TaskPriority priority = TaskPriority.none,
   }) {
     final trimmed = newTitle.trim();
@@ -2108,7 +2321,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       item.taskTag = _normalizeKnownTaskTag(taskTag);
       item.dueDate = dueDate;
       item.recurrenceRule = recurrenceRule;
-      item.imageBase64 = imageBase64;
+      item.imageBase64List = imageBase64List;
       item.priority = priority;
     });
     _saveData();
@@ -2344,6 +2557,21 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   // ─── 個別カード ───
   Widget _buildTodoCard(TodoItem item, String category) {
+    Widget compactIconButton({
+      required Widget icon,
+      required VoidCallback? onPressed,
+      required String tooltip,
+    }) {
+      return IconButton(
+        visualDensity: VisualDensity.compact,
+        constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+        padding: EdgeInsets.zero,
+        icon: icon,
+        onPressed: onPressed,
+        tooltip: tooltip,
+      );
+    }
+
     return AnimatedOpacity(
       opacity: _fadingOutItems.contains(item.id) ? 0.0 : 1.0,
       duration: const Duration(milliseconds: 350),
@@ -2402,7 +2630,7 @@ class _TodoHomePageState extends State<TodoHomePage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (item.isDone)
-                  IconButton(
+                  compactIconButton(
                     icon: Icon(Icons.replay, color: s.accentColor),
                     onPressed: () async {
                       final result = await showDialog<bool>(
@@ -2449,7 +2677,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     tooltip: '未完了に戻す',
                   ),
                 if (!item.isDone && item.category == 'future')
-                  IconButton(
+                  compactIconButton(
                     icon: Icon(
                       Icons.arrow_circle_left_outlined,
                       color: s.primaryColor,
@@ -2459,7 +2687,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     tooltip: 'やることに移動',
                   ),
                 if (!item.isDone && item.category == 'todo')
-                  IconButton(
+                  compactIconButton(
                     icon: Icon(
                       Icons.arrow_circle_right_outlined,
                       color: Colors.orange.shade400,
@@ -2469,7 +2697,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     tooltip: 'やりたいことに戻す',
                   ),
                 if (category == 'today')
-                  IconButton(
+                  compactIconButton(
                     icon: Icon(
                       Icons.access_time,
                       color: item.dueDate != null
@@ -2481,7 +2709,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     tooltip: '時間を設定',
                   )
                 else if (category != 'done')
-                  IconButton(
+                  compactIconButton(
                     icon: Icon(
                       Icons.calendar_today,
                       color: item.dueDate != null
@@ -2492,7 +2720,7 @@ class _TodoHomePageState extends State<TodoHomePage>
                     onPressed: () => _showDatePickerForItem(item),
                     tooltip: '期限を設定',
                   ),
-                IconButton(
+                compactIconButton(
                   icon: Icon(
                     Icons.delete_outline,
                     color: Colors.red.shade300,
@@ -2510,7 +2738,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   }
 
   Widget? _buildTodoSubtitle(TodoItem item) {
-    final imageBytes = _decodeImage(item.imageBase64);
+    final imageBytesList = _decodeImages(item.imageBase64List);
     final description = item.description;
     final hasTaskPriority =
         item.category == 'future' && item.priority != TaskPriority.none;
@@ -2519,7 +2747,7 @@ class _TodoHomePageState extends State<TodoHomePage>
         !hasTaskPriority &&
         description == null &&
         item.dueDate == null &&
-        imageBytes == null) {
+        imageBytesList.isEmpty) {
       return null;
     }
 
@@ -2533,7 +2761,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           if ((item.taskTag != null || item.isRecurring || hasTaskPriority) &&
               (description != null ||
                   item.dueDate != null ||
-                  imageBytes != null))
+                  imageBytesList.isNotEmpty))
             const SizedBox(height: 8),
           if (description != null)
             Text(
@@ -2547,28 +2775,73 @@ class _TodoHomePageState extends State<TodoHomePage>
               ),
             ),
           if (description != null &&
-              (item.dueDate != null || imageBytes != null))
+              (item.dueDate != null || imageBytesList.isNotEmpty))
             const SizedBox(height: 8),
           if (item.dueDate != null)
             Text(
-              DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(item.dueDate!),
+              _formatTodoCardDueDate(item.dueDate!),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
               style: TextStyle(
                 fontSize: 12,
-                color: item.isOverdue ? Colors.red : Colors.grey.shade500,
+                color: item.isOverdue ? Colors.red : Colors.grey.shade700,
                 fontWeight: item.isOverdue
                     ? FontWeight.bold
                     : FontWeight.normal,
               ),
             ),
-          if (imageBytes != null) ...[
+          if (imageBytesList.isNotEmpty) ...[
             const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.memory(
-                imageBytes,
-                width: 120,
-                height: 84,
-                fit: BoxFit.cover,
+            SizedBox(
+              height: 220,
+              child: PageView.builder(
+                itemCount: imageBytesList.length,
+                itemBuilder: (context, index) {
+                  final imageBytes = imageBytesList[index];
+                  return GestureDetector(
+                    onTap: () => _showImagePreview(imageBytes),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Container(
+                              color: const Color(0xFFF5F5FA),
+                              child: Image.memory(
+                                imageBytes,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          if (imageBytesList.length > 1)
+                            Positioned(
+                              left: 8,
+                              bottom: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${index + 1}/${imageBytesList.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
