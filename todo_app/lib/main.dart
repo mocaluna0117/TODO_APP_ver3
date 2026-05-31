@@ -50,6 +50,14 @@ part 'pages/todo_home_select_fields.dart';
 part 'pages/todo_home_priority_picker.dart';
 part 'pages/todo_home_settings.dart';
 part 'pages/todo_home_list.dart';
+part 'pages/todo_home_todo_list.dart';
+part 'pages/todo_home_task_tag_filter.dart';
+part 'pages/todo_home_empty_list_message.dart';
+part 'pages/todo_home_todo_card.dart';
+part 'pages/todo_home_todo_card_actions.dart';
+part 'pages/todo_home_restore_todo_dialog.dart';
+part 'pages/todo_home_todo_subtitle.dart';
+part 'pages/todo_home_task_labels.dart';
 
 const String allTaskCategoriesLabel = 'すべて';
 const String noTaskTagLabel = 'タグなし';
