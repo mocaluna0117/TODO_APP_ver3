@@ -84,13 +84,7 @@ class _TodoHomePageState extends State<TodoHomePage>
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _openSettings,
-            tooltip: '設定',
-          ),
-        ],
+        actions: _buildAppBarActions(),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: false,
@@ -113,12 +107,18 @@ class _TodoHomePageState extends State<TodoHomePage>
         controller: _tabController,
         children: _activeTabKeys.map((key) => _buildTodoList(key)).toList(),
       ),
-      floatingActionButton: _currentTabKey != 'done'
-          ? FloatingActionButton(
+      floatingActionButton: _currentTabKey == 'done'
+          ? _itemsByCategory('done').isNotEmpty
+                ? FloatingActionButton(
+                    onPressed: _confirmDeleteCompletedItems,
+                    tooltip: '完了済みを全削除',
+                    child: const Icon(Icons.delete_sweep_outlined),
+                  )
+                : null
+          : FloatingActionButton(
               onPressed: _showAddDialog,
               child: const Icon(Icons.add),
-            )
-          : null,
+            ),
     );
   }
 }
