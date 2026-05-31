@@ -1,35 +1,40 @@
 part of '../../../main.dart';
 
 extension _TodoHomeExport on _TodoHomePageState {
-  Future<void> _exportCompletedTasks() async {
-    final completedItems = _allItems.where((item) => item.isDone).toList();
-    if (completedItems.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('完了済みタスクがありません')));
+  Future<void> _exportTasks({required bool completedOnly}) async {
+    final items = completedOnly
+        ? _allItems.where((item) => item.isDone).toList()
+        : List<TodoItem>.from(_allItems);
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(completedOnly ? '完了済みタスクがありません' : 'タスクがありません')),
+      );
       return;
     }
+
+    final label = completedOnly ? '完了済みタスク' : '全タスク';
 
     try {
       final exportedAt = DateTime.now();
       final payload = {
         'formatVersion': 1,
-        'type': 'completed_tasks',
+        'type': completedOnly ? 'completed_tasks' : 'all_tasks',
         'exportedAt': exportedAt.toIso8601String(),
-        'taskCount': completedItems.length,
-        'tasks': completedItems.map((item) => item.toJson()).toList(),
+        'taskCount': items.length,
+        'tasks': items.map((item) => item.toJson()).toList(),
       };
       const encoder = JsonEncoder.withIndent('  ');
       final jsonText = encoder.convert(payload);
+      final prefix = completedOnly ? 'todo_completed' : 'todo_all';
       final folderName =
-          'todo_completed_${DateFormat('yyyyMMdd_HHmmss').format(exportedAt)}';
+          '${prefix}_${DateFormat('yyyyMMdd_HHmmss').format(exportedAt)}';
       final jsonFileName = '$folderName.json';
       final textFileName = 'todo.txt';
       final archive = Archive()
         ..addFile(
           ArchiveFile.string(
             '$folderName/$textFileName',
-            _buildCompletedTasksText(completedItems, exportedAt),
+            _buildTasksText(items, exportedAt, label),
           ),
         )
         ..addFile(ArchiveFile.string('$folderName/$jsonFileName', jsonText));
@@ -50,7 +55,7 @@ extension _TodoHomeExport on _TodoHomePageState {
             ),
           ],
           fileNameOverrides: [zipFileName],
-          subject: '完了済みタスクのバックアップ',
+          subject: '$labelのバックアップ',
           sharePositionOrigin: shareOrigin,
         ),
       );
@@ -64,17 +69,18 @@ extension _TodoHomeExport on _TodoHomePageState {
     }
   }
 
-  String _buildCompletedTasksText(
-    List<TodoItem> completedItems,
+  String _buildTasksText(
+    List<TodoItem> items,
     DateTime exportedAt,
+    String label,
   ) {
     final buffer = StringBuffer()
-      ..writeln('完了済みタスク')
+      ..writeln(label)
       ..writeln('書き出し日時: ${DateFormat('yyyy/MM/dd HH:mm').format(exportedAt)}')
-      ..writeln('件数: ${completedItems.length}')
+      ..writeln('件数: ${items.length}')
       ..writeln();
 
-    for (final item in completedItems) {
+    for (final item in items) {
       buffer.writeln(_completedTaskBullet(item));
     }
     return buffer.toString();
@@ -82,6 +88,7 @@ extension _TodoHomeExport on _TodoHomePageState {
 
   String _completedTaskBullet(TodoItem item) {
     final details = <String>[
+      '状態: ${item.isDone ? '完了' : '未完了'}',
       if (item.description != null && item.description!.trim().isNotEmpty)
         '概要: ${item.description}',
       if (item.taskTag != null) 'タグ: ${item.taskTag}',
@@ -91,7 +98,6 @@ extension _TodoHomeExport on _TodoHomePageState {
       if (item.completedAt != null)
         '完了日時: ${DateFormat('yyyy/MM/dd HH:mm').format(item.completedAt!)}',
     ];
-    if (details.isEmpty) return '・${item.title}';
     return '・${item.title}（${details.join(' / ')}）';
   }
 }

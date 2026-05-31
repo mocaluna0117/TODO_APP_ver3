@@ -23,7 +23,7 @@ extension _TodoHomeSettings on _TodoHomePageState {
           },
           onTaskTagRenamed: _renameTaskTag,
           onTaskTagDeleted: _deleteTaskTag,
-          onExportCompletedTasks: _exportCompletedTasks,
+          onExportTasks: _exportTasks,
         ),
       ),
     );
