@@ -1,4 +1,4 @@
-part of '../settings_page.dart';
+part of '../../settings_page.dart';
 
 extension _SettingsThemeSection on _SettingsPageState {
   List<Widget> _buildThemeSection() {

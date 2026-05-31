@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'app_settings.dart';
 
-part 'settings/settings_actions.dart';
-part 'settings/settings_sections.dart';
-part 'settings/settings_app_title_section.dart';
-part 'settings/settings_tab_section.dart';
-part 'settings/settings_tag_section.dart';
-part 'settings/settings_backup_section.dart';
-part 'settings/settings_behavior_section.dart';
-part 'settings/settings_sort_section.dart';
-part 'settings/settings_theme_section.dart';
-part 'settings/settings_widgets.dart';
+part 'settings/actions/settings_actions.dart';
+part 'settings/actions/settings_tag_actions.dart';
+part 'settings/actions/settings_text_edit_dialog.dart';
+part 'settings/sections/settings_sections.dart';
+part 'settings/sections/settings_app_title_section.dart';
+part 'settings/sections/settings_tab_section.dart';
+part 'settings/sections/settings_tag_section.dart';
+part 'settings/sections/settings_backup_section.dart';
+part 'settings/sections/settings_behavior_section.dart';
+part 'settings/sections/settings_sort_section.dart';
+part 'settings/sections/settings_theme_section.dart';
+part 'settings/widgets/settings_widgets.dart';
 
 // ─────────────────────────────────────────────
 // 設定ページ
