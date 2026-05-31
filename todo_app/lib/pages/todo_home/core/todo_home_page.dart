@@ -108,7 +108,7 @@ class _TodoHomePageState extends State<TodoHomePage>
         children: _activeTabKeys.map((key) => _buildTodoList(key)).toList(),
       ),
       floatingActionButton: _currentTabKey == 'done'
-          ? _itemsByCategory('done').isNotEmpty
+          ? _allItems.any((item) => item.isDone)
                 ? FloatingActionButton(
                     onPressed: _confirmDeleteCompletedItems,
                     tooltip: '完了済みを全削除',

@@ -2,7 +2,7 @@ part of '../../../main.dart';
 
 extension _TodoHomeBulkDeleteDialog on _TodoHomePageState {
   Future<void> _confirmDeleteCompletedItems() async {
-    final items = _itemsByCategory('done');
+    final items = _allItems.where((item) => item.isDone).toList();
     if (items.isEmpty) return;
 
     final result = await showDialog<bool>(
@@ -14,7 +14,7 @@ extension _TodoHomeBulkDeleteDialog on _TodoHomePageState {
           style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
         ),
         content: Text(
-          '表示中の完了済みタスク ${items.length}件をすべて削除しますか？\nこの操作は取り消せません。',
+          '完了済みタスク ${items.length}件をすべて削除しますか？\nこの操作は取り消せません。',
           style: const TextStyle(fontSize: 15, height: 1.5),
         ),
         actions: [
