@@ -123,6 +123,7 @@ class TodoItem {
   RecurrenceRule recurrenceRule;
   List<String> imageBase64List;
   TaskPriority priority;
+  DateTime? completedAt;
 
   TodoItem({
     int? id,
@@ -135,6 +136,7 @@ class TodoItem {
     this.recurrenceRule = RecurrenceRule.none,
     List<String>? imageBase64List,
     this.priority = TaskPriority.none,
+    this.completedAt,
   }) : imageBase64List = imageBase64List ?? [],
        id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
@@ -156,6 +158,7 @@ class TodoItem {
     'recurrenceRule': recurrenceRule.name,
     'imageBase64List': imageBase64List,
     'priority': priority.name,
+    'completedAt': completedAt?.toIso8601String(),
   };
 
   factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
@@ -169,5 +172,8 @@ class TodoItem {
     recurrenceRule: normalizeRecurrenceRule(json['recurrenceRule']),
     imageBase64List: normalizeImageBase64List(json),
     priority: normalizeTaskPriority(json['priority']),
+    completedAt: json['completedAt'] != null
+        ? DateTime.parse(json['completedAt'])
+        : null,
   );
 }

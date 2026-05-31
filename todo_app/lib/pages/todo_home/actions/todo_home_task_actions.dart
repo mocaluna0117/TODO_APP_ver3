@@ -103,6 +103,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
 
     _updateState(() {
       item.isDone = !item.isDone;
+      item.completedAt = item.isDone ? DateTime.now() : null;
     });
     _saveData();
     if (item.isDone) {
