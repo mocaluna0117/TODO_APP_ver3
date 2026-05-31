@@ -80,24 +80,54 @@ extension _TodoHomeExport on _TodoHomePageState {
       ..writeln('件数: ${items.length}')
       ..writeln();
 
-    for (final item in items) {
-      buffer.writeln(_completedTaskBullet(item));
+    // 未完了はカテゴリ別（やること → やりたいこと → その他）、完了は「完了済み」へ集約
+    final pendingItems = items.where((item) => !item.isDone).toList();
+    final doneItems = items.where((item) => item.isDone).toList();
+
+    const categoryOrder = ['todo', 'future'];
+    final pendingKeys = [
+      ...categoryOrder.where(
+        (key) => pendingItems.any((item) => item.category == key),
+      ),
+      ...pendingItems
+          .map((item) => item.category)
+          .where((key) => !categoryOrder.contains(key))
+          .toSet(),
+    ];
+
+    for (final key in pendingKeys) {
+      _writeTaskGroup(
+        buffer,
+        _tabName(key),
+        pendingItems.where((item) => item.category == key).toList(),
+      );
     }
-    return buffer.toString();
+    _writeTaskGroup(buffer, _tabName('done'), doneItems);
+
+    return buffer.toString().trimRight();
   }
 
-  String _completedTaskBullet(TodoItem item) {
-    final details = <String>[
-      '状態: ${item.isDone ? '完了' : '未完了'}',
-      if (item.description != null && item.description!.trim().isNotEmpty)
-        '概要: ${item.description}',
-      if (item.taskTag != null) 'タグ: ${item.taskTag}',
+  void _writeTaskGroup(StringBuffer buffer, String title, List<TodoItem> items) {
+    if (items.isEmpty) return;
+    buffer.writeln('【$title】');
+    for (final item in items) {
+      buffer.writeln('・${item.title}');
+      for (final detail in _taskDetailLines(item)) {
+        buffer.writeln('   ・$detail');
+      }
+    }
+    buffer.writeln();
+  }
+
+  List<String> _taskDetailLines(TodoItem item) {
+    return <String>[
+      '概要：${(item.description ?? '').trim()}',
+      'タグ：${item.taskTag ?? ''}',
       if (item.dueDate != null)
-        '期限: ${DateFormat('yyyy/MM/dd HH:mm').format(item.dueDate!)}',
-      if (item.priority != TaskPriority.none) '優先度: ${item.priority.label}',
+        '期限：${DateFormat('yyyy/MM/dd HH:mm').format(item.dueDate!)}',
+      if (item.priority != TaskPriority.none) '優先度：${item.priority.label}',
       if (item.completedAt != null)
-        '完了日時: ${DateFormat('yyyy/MM/dd HH:mm').format(item.completedAt!)}',
+        '完了日時：${DateFormat('yyyy/MM/dd HH:mm').format(item.completedAt!)}',
     ];
-    return '・${item.title}（${details.join(' / ')}）';
   }
 }
