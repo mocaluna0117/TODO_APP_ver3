@@ -42,6 +42,12 @@ part 'pages/todo_home_edit_dialog_fields.dart';
 part 'pages/todo_home_edit_dialog_text_fields.dart';
 part 'pages/todo_home_media.dart';
 part 'pages/todo_home_form_fields.dart';
+part 'pages/todo_home_date_picker_row.dart';
+part 'pages/todo_home_time_picker_row.dart';
+part 'pages/todo_home_due_time_picker.dart';
+part 'pages/todo_home_image_picker_row.dart';
+part 'pages/todo_home_select_fields.dart';
+part 'pages/todo_home_priority_picker.dart';
 part 'pages/todo_home_settings.dart';
 part 'pages/todo_home_list.dart';
 
