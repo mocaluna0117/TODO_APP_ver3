@@ -368,7 +368,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   ListTile(
                     leading: Icon(Icons.label_outline, color: s.primaryColor),
                     title: const Text('タグはまだありません'),
-                    subtitle: const Text('必要なタグを追加してタスクに付けられます'),
+                    subtitle: const Text(
+                      'タグを追加してタスクに付ける',
+                      overflow: TextOverflow.visible,
+                      softWrap: false,
+                    ),
                   )
                 else
                   ...s.taskTags.map(
@@ -432,7 +436,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading: Icon(Icons.ios_share, color: s.primaryColor),
                   title: const Text('完了済みタスクを書き出す'),
-                  subtitle: const Text('JSONファイルとして共有する'),
+                  subtitle: const Text('JSONファイルとして共有'),
                   trailing: Icon(
                     Icons.chevron_right,
                     color: Colors.grey.shade400,
@@ -452,7 +456,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     color: s.primaryColor,
                   ),
                   title: const Text('削除時の確認ダイアログ'),
-                  subtitle: const Text('削除前に確認を表示する'),
+                  subtitle: const Text('削除前に確認を表示'),
                   value: s.showDeleteConfirm,
                   activeThumbColor: s.primaryColor,
                   onChanged: (v) {
@@ -464,7 +468,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 SwitchListTile(
                   secondary: Icon(Icons.swipe_left_alt, color: s.primaryColor),
                   title: const Text('スワイプで削除'),
-                  subtitle: const Text('タスクを左にスワイプして削除する'),
+                  subtitle: const Text(
+                    'タスクを左にスワイプして削除',
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
                   value: s.enableSwipeDelete,
                   activeThumbColor: s.primaryColor,
                   onChanged: (v) {
