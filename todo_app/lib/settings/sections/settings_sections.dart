@@ -6,10 +6,10 @@ extension _SettingsSections on _SettingsPageState {
       ..._buildAppTitleSection(),
       ..._buildTabSettingsSection(),
       ..._buildTaskTagSection(),
-      ..._buildBackupSection(),
       ..._buildBehaviorSection(),
       ..._buildSortSection(),
       ..._buildThemeSection(),
+      ..._buildBackupSection(),
       ..._buildDataSection(),
       const SizedBox(height: 32),
     ];
