@@ -8,17 +8,11 @@ extension _SettingsTabSection on _SettingsPageState {
         children: [
           ListTile(
             leading: Icon(Icons.inbox, color: s.primaryColor),
-            title: Text(s.todoTabName),
+            title: _tabTitleWithEdit(s.todoTabName, (v) {
+              s.todoTabName = v;
+              _notify();
+            }),
             subtitle: const Text('常に表示', style: TextStyle(fontSize: 12)),
-            trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-            onTap: () => _showTextEditDialog(
-              title: 'タブ名を変更',
-              currentValue: s.todoTabName,
-              onSave: (v) {
-                s.todoTabName = v;
-                _notify();
-              },
-            ),
           ),
           _divider(),
           _buildEditableTabSwitch(
@@ -92,38 +86,32 @@ extension _SettingsTabSection on _SettingsPageState {
     required ValueChanged<bool> onChanged,
     required ValueChanged<String> onRename,
   }) {
-    return Column(
+    return SwitchListTile(
+      secondary: Icon(icon, color: s.primaryColor),
+      title: _tabTitleWithEdit(title, onRename),
+      subtitle: const Text('タブの表示/非表示', style: TextStyle(fontSize: 12)),
+      value: value,
+      activeThumbColor: s.primaryColor,
+      onChanged: onChanged,
+    );
+  }
+
+  // タブ名の真横に鉛筆アイコンを置き、タップでリネームする
+  Widget _tabTitleWithEdit(String title, ValueChanged<String> onRename) {
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SwitchListTile(
-          secondary: Icon(icon, color: s.primaryColor),
-          title: Text(title),
-          subtitle: const Text(
-            'タブの表示/非表示',
-            style: TextStyle(fontSize: 12),
-          ),
-          value: value,
-          activeThumbColor: s.primaryColor,
-          onChanged: onChanged,
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 56, right: 16, bottom: 8),
-          child: InkWell(
-            onTap: () => _showTextEditDialog(
-              title: 'タブ名を変更',
-              currentValue: title,
-              onSave: onRename,
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '名前を変更',
-                  style: TextStyle(color: s.accentColor, fontSize: 13),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.edit, size: 14, color: s.accentColor),
-              ],
-            ),
+        Flexible(child: Text(title)),
+        IconButton(
+          icon: Icon(Icons.edit, size: 16, color: s.accentColor),
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+          padding: EdgeInsets.zero,
+          tooltip: 'タブ名を変更',
+          onPressed: () => _showTextEditDialog(
+            title: 'タブ名を変更',
+            currentValue: title,
+            onSave: onRename,
           ),
         ),
       ],
