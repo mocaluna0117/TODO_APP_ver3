@@ -24,6 +24,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   final ImagePicker _imagePicker = ImagePicker();
   String _selectedTaskTagFilter = allTaskCategoriesLabel;
   final Set<int> _fadingOutItems = {};
+  // バックアップ復元のファイル選択中フラグ（多重呼び出しによる
+  // PlatformException(multiple_request) を防ぐ）
+  bool _isPickingBackup = false;
 
   AppSettings get s => widget.settings;
 

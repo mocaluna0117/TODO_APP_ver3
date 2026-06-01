@@ -19,9 +19,9 @@ dependencies:
   timezone: ^0.11.0 # 通知のスケジュール用
   shared_preferences: ^2.5.5
   image_picker: ^1.2.1
-  share_plus: ^13.1.0
+  share_plus: ^12.0.2
   archive: ^4.0.9
-  file_picker: ^3.0.4
+  file_picker: ^10.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

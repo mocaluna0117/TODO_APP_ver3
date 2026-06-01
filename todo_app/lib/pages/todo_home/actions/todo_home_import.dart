@@ -2,11 +2,15 @@ part of '../../../main.dart';
 
 extension _TodoHomeImport on _TodoHomePageState {
   Future<void> _importTasks() async {
+    // すでにファイル選択中なら無視（多重呼び出しで前の選択がキャンセルされるのを防ぐ）
+    if (_isPickingBackup) return;
+    _isPickingBackup = true;
     final FilePickerResult? picked;
     try {
+      // 端末標準のファイル選択画面を開き、JSONファイルのみ選べるようにする
       picked = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['json', 'zip'],
+        allowedExtensions: ['json'],
         withData: true,
       );
     } catch (error, stackTrace) {
@@ -15,8 +19,10 @@ extension _TodoHomeImport on _TodoHomePageState {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('ファイルを選択できませんでした: $error')));
+      ).showSnackBar(const SnackBar(content: Text('ファイルを選択できませんでした')));
       return;
+    } finally {
+      _isPickingBackup = false;
     }
     if (picked == null || picked.files.isEmpty) return;
 
