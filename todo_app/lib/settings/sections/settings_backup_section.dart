@@ -13,6 +13,14 @@ extension _SettingsBackupSection on _SettingsPageState {
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
             onTap: widget.onExportTasks == null ? null : _showExportOptions,
           ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(Icons.file_download_outlined, color: s.primaryColor),
+            title: const Text('タスクを復元する'),
+            subtitle: const Text('書き出したJSONファイルからタスクを取り込む'),
+            trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+            onTap: widget.onImportTasks,
+          ),
         ],
       ),
     ];

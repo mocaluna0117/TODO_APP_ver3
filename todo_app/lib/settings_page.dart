@@ -23,6 +23,7 @@ class SettingsPage extends StatefulWidget {
   final void Function(String oldTag, String newTag)? onTaskTagRenamed;
   final ValueChanged<String>? onTaskTagDeleted;
   final Future<void> Function({required bool completedOnly})? onExportTasks;
+  final Future<void> Function()? onImportTasks;
 
   const SettingsPage({
     super.key,
@@ -31,6 +32,7 @@ class SettingsPage extends StatefulWidget {
     this.onTaskTagRenamed,
     this.onTaskTagDeleted,
     this.onExportTasks,
+    this.onImportTasks,
   });
 
   @override
