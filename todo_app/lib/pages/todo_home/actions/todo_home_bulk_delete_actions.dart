@@ -1,6 +1,21 @@
 part of '../../../main.dart';
 
 extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
+  void _deleteAllTasks() {
+    if (_allItems.isEmpty) return;
+
+    final itemIds = _allItems.map((item) => item.id).toList();
+    _updateState(() {
+      _allItems.clear();
+      _fadingOutItems.clear();
+    });
+    _saveData();
+
+    for (final id in itemIds) {
+      NotificationService().cancelNotification(id);
+    }
+  }
+
   void _deleteCompletedItems(List<TodoItem> items) {
     if (items.isEmpty) return;
 

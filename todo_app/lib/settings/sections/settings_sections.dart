@@ -10,6 +10,7 @@ extension _SettingsSections on _SettingsPageState {
       ..._buildBehaviorSection(),
       ..._buildSortSection(),
       ..._buildThemeSection(),
+      ..._buildDataSection(),
       const SizedBox(height: 32),
     ];
   }

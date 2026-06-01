@@ -25,6 +25,7 @@ extension _TodoHomeSettings on _TodoHomePageState {
           onTaskTagDeleted: _deleteTaskTag,
           onExportTasks: _exportTasks,
           onImportTasks: _importTasks,
+          onDeleteAllTasks: _deleteAllTasks,
         ),
       ),
     );
