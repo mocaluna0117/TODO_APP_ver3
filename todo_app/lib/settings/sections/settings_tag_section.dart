@@ -14,6 +14,7 @@ extension _SettingsTagSection on _SettingsPageState {
                 'タグを追加してタスクに付ける',
                 overflow: TextOverflow.visible,
                 softWrap: false,
+                style: TextStyle(fontSize: 12),
               ),
             )
           else

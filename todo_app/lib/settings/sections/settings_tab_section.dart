@@ -9,7 +9,7 @@ extension _SettingsTabSection on _SettingsPageState {
           ListTile(
             leading: Icon(Icons.inbox, color: s.primaryColor),
             title: Text(s.todoTabName),
-            subtitle: const Text('常に表示'),
+            subtitle: const Text('常に表示', style: TextStyle(fontSize: 12)),
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
             onTap: () => _showTextEditDialog(
               title: 'タブ名を変更',
@@ -98,7 +98,10 @@ extension _SettingsTabSection on _SettingsPageState {
         SwitchListTile(
           secondary: Icon(icon, color: s.primaryColor),
           title: Text(title),
-          subtitle: const Text('タブの表示/非表示'),
+          subtitle: const Text(
+            'タブの表示/非表示',
+            style: TextStyle(fontSize: 12),
+          ),
           value: value,
           activeThumbColor: s.primaryColor,
           onChanged: onChanged,

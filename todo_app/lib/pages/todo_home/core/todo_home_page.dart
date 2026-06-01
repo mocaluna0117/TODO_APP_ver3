@@ -88,14 +88,18 @@ class _TodoHomePageState extends State<TodoHomePage>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: false,
-          labelPadding: EdgeInsets.zero,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
           tabs: _activeTabKeys
               .map(
                 (key) => Tab(
-                  child: Text(
-                    _tabName(key),
-                    textAlign: TextAlign.center,
-                    softWrap: true,
+                  // 折り返さず、入りきらない分だけ縮小して1行で表示
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _tabName(key),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
                   ),
                 ),
               )

@@ -65,6 +65,19 @@ class _MyAppState extends State<MyApp> {
           foregroundColor: Colors.white,
         ),
       ),
+      // OSの文字サイズ設定が極端でもレイアウトが崩れないよう拡大率を制限
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: mediaQuery.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.2,
+            ),
+          ),
+          child: child!,
+        );
+      },
       home: TodoHomePage(
         settings: _settings,
         onSettingsChanged: _onSettingsChanged,

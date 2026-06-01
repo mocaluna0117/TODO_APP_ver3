@@ -2,9 +2,11 @@ part of '../../../main.dart';
 
 extension _TodoHomeTaskTagFilter on _TodoHomePageState {
   Widget _buildTaskTagFilter() {
+    // 文字拡大に合わせて高さも伸ばし、チップ内テキストの重なりを防ぐ
+    final filterHeight = 52 * MediaQuery.textScalerOf(context).scale(1);
     if (s.taskTags.isEmpty) {
       return Container(
-        height: 52,
+        height: filterHeight,
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: ActionChip(
@@ -24,7 +26,7 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
     final tags = [allTaskCategoriesLabel, ...s.taskTags];
 
     return Container(
-      height: 52,
+      height: filterHeight,
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.separated(
