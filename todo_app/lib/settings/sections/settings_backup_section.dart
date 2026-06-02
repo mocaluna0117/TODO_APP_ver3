@@ -8,7 +8,7 @@ extension _SettingsBackupSection on _SettingsPageState {
         children: [
           ListTile(
             leading: Icon(Icons.ios_share, color: s.primaryColor),
-            title: const Text('タスクを書き出す'),
+            title: const Text('タスクを保存する'),
             subtitle: const Text(
               'タスクの内容とバックアップ用のJSONファイルをZIPで保存',
               style: TextStyle(fontSize: 12),
@@ -21,7 +21,7 @@ extension _SettingsBackupSection on _SettingsPageState {
             leading: Icon(Icons.file_download_outlined, color: s.primaryColor),
             title: const Text('タスクを復元する'),
             subtitle: const Text(
-              '書き出したJSONファイルからタスクを取り込む',
+              'JSONファイルからタスクを取り込む',
               style: TextStyle(fontSize: 12),
             ),
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),

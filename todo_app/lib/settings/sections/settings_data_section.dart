@@ -13,7 +13,7 @@ extension _SettingsDataSection on _SettingsPageState {
               style: TextStyle(color: Colors.red),
             ),
             subtitle: const Text(
-              'すべてのタスクを完全に削除（復元できません）',
+              'すべてのタスクを完全に削除\n（復元できません）',
               style: TextStyle(fontSize: 12),
             ),
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
