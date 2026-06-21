@@ -1,3 +1,5 @@
 {
-  "prisma.pinToPrisma6": true
+  "prisma.pinToPrisma6": true,
+  "markdown-pdf.headerTemplate": "<span></span>",
+  "markdown-pdf.footerTemplate": "<div style=\"font-size:9px; margin:0 auto;\"><span class=\"pageNumber\"></span> / <span class=\"totalPages\"></span></div>"
 }
