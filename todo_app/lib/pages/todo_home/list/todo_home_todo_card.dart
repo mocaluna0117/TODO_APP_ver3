@@ -21,17 +21,17 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
           ),
           color: Colors.white,
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4,
-            ),
+            contentPadding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+            // チェックボックスを左に寄せ、タイトルとの間隔も詰めて本文幅を広げる
+            horizontalTitleGap: 6,
+            minLeadingWidth: 0,
             onTap: category == 'done'
                 ? null
                 : () => _showEditDialog(item, tabKey: category),
             leading: category == 'done' ? null : _buildTodoCardCheckbox(item),
             title: _buildTodoCardTitle(item),
             subtitle: _buildTodoSubtitle(item),
-            trailing: _buildTodoCardActions(item, category),
+            trailing: _buildTodoCardActions(item),
           ),
         ),
       ),
@@ -57,6 +57,9 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
       onChanged: (_) => _completeItemWithFade(item),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       activeColor: s.primaryColor,
+      // タップ領域を縮めてカード左端に寄せる
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 

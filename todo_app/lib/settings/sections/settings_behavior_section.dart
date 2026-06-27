@@ -40,7 +40,11 @@ extension _SettingsBehaviorSection on _SettingsPageState {
           _divider(),
           ListTile(
             leading: Icon(Icons.notifications_active, color: s.primaryColor),
-            title: const Text('期限の通知タイミング'),
+            title: const Text('既定の通知タイミング'),
+            subtitle: const Text(
+              '新規タスクの初期値（タスクごとに変更可）',
+              style: TextStyle(fontSize: 12),
+            ),
             // ▽（上）とその真下に現在値を縦に並べて表示。
             // PopupMenuButtonにすることでメニュー幅が項目に合い、折り返さない
             trailing: PopupMenuButton<NotificationTiming>(

@@ -31,6 +31,9 @@ extension _TodoHomeAddDialogContent on _TodoHomePageState {
                   Flexible(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.only(bottom: 12),
+                      // スクロール（ドラッグ）でキーボードを閉じる
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       child: _buildAddDialogFields(
                         category: category,
                         isFromTodayTab: isFromTodayTab,

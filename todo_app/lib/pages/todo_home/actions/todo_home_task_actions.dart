@@ -10,6 +10,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
     List<String> imageBase64List = const [],
     TaskPriority priority = TaskPriority.none,
+    List<int>? notificationOffsets,
   }) {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
@@ -22,6 +23,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       recurrenceRule: recurrenceRule,
       imageBase64List: imageBase64List,
       priority: priority,
+      notificationOffsets: notificationOffsets,
     );
     _updateState(() {
       _allItems.add(newItem);
@@ -39,6 +41,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
     List<String> imageBase64List = const [],
     TaskPriority priority = TaskPriority.none,
+    List<int>? notificationOffsets,
   }) {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
@@ -51,6 +54,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       item.recurrenceRule = recurrenceRule;
       item.imageBase64List = imageBase64List;
       item.priority = priority;
+      item.notificationOffsets = notificationOffsets;
     });
     _saveData();
     if (item.dueDate == null && hadDueDate) {

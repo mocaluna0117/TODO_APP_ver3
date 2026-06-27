@@ -58,6 +58,14 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
           onChanged: (rule) =>
               setSheetState(() => draft.selectedRecurrenceRule = rule),
         ),
+        if (draft.selectedDate != null) ...[
+          const SizedBox(height: 12),
+          _buildNotificationTimingPicker(
+            selectedOffsets: draft.selectedNotificationOffsets,
+            onChanged: (offsets) =>
+                setSheetState(() => draft.selectedNotificationOffsets = offsets),
+          ),
+        ],
         const SizedBox(height: 12),
         _buildImagePickerRow(
           imageBase64List: draft.selectedImageBase64List,

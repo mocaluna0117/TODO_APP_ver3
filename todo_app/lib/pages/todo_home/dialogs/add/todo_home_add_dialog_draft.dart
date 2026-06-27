@@ -1,8 +1,11 @@
 part of '../../../../main.dart';
 
 class _AddTodoDraft {
-  _AddTodoDraft({required bool isFromTodayTab})
-    : selectedDate = isFromTodayTab ? _endOfToday() : null;
+  _AddTodoDraft({
+    required bool isFromTodayTab,
+    required List<int> defaultNotificationOffsets,
+  }) : selectedDate = isFromTodayTab ? _endOfToday() : null,
+       selectedNotificationOffsets = [...defaultNotificationOffsets];
 
   final textController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -11,6 +14,7 @@ class _AddTodoDraft {
   String? selectedTaskTag;
   RecurrenceRule selectedRecurrenceRule = RecurrenceRule.none;
   TaskPriority selectedTaskPriority = TaskPriority.none;
+  List<int> selectedNotificationOffsets;
 
   static DateTime _endOfToday() {
     final now = DateTime.now();

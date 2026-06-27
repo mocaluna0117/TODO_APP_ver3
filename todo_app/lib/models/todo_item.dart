@@ -85,6 +85,82 @@ TaskPriority normalizeTaskPriority(Object? value) {
   return TaskPriority.none;
 }
 
+// プリセットの通知タイミング（期限までの分数）。0 = 期限の時間。
+const List<int> presetNotificationOffsets = [0, 10, 60, 1440];
+
+// 全体設定の NotificationTiming を「期限までの分数」に変換する。
+int notificationTimingToMinutes(NotificationTiming timing) {
+  switch (timing) {
+    case NotificationTiming.atTime:
+    case NotificationTiming.none:
+      return 0;
+    case NotificationTiming.minutes10:
+      return 10;
+    case NotificationTiming.hour1:
+      return 60;
+    case NotificationTiming.day1:
+      return 1440;
+  }
+}
+
+// 期限までの分数を「1日2時間前」のような表示ラベルに変換する。
+String notificationOffsetLabel(int minutes) {
+  if (minutes <= 0) return '期限の時間';
+  // ちょうど週単位なら「○週前」と表示する
+  if (minutes % 10080 == 0) return '${minutes ~/ 10080}週前';
+  final days = minutes ~/ 1440;
+  final hours = (minutes % 1440) ~/ 60;
+  final mins = minutes % 60;
+  final buffer = StringBuffer();
+  if (days > 0) buffer.write('$days日');
+  if (hours > 0) buffer.write('$hours時間');
+  if (mins > 0) buffer.write('$mins分');
+  buffer.write('前');
+  return buffer.toString();
+}
+
+// タスク固有の通知タイミング（期限までの分数のリスト）を正規化する。
+// キーが存在しない（旧データ）場合は null を返し、全体のデフォルト通知に従わせる。
+// 旧形式（NotificationTiming の name 配列）からの移行にも対応する。
+List<int>? normalizeNotificationOffsets(Map<String, dynamic> json) {
+  final raw = json['notificationOffsets'];
+  if (raw is List) {
+    final result = <int>[];
+    for (final value in raw) {
+      final minutes = value is int
+          ? value
+          : int.tryParse(value?.toString() ?? '');
+      if (minutes != null && minutes >= 0 && !result.contains(minutes)) {
+        result.add(minutes);
+      }
+    }
+    result.sort();
+    return result;
+  }
+
+  // 旧形式（notificationTimings: NotificationTiming の name 配列）からの移行
+  final legacy = json['notificationTimings'];
+  if (legacy is List) {
+    final result = <int>[];
+    for (final value in legacy) {
+      final rawValue = value?.toString();
+      if (rawValue == null || rawValue.isEmpty) continue;
+      for (final timing in NotificationTiming.values) {
+        if (timing == NotificationTiming.none) continue;
+        if (rawValue == timing.name || rawValue == timing.index.toString()) {
+          final minutes = notificationTimingToMinutes(timing);
+          if (!result.contains(minutes)) result.add(minutes);
+          break;
+        }
+      }
+    }
+    result.sort();
+    return result;
+  }
+
+  return null;
+}
+
 List<String> normalizeImageBase64List(Map<String, dynamic> json) {
   final images = <String>[];
   final imageList = json['imageBase64List'];
@@ -124,6 +200,10 @@ class TodoItem {
   List<String> imageBase64List;
   TaskPriority priority;
   DateTime? completedAt;
+  // タスクごとの通知タイミング（期限までの分数のリスト）。
+  // null は未設定（全体のデフォルトに従う）、空リストは「通知しない」、
+  // 複数要素は複数件の通知を表す。0 = 期限の時間、任意の値でカスタム設定可。
+  List<int>? notificationOffsets;
 
   TodoItem({
     int? id,
@@ -137,6 +217,7 @@ class TodoItem {
     List<String>? imageBase64List,
     this.priority = TaskPriority.none,
     this.completedAt,
+    this.notificationOffsets,
   }) : imageBase64List = imageBase64List ?? [],
        id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
@@ -159,6 +240,7 @@ class TodoItem {
     'imageBase64List': imageBase64List,
     'priority': priority.name,
     'completedAt': completedAt?.toIso8601String(),
+    'notificationOffsets': notificationOffsets,
   };
 
   factory TodoItem.fromJson(Map<String, dynamic> json) => TodoItem(
@@ -175,5 +257,6 @@ class TodoItem {
     completedAt: json['completedAt'] != null
         ? DateTime.parse(json['completedAt'])
         : null,
+    notificationOffsets: normalizeNotificationOffsets(json),
   );
 }

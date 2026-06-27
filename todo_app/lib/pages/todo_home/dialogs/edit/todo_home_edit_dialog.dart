@@ -3,7 +3,10 @@ part of '../../../../main.dart';
 extension _TodoHomeEditDialog on _TodoHomePageState {
   void _showEditDialog(TodoItem item, {String tabKey = ''}) {
     final isFromTodayTab = tabKey == 'today';
-    final draft = _EditTodoDraft(item);
+    final draft = _EditTodoDraft(
+      item,
+      defaultNotificationOffsets: _defaultNotificationOffsets(),
+    );
 
     showDialog(
       context: context,
@@ -29,6 +32,7 @@ extension _TodoHomeEditDialog on _TodoHomePageState {
                 recurrenceRule: draft.selectedRecurrenceRule,
                 imageBase64List: draft.selectedImageBase64List,
                 priority: draft.selectedTaskPriority,
+                notificationOffsets: draft.selectedNotificationOffsets,
               );
               Navigator.pop(context);
             }

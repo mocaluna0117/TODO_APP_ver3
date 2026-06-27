@@ -6,7 +6,10 @@ extension _TodoHomeDialogs on _TodoHomePageState {
     final category = _currentTabKey == 'done' || isFromTodayTab
         ? 'todo'
         : _currentTabKey;
-    final draft = _AddTodoDraft(isFromTodayTab: isFromTodayTab);
+    final draft = _AddTodoDraft(
+      isFromTodayTab: isFromTodayTab,
+      defaultNotificationOffsets: _defaultNotificationOffsets(),
+    );
 
     showDialog(
       context: context,
@@ -32,6 +35,7 @@ extension _TodoHomeDialogs on _TodoHomePageState {
                 recurrenceRule: draft.selectedRecurrenceRule,
                 imageBase64List: draft.selectedImageBase64List,
                 priority: draft.selectedTaskPriority,
+                notificationOffsets: draft.selectedNotificationOffsets,
               );
               Navigator.pop(context);
             }
