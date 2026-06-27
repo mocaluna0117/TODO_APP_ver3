@@ -27,6 +27,7 @@ extension _TodoHomeEditDialog on _TodoHomePageState {
                 item,
                 draft.textController.text,
                 description: draft.descriptionController.text,
+                link: draft.linkController.text,
                 taskTag: draft.selectedTaskTag,
                 dueDate: draft.selectedDate,
                 recurrenceRule: draft.selectedRecurrenceRule,

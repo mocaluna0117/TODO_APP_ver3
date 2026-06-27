@@ -10,6 +10,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
         !item.isRecurring &&
         !hasTaskPriority &&
         description == null &&
+        item.link == null &&
         item.dueDate == null &&
         imageBytesList.isEmpty) {
       return null;
@@ -55,6 +56,33 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                     : FontWeight.normal,
               ),
             ),
+          if (item.link != null) ...[
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => _openLink(item.link!),
+              borderRadius: BorderRadius.circular(4),
+              child: Row(
+                children: [
+                  Icon(Icons.link, size: 14, color: s.primaryColor),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      item.link!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: s.primaryColor,
+                        decoration: TextDecoration.underline,
+                        decorationColor: s.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (imageBytesList.isNotEmpty) ...[
             const SizedBox(height: 8),
             SizedBox(
@@ -113,5 +141,28 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
         ],
       ),
     );
+  }
+
+  // タスクのリンクを外部ブラウザで開く。スキームが無ければ https:// を補う。
+  Future<void> _openLink(String rawUrl) async {
+    var url = rawUrl.trim();
+    if (url.isEmpty) return;
+    if (!url.contains('://')) {
+      url = 'https://$url';
+    }
+    final uri = Uri.tryParse(url);
+    var opened = false;
+    if (uri != null) {
+      try {
+        opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        opened = false;
+      }
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('リンクを開けませんでした: $rawUrl')));
+    }
   }
 }

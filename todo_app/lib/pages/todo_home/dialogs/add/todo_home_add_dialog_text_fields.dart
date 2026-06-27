@@ -28,6 +28,18 @@ extension _TodoHomeAddDialogTextFields on _TodoHomePageState {
     );
   }
 
+  Widget _buildAddDialogLinkField(_AddTodoDraft draft) {
+    return TextField(
+      controller: draft.linkController,
+      keyboardType: TextInputType.url,
+      textInputAction: TextInputAction.done,
+      hintLocales: const [Locale('ja', 'JP')],
+      decoration: _addDialogTextFieldDecoration('リンク（任意）').copyWith(
+        prefixIcon: Icon(Icons.link, color: s.primaryColor),
+      ),
+    );
+  }
+
   InputDecoration _addDialogTextFieldDecoration(
     String hintText, {
     EdgeInsetsGeometry contentPadding = const EdgeInsets.symmetric(

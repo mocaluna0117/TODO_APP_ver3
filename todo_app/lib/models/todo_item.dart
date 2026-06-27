@@ -191,6 +191,7 @@ class TodoItem {
   final int id;
   String title;
   String? description;
+  String? link;
   bool isDone;
   // category: 'todo' = やること, 'done' = 完了済み, 'future' = 今後やりたいこと
   String category;
@@ -209,6 +210,7 @@ class TodoItem {
     int? id,
     required this.title,
     this.description,
+    this.link,
     this.isDone = false,
     this.category = 'todo',
     this.taskTag,
@@ -232,6 +234,7 @@ class TodoItem {
     'id': id,
     'title': title,
     'description': description,
+    'link': link,
     'isDone': isDone,
     'category': category,
     'taskTag': taskTag,
@@ -247,6 +250,7 @@ class TodoItem {
     id: (json['id'] as int) & 0x7FFFFFFF,
     title: json['title'],
     description: json['description'],
+    link: normalizeTaskTag(json['link']),
     isDone: json['isDone'] ?? false,
     category: json['category'] ?? 'todo',
     taskTag: normalizeTaskTag(json['taskTag'] ?? json['taskCategory']),
