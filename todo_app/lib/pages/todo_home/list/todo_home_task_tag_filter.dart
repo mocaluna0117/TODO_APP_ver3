@@ -35,21 +35,22 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
         itemCount: tags.length + 1,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          if (index == tags.length) {
+          // 「すべて」(index 0) のすぐ右に「＋」追加ボタンを置く。
+          // タグが1つ以上ある場合はアイコンのみ表示する。
+          if (index == 1) {
             return ActionChip(
-              avatar: Icon(Icons.add, color: s.primaryColor, size: 18),
-              label: const Text('タグを追加'),
+              label: Icon(Icons.add, color: s.primaryColor, size: 18),
+              labelPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
               backgroundColor: Colors.white,
               side: BorderSide(color: Colors.grey.shade300),
-              labelStyle: TextStyle(
-                color: s.primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
+              tooltip: 'タグを追加',
               onPressed: _showAddTaskTagDialog,
             );
           }
 
-          final tag = tags[index];
+          // index 0 は「すべて」、index 2以降は実タグ（+ボタン分ずらす）
+          final tag = index == 0 ? tags[0] : tags[index - 1];
           final isSelected = tag == _selectedTaskTagFilter;
           final canEditTag = tag != allTaskCategoriesLabel;
 

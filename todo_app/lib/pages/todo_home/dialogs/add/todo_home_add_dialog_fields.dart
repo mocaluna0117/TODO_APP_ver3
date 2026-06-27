@@ -13,7 +13,8 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '${_tabName(category)}を追加',
+          // 今日やることタブから追加する場合はそのタブ名をタイトルに反映する
+          '${_tabName(isFromTodayTab ? 'today' : category)}を追加',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

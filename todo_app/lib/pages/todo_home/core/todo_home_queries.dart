@@ -34,6 +34,13 @@ extension _TodoHomeQueries on _TodoHomePageState {
     }
 
     items.sort((a, b) {
+      // やりたいことタブは優先度の高い順を最優先（同優先度内は期限順）
+      if (category == 'future') {
+        final priorityCompare = priorityStarCount(
+          b.priority,
+        ).compareTo(priorityStarCount(a.priority));
+        if (priorityCompare != 0) return priorityCompare;
+      }
       if (a.dueDate == null && b.dueDate == null) return 0;
       if (a.dueDate == null) return 1;
       if (b.dueDate == null) return -1;
