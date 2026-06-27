@@ -7,29 +7,34 @@ extension _SettingsTagActions on _SettingsPageState {
     ).showSnackBar(SnackBar(content: Text('「$tag」はすでにあります')));
   }
 
-  void _addTaskTag(String tag) {
-    if (s.taskTags.contains(tag)) {
+  List<String> _tagListFor(bool isFuture) =>
+      isFuture ? s.futureTaskTags : s.taskTags;
+
+  void _addTaskTag(String tag, {required bool isFuture}) {
+    final tags = _tagListFor(isFuture);
+    if (tags.contains(tag)) {
       _showDuplicateTagMessage(tag);
       return;
     }
-    s.taskTags.add(tag);
+    tags.add(tag);
     _notify();
   }
 
-  void _renameTaskTag(String oldTag, String newTag) {
+  void _renameTaskTag(String oldTag, String newTag, {required bool isFuture}) {
     if (oldTag == newTag) return;
-    if (s.taskTags.contains(newTag)) {
+    final tags = _tagListFor(isFuture);
+    if (tags.contains(newTag)) {
       _showDuplicateTagMessage(newTag);
       return;
     }
-    final index = s.taskTags.indexOf(oldTag);
+    final index = tags.indexOf(oldTag);
     if (index == -1) return;
-    s.taskTags[index] = newTag;
-    widget.onTaskTagRenamed?.call(oldTag, newTag);
+    tags[index] = newTag;
+    widget.onTaskTagRenamed?.call(oldTag, newTag, isFuture: isFuture);
     _notify();
   }
 
-  Future<void> _confirmDeleteTaskTag(String tag) async {
+  Future<void> _confirmDeleteTaskTag(String tag, {required bool isFuture}) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -57,8 +62,8 @@ extension _SettingsTagActions on _SettingsPageState {
     );
     if (result != true) return;
 
-    s.taskTags.remove(tag);
-    widget.onTaskTagDeleted?.call(tag);
+    _tagListFor(isFuture).remove(tag);
+    widget.onTaskTagDeleted?.call(tag, isFuture: isFuture);
     _notify();
   }
 }

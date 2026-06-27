@@ -2,6 +2,7 @@ part of '../../../main.dart';
 
 extension _TodoHomeSelectFields on _TodoHomePageState {
   Widget _buildTaskTagPicker({
+    required String category,
     required String? selectedTaskTag,
     required ValueChanged<String?> onChanged,
   }) {
@@ -24,7 +25,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
       ),
       items: [
         noTaskTagLabel,
-        ...s.taskTags,
+        ...s.tagsForCategory(category),
       ].map((tag) => DropdownMenuItem(value: tag, child: Text(tag))).toList(),
       onChanged: (tag) {
         if (tag != null) {

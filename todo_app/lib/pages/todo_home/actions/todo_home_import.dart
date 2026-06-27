@@ -108,14 +108,20 @@ extension _TodoHomeImport on _TodoHomePageState {
     );
     if (confirmed != true) return;
 
-    // 復元タスクが持つ未登録タグを設定に取り込み、タグが消えないようにする
-    final newTags = newItems
-        .map((item) => item.taskTag)
-        .whereType<String>()
+    // 復元タスクが持つ未登録タグを、カテゴリ別のグループに取り込んで消えないようにする
+    final newMainTags = newItems
+        .where((item) => item.category != 'future' && item.taskTag != null)
+        .map((item) => item.taskTag!)
         .where((tag) => !s.taskTags.contains(tag))
         .toSet();
-    if (newTags.isNotEmpty) {
-      s.taskTags.addAll(newTags);
+    final newFutureTags = newItems
+        .where((item) => item.category == 'future' && item.taskTag != null)
+        .map((item) => item.taskTag!)
+        .where((tag) => !s.futureTaskTags.contains(tag))
+        .toSet();
+    if (newMainTags.isNotEmpty || newFutureTags.isNotEmpty) {
+      s.taskTags.addAll(newMainTags);
+      s.futureTaskTags.addAll(newFutureTags);
       await s.saveToPrefs();
       widget.onSettingsChanged();
     }

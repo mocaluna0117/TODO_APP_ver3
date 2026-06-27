@@ -26,6 +26,7 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
         _buildAddDialogDescriptionField(draft),
         const SizedBox(height: 12),
         _buildTaskTagPicker(
+          category: category,
           selectedTaskTag: draft.selectedTaskTag,
           onChanged: (tag) => setSheetState(() => draft.selectedTaskTag = tag),
         ),

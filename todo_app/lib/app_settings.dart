@@ -46,8 +46,9 @@ class AppSettings {
   // 通知タイミング
   NotificationTiming notificationTiming;
 
-  // タグ
+  // タグ（main: やること/今日やること用、future: やりたいこと用）
   List<String> taskTags;
+  List<String> futureTaskTags;
 
   AppSettings({
     this.appTitle = 'TODO',
@@ -65,7 +66,13 @@ class AppSettings {
     this.accentColor = const Color(0xFF7895CB),
     this.notificationTiming = NotificationTiming.hour1,
     List<String>? taskTags,
-  }) : taskTags = _normalizeTaskTags(taskTags ?? []);
+    List<String>? futureTaskTags,
+  }) : taskTags = _normalizeTaskTags(taskTags ?? []),
+       futureTaskTags = _normalizeTaskTags(futureTaskTags ?? []);
+
+  // カテゴリに対応するタグリストを返す（future かそれ以外かでグループが分かれる）
+  List<String> tagsForCategory(String category) =>
+      category == 'future' ? futureTaskTags : taskTags;
 
   Future<void> saveToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -84,6 +91,7 @@ class AppSettings {
     await prefs.setInt('accentColor', accentColor.toARGB32());
     await prefs.setInt('notificationTiming', notificationTiming.index);
     await prefs.setStringList('taskTags', taskTags);
+    await prefs.setStringList('futureTaskTags', futureTaskTags);
   }
 
   Future<void> loadFromPrefs() async {
@@ -113,6 +121,9 @@ class AppSettings {
           NotificationTiming.values[prefs.getInt('notificationTiming')!];
     }
     taskTags = _normalizeTaskTags(prefs.getStringList('taskTags') ?? taskTags);
+    futureTaskTags = _normalizeTaskTags(
+      prefs.getStringList('futureTaskTags') ?? futureTaskTags,
+    );
   }
 
   static List<String> _normalizeTaskTags(List<String> tags) {

@@ -22,7 +22,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   TabController? _tabController;
   final List<TodoItem> _allItems = [];
   final ImagePicker _imagePicker = ImagePicker();
+  // タグ絞り込みの選択状態（main: やること/今日やること用、future: やりたいこと用）
   String _selectedTaskTagFilter = allTaskCategoriesLabel;
+  String _selectedFutureTaskTagFilter = allTaskCategoriesLabel;
   final Set<int> _fadingOutItems = {};
   // バックアップ復元のファイル選択中フラグ（多重呼び出しによる
   // PlatformException(multiple_request) を防ぐ）

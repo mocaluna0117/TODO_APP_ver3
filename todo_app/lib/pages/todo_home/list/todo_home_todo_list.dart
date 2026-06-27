@@ -7,7 +7,8 @@ extension _TodoHomeTodoList on _TodoHomePageState {
 
     return Column(
       children: [
-        _buildTaskTagFilter(),
+        // 完了タブはタグ絞り込みを表示しない
+        if (category != 'done') _buildTaskTagFilter(category),
         Expanded(
           child: items.isEmpty
               ? _buildEmptyListMessage(category)

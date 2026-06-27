@@ -1,7 +1,7 @@
 part of '../../../../main.dart';
 
 extension _TodoHomeRenameTaskTagDialog on _TodoHomePageState {
-  void _showRenameTaskTagDialog(String oldTag) {
+  void _showRenameTaskTagDialog(String oldTag, String category) {
     final controller = TextEditingController(text: oldTag);
     showDialog(
       context: context,
@@ -26,7 +26,7 @@ extension _TodoHomeRenameTaskTagDialog on _TodoHomePageState {
             ),
           ),
           onSubmitted: (_) {
-            if (_renameTaskTagFromHome(oldTag, controller.text)) {
+            if (_renameTaskTagFromHome(oldTag, controller.text, category)) {
               Navigator.pop(context);
             }
           },
@@ -38,7 +38,7 @@ extension _TodoHomeRenameTaskTagDialog on _TodoHomePageState {
           ),
           TextButton(
             onPressed: () {
-              if (_renameTaskTagFromHome(oldTag, controller.text)) {
+              if (_renameTaskTagFromHome(oldTag, controller.text, category)) {
                 Navigator.pop(context);
               }
             },
@@ -55,21 +55,22 @@ extension _TodoHomeRenameTaskTagDialog on _TodoHomePageState {
     );
   }
 
-  bool _renameTaskTagFromHome(String oldTag, String value) {
+  bool _renameTaskTagFromHome(String oldTag, String value, String category) {
     final newTag = normalizeTaskTag(value);
     if (newTag == null) return false;
     if (newTag == oldTag) return true;
-    if (s.taskTags.contains(newTag)) {
+    final groupTags = s.tagsForCategory(category);
+    if (groupTags.contains(newTag)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('「$newTag」はすでにあります')));
       return false;
     }
 
-    final index = s.taskTags.indexOf(oldTag);
+    final index = groupTags.indexOf(oldTag);
     if (index == -1) return false;
-    s.taskTags[index] = newTag;
-    _renameTaskTag(oldTag, newTag);
+    groupTags[index] = newTag;
+    _renameTaskTag(oldTag, newTag, isFuture: category == 'future');
     s.saveToPrefs();
     widget.onSettingsChanged();
     return true;

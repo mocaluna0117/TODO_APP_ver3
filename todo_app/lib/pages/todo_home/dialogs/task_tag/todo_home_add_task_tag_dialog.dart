@@ -1,7 +1,7 @@
 part of '../../../../main.dart';
 
 extension _TodoHomeAddTaskTagDialog on _TodoHomePageState {
-  void _showAddTaskTagDialog() {
+  void _showAddTaskTagDialog(String category) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -26,7 +26,7 @@ extension _TodoHomeAddTaskTagDialog on _TodoHomePageState {
             ),
           ),
           onSubmitted: (_) {
-            if (_addTaskTagFromHome(controller.text)) {
+            if (_addTaskTagFromHome(controller.text, category)) {
               Navigator.pop(context);
             }
           },
@@ -38,7 +38,7 @@ extension _TodoHomeAddTaskTagDialog on _TodoHomePageState {
           ),
           TextButton(
             onPressed: () {
-              if (_addTaskTagFromHome(controller.text)) {
+              if (_addTaskTagFromHome(controller.text, category)) {
                 Navigator.pop(context);
               }
             },
@@ -55,18 +55,19 @@ extension _TodoHomeAddTaskTagDialog on _TodoHomePageState {
     );
   }
 
-  bool _addTaskTagFromHome(String value) {
+  bool _addTaskTagFromHome(String value, String category) {
     final tag = normalizeTaskTag(value);
     if (tag == null) return false;
-    if (s.taskTags.contains(tag)) {
+    final groupTags = s.tagsForCategory(category);
+    if (groupTags.contains(tag)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('「$tag」はすでにあります')));
       return false;
     }
     _updateState(() {
-      s.taskTags.add(tag);
-      _selectedTaskTagFilter = tag;
+      groupTags.add(tag);
+      _setSelectedTagFilter(category, tag);
     });
     s.saveToPrefs();
     widget.onSettingsChanged();

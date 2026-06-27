@@ -1,10 +1,12 @@
 part of '../../../main.dart';
 
 extension _TodoHomeTaskTagFilter on _TodoHomePageState {
-  Widget _buildTaskTagFilter() {
+  Widget _buildTaskTagFilter(String category) {
+    final groupTags = s.tagsForCategory(category);
+    final selectedFilter = _selectedTagFilterFor(category);
     // 文字拡大に合わせて高さも伸ばし、チップ内テキストの重なりを防ぐ
     final filterHeight = 52 * MediaQuery.textScalerOf(context).scale(1);
-    if (s.taskTags.isEmpty) {
+    if (groupTags.isEmpty) {
       return Container(
         height: filterHeight,
         alignment: Alignment.centerLeft,
@@ -18,12 +20,12 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
             color: s.primaryColor,
             fontWeight: FontWeight.bold,
           ),
-          onPressed: _showAddTaskTagDialog,
+          onPressed: () => _showAddTaskTagDialog(category),
         ),
       );
     }
 
-    final tags = [allTaskCategoriesLabel, ...s.taskTags];
+    final tags = [allTaskCategoriesLabel, ...groupTags];
 
     return Container(
       height: filterHeight,
@@ -45,17 +47,19 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
               backgroundColor: Colors.white,
               side: BorderSide(color: Colors.grey.shade300),
               tooltip: 'タグを追加',
-              onPressed: _showAddTaskTagDialog,
+              onPressed: () => _showAddTaskTagDialog(category),
             );
           }
 
           // index 0 は「すべて」、index 2以降は実タグ（+ボタン分ずらす）
           final tag = index == 0 ? tags[0] : tags[index - 1];
-          final isSelected = tag == _selectedTaskTagFilter;
+          final isSelected = tag == selectedFilter;
           final canEditTag = tag != allTaskCategoriesLabel;
 
           return GestureDetector(
-            onLongPress: canEditTag ? () => _showTaskTagActions(tag) : null,
+            onLongPress: canEditTag
+                ? () => _showTaskTagActions(tag, category)
+                : null,
             child: ChoiceChip(
               label: Text(tag),
               selected: isSelected,
@@ -71,7 +75,7 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
               ),
               onSelected: (_) {
                 _updateState(() {
-                  _selectedTaskTagFilter = tag;
+                  _setSelectedTagFilter(category, tag);
                 });
               },
             ),

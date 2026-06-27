@@ -1,6 +1,19 @@
 part of '../../../main.dart';
 
 extension _TodoHomeQueries on _TodoHomePageState {
+  // カテゴリ（タブ）に対応するタグ絞り込みの選択値
+  String _selectedTagFilterFor(String category) => category == 'future'
+      ? _selectedFutureTaskTagFilter
+      : _selectedTaskTagFilter;
+
+  void _setSelectedTagFilter(String category, String tag) {
+    if (category == 'future') {
+      _selectedFutureTaskTagFilter = tag;
+    } else {
+      _selectedTaskTagFilter = tag;
+    }
+  }
+
   String _tabName(String key) {
     switch (key) {
       case 'todo':
@@ -29,8 +42,10 @@ extension _TodoHomeQueries on _TodoHomePageState {
             .toList(),
     };
 
-    if (_selectedTaskTagFilter != allTaskCategoriesLabel) {
-      items.removeWhere((item) => item.taskTag != _selectedTaskTagFilter);
+    // 完了タブはタグ絞り込みを行わない（main/future 混在のため）
+    final tagFilter = _selectedTagFilterFor(category);
+    if (category != 'done' && tagFilter != allTaskCategoriesLabel) {
+      items.removeWhere((item) => item.taskTag != tagFilter);
     }
 
     items.sort((a, b) {

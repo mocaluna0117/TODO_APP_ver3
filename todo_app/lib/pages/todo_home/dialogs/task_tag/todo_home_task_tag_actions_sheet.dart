@@ -1,7 +1,7 @@
 part of '../../../../main.dart';
 
 extension _TodoHomeTaskTagActionsSheet on _TodoHomePageState {
-  void _showTaskTagActions(String tag) {
+  void _showTaskTagActions(String tag, String category) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -31,7 +31,7 @@ extension _TodoHomeTaskTagActionsSheet on _TodoHomePageState {
                   subtitle: Text(tag),
                   onTap: () {
                     Navigator.pop(context);
-                    _showRenameTaskTagDialog(tag);
+                    _showRenameTaskTagDialog(tag, category);
                   },
                 ),
                 ListTile(
@@ -43,7 +43,7 @@ extension _TodoHomeTaskTagActionsSheet on _TodoHomePageState {
                   subtitle: const Text('このタグが付いたタスクはタグなしになります'),
                   onTap: () {
                     Navigator.pop(context);
-                    _confirmDeleteTaskTagFromHome(tag);
+                    _confirmDeleteTaskTagFromHome(tag, category);
                   },
                 ),
               ],

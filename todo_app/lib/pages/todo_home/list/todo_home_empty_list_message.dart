@@ -2,7 +2,10 @@ part of '../../../main.dart';
 
 extension _TodoHomeEmptyListMessage on _TodoHomePageState {
   Widget _buildEmptyListMessage(String category) {
-    final hasTagFilter = _selectedTaskTagFilter != allTaskCategoriesLabel;
+    final tagFilter = _selectedTagFilterFor(category);
+    // 完了タブは絞り込みなし
+    final hasTagFilter =
+        category != 'done' && tagFilter != allTaskCategoriesLabel;
 
     return Center(
       child: Column(
@@ -22,7 +25,7 @@ extension _TodoHomeEmptyListMessage on _TodoHomePageState {
           const SizedBox(height: 12),
           Text(
             hasTagFilter
-                ? '$_selectedTaskTagFilterのタスクはありません'
+                ? '$tagFilterのタスクはありません'
                 : category == 'done'
                 ? '${s.doneTabName}のタスクはありません'
                 : category == 'today'

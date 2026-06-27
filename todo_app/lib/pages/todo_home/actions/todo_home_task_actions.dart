@@ -18,7 +18,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       title: trimmed,
       description: _normalizeOptionalText(description),
       category: category,
-      taskTag: _normalizeKnownTaskTag(taskTag),
+      taskTag: _normalizeKnownTaskTag(taskTag, category),
       dueDate: dueDate,
       recurrenceRule: recurrenceRule,
       imageBase64List: imageBase64List,
@@ -49,7 +49,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     _updateState(() {
       item.title = trimmed;
       item.description = _normalizeOptionalText(description);
-      item.taskTag = _normalizeKnownTaskTag(taskTag);
+      item.taskTag = _normalizeKnownTaskTag(taskTag, item.category);
       item.dueDate = dueDate;
       item.recurrenceRule = recurrenceRule;
       item.imageBase64List = imageBase64List;

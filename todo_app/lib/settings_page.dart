@@ -21,8 +21,9 @@ part 'settings/widgets/settings_widgets.dart';
 class SettingsPage extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
-  final void Function(String oldTag, String newTag)? onTaskTagRenamed;
-  final ValueChanged<String>? onTaskTagDeleted;
+  final void Function(String oldTag, String newTag, {required bool isFuture})?
+  onTaskTagRenamed;
+  final void Function(String tag, {required bool isFuture})? onTaskTagDeleted;
   final Future<void> Function({required bool completedOnly})? onExportTasks;
   final Future<void> Function()? onImportTasks;
   final VoidCallback? onDeleteAllTasks;

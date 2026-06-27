@@ -1,7 +1,7 @@
 part of '../../../../main.dart';
 
 extension _TodoHomeDeleteTaskTagDialog on _TodoHomePageState {
-  Future<void> _confirmDeleteTaskTagFromHome(String tag) async {
+  Future<void> _confirmDeleteTaskTagFromHome(String tag, String category) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -29,8 +29,8 @@ extension _TodoHomeDeleteTaskTagDialog on _TodoHomePageState {
     );
     if (result != true) return;
 
-    s.taskTags.remove(tag);
-    _deleteTaskTag(tag);
+    s.tagsForCategory(category).remove(tag);
+    _deleteTaskTag(tag, isFuture: category == 'future');
     s.saveToPrefs();
     widget.onSettingsChanged();
   }

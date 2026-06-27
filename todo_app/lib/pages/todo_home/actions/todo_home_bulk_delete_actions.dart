@@ -2,15 +2,19 @@ part of '../../../main.dart';
 
 extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
   void _deleteAllTasks() {
-    if (_allItems.isEmpty && s.taskTags.isEmpty) return;
+    if (_allItems.isEmpty && s.taskTags.isEmpty && s.futureTaskTags.isEmpty) {
+      return;
+    }
 
     final itemIds = _allItems.map((item) => item.id).toList();
     _updateState(() {
       _allItems.clear();
       _fadingOutItems.clear();
-      // タグも全て削除し、フィルタを「すべて」に戻す
+      // 両グループのタグも全て削除し、フィルタを「すべて」に戻す
       s.taskTags.clear();
+      s.futureTaskTags.clear();
       _selectedTaskTagFilter = allTaskCategoriesLabel;
+      _selectedFutureTaskTagFilter = allTaskCategoriesLabel;
     });
     _saveData();
     s.saveToPrefs();
