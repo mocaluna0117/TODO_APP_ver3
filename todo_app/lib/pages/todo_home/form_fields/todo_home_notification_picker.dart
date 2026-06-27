@@ -24,27 +24,41 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
       ? <int>[]
       : [notificationTimingToMinutes(s.notificationTiming)];
 
+  // 通知時刻（期限 - オフセット）が現在時刻以降なら設定可能。
+  bool _isOffsetSelectable(DateTime dueDate, int minutes) =>
+      !dueDate.subtract(Duration(minutes: minutes)).isBefore(DateTime.now());
+
   // Googleカレンダー風に、通知を1件ずつ行で並べて表示する。
   // 各行はドロップダウンでタイミングを変更でき、末尾の行から件数を追加できる。
+  // 通知時刻が現在時刻より前になるオフセットは選べないようにする。
   Widget _buildNotificationTimingPicker({
+    required DateTime dueDate,
     required List<int> selectedOffsets,
     required ValueChanged<List<int>> onChanged,
   }) {
-    final sorted = [...selectedOffsets]..sort();
+    // 通知時刻が現在より前になるものは除外（例: 今日タスクの「1日前」）
+    final valid = ([...selectedOffsets]..sort())
+        .where((m) => _isOffsetSelectable(dueDate, m))
+        .toList();
+
+    // 期限変更などで無効になったオフセットは保存データからも取り除く
+    if (valid.length != selectedOffsets.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(valid));
+    }
 
     List<int> withReplaced(int index, int minutes) {
-      final next = [...sorted];
+      final next = [...valid];
       next[index] = minutes;
       return next.toSet().toList()..sort();
     }
 
     List<int> withRemoved(int index) {
-      return [...sorted]..removeAt(index);
+      return [...valid]..removeAt(index);
     }
 
     List<int> withAdded(int minutes) {
-      if (sorted.contains(minutes)) return sorted;
-      return [...sorted, minutes]..sort();
+      if (valid.contains(minutes)) return valid;
+      return [...valid, minutes]..sort();
     }
 
     return Container(
@@ -56,8 +70,9 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (sorted.isEmpty)
+          if (valid.isEmpty)
             _buildNotificationRow(
+              dueDate: dueDate,
               showLeadingIcon: true,
               label: '通知を追加',
               isPlaceholder: true,
@@ -65,16 +80,18 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
               onSelected: (minutes) => onChanged(withAdded(minutes)),
             )
           else ...[
-            for (var i = 0; i < sorted.length; i++)
+            for (var i = 0; i < valid.length; i++)
               _buildNotificationRow(
+                dueDate: dueDate,
                 showLeadingIcon: i == 0,
-                label: notificationOffsetLabel(sorted[i]),
+                label: notificationOffsetLabel(valid[i]),
                 isPlaceholder: false,
-                currentMinutes: sorted[i],
+                currentMinutes: valid[i],
                 onSelected: (minutes) => onChanged(withReplaced(i, minutes)),
                 onRemove: () => onChanged(withRemoved(i)),
               ),
             _buildNotificationRow(
+              dueDate: dueDate,
               showLeadingIcon: false,
               label: '別の通知を追加',
               isPlaceholder: true,
@@ -89,6 +106,7 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
 
   // 通知1件分の行。タップするとタイミング選択のドロップダウンを開く。
   Widget _buildNotificationRow({
+    required DateTime dueDate,
     required bool showLeadingIcon,
     required String label,
     required bool isPlaceholder,
@@ -96,9 +114,17 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
     required ValueChanged<int> onSelected,
     VoidCallback? onRemove,
   }) {
-    // プリセット + 現在のカスタム値を統合した選択肢
+    // 通知時刻が現在より前にならないプリセット + 現在のカスタム値を選択肢にする
     final optionMinutes =
-        {...presetNotificationOffsets, ?currentMinutes}.toList()..sort();
+        {
+          ...presetNotificationOffsets.where(
+            (m) => _isOffsetSelectable(dueDate, m),
+          ),
+          ?currentMinutes,
+        }.toList()..sort();
+
+    // 期限までの残り分数（これを超えるカスタム値は過去になるため設定不可）
+    final maxOffsetMinutes = dueDate.difference(DateTime.now()).inMinutes;
 
     return PopupMenuButton<int>(
       tooltip: '通知タイミングを選択',
@@ -106,7 +132,9 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
       constraints: const BoxConstraints(minWidth: 200),
       onSelected: (value) async {
         if (value == _customNotificationAction) {
-          final minutes = await _showCustomNotificationOffsetDialog();
+          final minutes = await _showCustomNotificationOffsetDialog(
+            maxOffsetMinutes,
+          );
           if (minutes != null) onSelected(minutes);
         } else if (value == _removeNotificationAction) {
           onRemove?.call();
@@ -177,7 +205,8 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
   }
 
   // カスタムの通知タイミング（期限までの分数）をホイールで選ぶシート。
-  Future<int?> _showCustomNotificationOffsetDialog() {
+  // [maxOffsetMinutes] を超える値（通知時刻が現在より前になる）は設定不可。
+  Future<int?> _showCustomNotificationOffsetDialog(int maxOffsetMinutes) {
     return showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
@@ -185,8 +214,10 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) =>
-          _CustomNotificationSheet(accentColor: s.primaryColor),
+      builder: (context) => _CustomNotificationSheet(
+        accentColor: s.primaryColor,
+        maxOffsetMinutes: maxOffsetMinutes,
+      ),
     );
   }
 }
@@ -194,9 +225,14 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
 // Googleカレンダー風のホイールピッカーでカスタム通知時間を選ぶボトムシート。
 // 「数値」列と「単位（分／時間／日）」列の2連ホイールで構成する。
 class _CustomNotificationSheet extends StatefulWidget {
-  const _CustomNotificationSheet({required this.accentColor});
+  const _CustomNotificationSheet({
+    required this.accentColor,
+    required this.maxOffsetMinutes,
+  });
 
   final Color accentColor;
+  // これを超える値は通知時刻が現在より前になるため設定不可
+  final int maxOffsetMinutes;
 
   @override
   State<_CustomNotificationSheet> createState() =>
@@ -210,12 +246,24 @@ class _CustomNotificationSheetState extends State<_CustomNotificationSheet> {
   _NotificationUnit _unit = _NotificationUnit.minutes;
   late final FixedExtentScrollController _numberController;
   late final FixedExtentScrollController _unitController;
+  // 期限までに「1単位ぶん」が収まる単位だけを選べるようにする
+  // （例: 今日タスクは残りが1日未満なので「日」「週」は表示しない）
+  late final List<_NotificationUnit> _allowedUnits;
 
   @override
   void initState() {
     super.initState();
+    final allowed = _NotificationUnit.values
+        .where((u) => u.minutesPerUnit <= widget.maxOffsetMinutes)
+        .toList();
+    _allowedUnits = allowed.isEmpty ? [_NotificationUnit.minutes] : allowed;
+    if (!_allowedUnits.contains(_unit)) {
+      _unit = _allowedUnits.first;
+    }
     _numberController = FixedExtentScrollController(initialItem: _number - 1);
-    _unitController = FixedExtentScrollController(initialItem: _unit.index);
+    _unitController = FixedExtentScrollController(
+      initialItem: _allowedUnits.indexOf(_unit),
+    );
   }
 
   @override
@@ -244,7 +292,7 @@ class _CustomNotificationSheetState extends State<_CustomNotificationSheet> {
   }
 
   void _onUnitChanged(int index) {
-    final newUnit = _NotificationUnit.values[index];
+    final newUnit = _allowedUnits[index];
     final maxValue = _wheelCount(newUnit);
     final clamped = _number > maxValue ? maxValue : _number;
     // 数値が新しい上限を超える場合は、リスト縮小前に位置を補正しておく
@@ -265,6 +313,8 @@ class _CustomNotificationSheetState extends State<_CustomNotificationSheet> {
   Widget build(BuildContext context) {
     final wheelCount = _wheelCount(_unit);
     final accent = widget.accentColor;
+    // 通知時刻が現在より前になる値は確定できない
+    final isValid = _resultMinutes <= widget.maxOffsetMinutes;
 
     return SafeArea(
       top: false,
@@ -287,10 +337,15 @@ class _CustomNotificationSheetState extends State<_CustomNotificationSheet> {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context, _resultMinutes),
+                onPressed: isValid
+                    ? () => Navigator.pop(context, _resultMinutes)
+                    : null,
                 child: Text(
                   '完了',
-                  style: TextStyle(color: accent, fontSize: 16),
+                  style: TextStyle(
+                    color: isValid ? accent : Colors.grey,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
@@ -310,6 +365,14 @@ class _CustomNotificationSheetState extends State<_CustomNotificationSheet> {
               ],
             ),
           ),
+          if (!isValid)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                '通知時刻が現在時刻より前になるため設定できません',
+                style: TextStyle(color: Colors.red.shade400, fontSize: 12),
+              ),
+            ),
           const Divider(height: 1),
           // 2連ホイール
           SizedBox(
@@ -353,7 +416,7 @@ class _CustomNotificationSheetState extends State<_CustomNotificationSheet> {
                         selectionOverlay: const SizedBox.shrink(),
                         onSelectedItemChanged: _onUnitChanged,
                         children: [
-                          for (final u in _NotificationUnit.values)
+                          for (final u in _allowedUnits)
                             Center(
                               child: Text(
                                 u.label,

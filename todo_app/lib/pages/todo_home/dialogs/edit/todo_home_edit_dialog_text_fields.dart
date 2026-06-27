@@ -10,16 +10,14 @@ extension _TodoHomeEditDialogTextFields on _TodoHomePageState {
     );
   }
 
-  Widget _buildEditDialogDescriptionField(
-    _EditTodoDraft draft,
-    VoidCallback submit,
-  ) {
+  Widget _buildEditDialogDescriptionField(_EditTodoDraft draft) {
     return TextField(
       controller: draft.descriptionController,
-      textInputAction: TextInputAction.done,
+      keyboardType: TextInputType.multiline,
+      // 改行キーは改行の挿入にする（submitしてモーダルを閉じない）
+      textInputAction: TextInputAction.newline,
       minLines: 1,
       maxLines: 4,
-      onSubmitted: (_) => submit(),
       decoration: _editDialogTextFieldDecoration(
         '概要を入力（任意）',
         contentPadding: const EdgeInsets.all(16),

@@ -4,10 +4,15 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
   Future<TimeOfDay?> _pickDueTime(
     TimeOfDay initialTime, {
     DateTime? minimumDateTime,
+    DateTime? maximumDateTime,
   }) {
-    // When a minimum exists, snap the initial time forward if it's already past
+    // 下限・上限の両方が指定された場合は、ホイール自体を範囲内に物理的に制限する
+    // （日付+時刻モード）。それ以外は従来どおり時刻のみのホイール＋手動チェック。
+    final bool bounded = minimumDateTime != null && maximumDateTime != null;
+
+    // 時刻のみモード用：下限より前なら初期値を繰り上げる
     TimeOfDay effectiveInitial = initialTime;
-    if (minimumDateTime != null) {
+    if (minimumDateTime != null && !bounded) {
       final minMins = minimumDateTime.hour * 60 + minimumDateTime.minute + 1;
       final initMins = initialTime.hour * 60 + initialTime.minute;
       if (initMins < minMins) {
@@ -18,17 +23,43 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
       }
     }
 
-    final initialDateTime = DateTime(
-      2000,
-      1,
-      1,
-      effectiveInitial.hour,
-      effectiveInitial.minute,
-    );
+    // 範囲制限モード用の下限（分単位に丸める）・上限・初期値（範囲内にクランプ）
+    DateTime? minDate;
+    DateTime? maxDate;
+    final DateTime initialDateTime;
+    if (bounded) {
+      minDate = DateTime(
+        minimumDateTime.year,
+        minimumDateTime.month,
+        minimumDateTime.day,
+        minimumDateTime.hour,
+        minimumDateTime.minute,
+      );
+      maxDate = maximumDateTime;
+      var initial = DateTime(
+        minimumDateTime.year,
+        minimumDateTime.month,
+        minimumDateTime.day,
+        initialTime.hour,
+        initialTime.minute,
+      );
+      if (initial.isBefore(minDate)) initial = minDate;
+      if (initial.isAfter(maxDate)) initial = maxDate;
+      initialDateTime = initial;
+    } else {
+      initialDateTime = DateTime(
+        2000,
+        1,
+        1,
+        effectiveInitial.hour,
+        effectiveInitial.minute,
+      );
+    }
     var selectedDateTime = initialDateTime;
 
     bool isValidTime(DateTime dt) {
-      if (minimumDateTime == null) return true;
+      // 範囲制限モードではホイールが物理的に制限されるため常に有効
+      if (bounded || minimumDateTime == null) return true;
       final selMins = dt.hour * 60 + dt.minute;
       final minMins = minimumDateTime.hour * 60 + minimumDateTime.minute + 1;
       return selMins >= minMins;
@@ -113,8 +144,12 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
                   SizedBox(
                     height: 216,
                     child: CupertinoDatePicker(
-                      mode: CupertinoDatePickerMode.time,
+                      mode: bounded
+                          ? CupertinoDatePickerMode.dateAndTime
+                          : CupertinoDatePickerMode.time,
                       initialDateTime: initialDateTime,
+                      minimumDate: minDate,
+                      maximumDate: maxDate,
                       use24hFormat: true,
                       minuteInterval: 1,
                       onDateTimeChanged: (dateTime) {

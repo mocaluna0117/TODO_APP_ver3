@@ -38,7 +38,6 @@ extension _TodoHomeEditDialogContent on _TodoHomePageState {
                         item: item,
                         isFromTodayTab: isFromTodayTab,
                         draft: draft,
-                        submit: submit,
                         setSheetState: setSheetState,
                       ),
                     ),

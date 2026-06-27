@@ -38,23 +38,32 @@ extension _TodoHomeAddDialogContent on _TodoHomePageState {
                         category: category,
                         isFromTodayTab: isFromTodayTab,
                         draft: draft,
-                        submit: submit,
                         setSheetState: setSheetState,
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: s.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('追加', style: TextStyle(fontSize: 16)),
+                  // タスク名が空の間は追加ボタンを押せないようにする
+                  ListenableBuilder(
+                    listenable: draft.textController,
+                    builder: (context, _) {
+                      final canSubmit =
+                          draft.textController.text.trim().isNotEmpty;
+                      return ElevatedButton(
+                        onPressed: canSubmit ? submit : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: s.primaryColor,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          disabledForegroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('追加', style: TextStyle(fontSize: 16)),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -5,7 +5,6 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
     required TodoItem item,
     required bool isFromTodayTab,
     required _EditTodoDraft draft,
-    required VoidCallback submit,
     required StateSetter setSheetState,
   }) {
     return Column(
@@ -23,7 +22,7 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
         const SizedBox(height: 16),
         _buildEditDialogTitleField(draft),
         const SizedBox(height: 12),
-        _buildEditDialogDescriptionField(draft, submit),
+        _buildEditDialogDescriptionField(draft),
         const SizedBox(height: 12),
         _buildTaskTagPicker(
           selectedTaskTag: draft.selectedTaskTag,
@@ -61,6 +60,7 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
         if (draft.selectedDate != null) ...[
           const SizedBox(height: 12),
           _buildNotificationTimingPicker(
+            dueDate: draft.selectedDate!,
             selectedOffsets: draft.selectedNotificationOffsets,
             onChanged: (offsets) =>
                 setSheetState(() => draft.selectedNotificationOffsets = offsets),
