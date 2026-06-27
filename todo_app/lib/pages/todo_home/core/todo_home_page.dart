@@ -79,6 +79,14 @@ class _TodoHomePageState extends State<TodoHomePage>
 
     return Scaffold(
       appBar: AppBar(
+        // 完了タブ以外は左上にタスク追加ボタンを表示
+        leading: _currentTabKey == 'done'
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: '追加',
+                onPressed: _showAddDialog,
+              ),
         title: Text(
           s.appTitle,
           style: const TextStyle(
@@ -114,18 +122,6 @@ class _TodoHomePageState extends State<TodoHomePage>
         controller: _tabController,
         children: _activeTabKeys.map((key) => _buildTodoList(key)).toList(),
       ),
-      floatingActionButton: _currentTabKey == 'done'
-          ? _allItems.any((item) => item.isDone)
-                ? FloatingActionButton(
-                    onPressed: _confirmDeleteCompletedItems,
-                    tooltip: '完了済みを全削除',
-                    child: const Icon(Icons.delete_sweep_outlined),
-                  )
-                : null
-          : FloatingActionButton(
-              onPressed: _showAddDialog,
-              child: const Icon(Icons.add),
-            ),
     );
   }
 }
