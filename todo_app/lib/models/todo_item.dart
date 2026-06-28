@@ -161,6 +161,27 @@ List<int>? normalizeNotificationOffsets(Map<String, dynamic> json) {
   return null;
 }
 
+// リンク一覧を正規化する（前後空白除去・空文字除外・重複除外、順序は保持）。
+List<String> normalizeLinkList(Iterable<Object?> values) {
+  final result = <String>[];
+  for (final value in values) {
+    final link = value?.toString().trim();
+    if (link != null && link.isNotEmpty && !result.contains(link)) {
+      result.add(link);
+    }
+  }
+  return result;
+}
+
+// JSON からリンク一覧を取り出す。旧形式（単一 'link'）からの移行にも対応。
+List<String> _linksFromJson(Map<String, dynamic> json) {
+  final raw = json['links'];
+  if (raw is List) return normalizeLinkList(raw);
+  final legacy = json['link'];
+  if (legacy != null) return normalizeLinkList([legacy]);
+  return const [];
+}
+
 List<String> normalizeImageBase64List(Map<String, dynamic> json) {
   final images = <String>[];
   final imageList = json['imageBase64List'];
@@ -191,7 +212,7 @@ class TodoItem {
   final int id;
   String title;
   String? description;
-  String? link;
+  List<String> links;
   bool isDone;
   // category: 'todo' = やること, 'done' = 完了済み, 'future' = 今後やりたいこと
   String category;
@@ -210,7 +231,7 @@ class TodoItem {
     int? id,
     required this.title,
     this.description,
-    this.link,
+    List<String>? links,
     this.isDone = false,
     this.category = 'todo',
     this.taskTag,
@@ -221,6 +242,7 @@ class TodoItem {
     this.completedAt,
     this.notificationOffsets,
   }) : imageBase64List = imageBase64List ?? [],
+       links = normalizeLinkList(links ?? const []),
        id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
   bool get isRecurring => recurrenceRule != RecurrenceRule.none;
@@ -234,7 +256,7 @@ class TodoItem {
     'id': id,
     'title': title,
     'description': description,
-    'link': link,
+    'links': links,
     'isDone': isDone,
     'category': category,
     'taskTag': taskTag,
@@ -250,7 +272,7 @@ class TodoItem {
     id: (json['id'] as int) & 0x7FFFFFFF,
     title: json['title'],
     description: json['description'],
-    link: normalizeTaskTag(json['link']),
+    links: _linksFromJson(json),
     isDone: json['isDone'] ?? false,
     category: json['category'] ?? 'todo',
     taskTag: normalizeTaskTag(json['taskTag'] ?? json['taskCategory']),

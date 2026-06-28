@@ -10,7 +10,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
         !item.isRecurring &&
         !hasTaskPriority &&
         description == null &&
-        item.link == null &&
+        item.links.isEmpty &&
         item.dueDate == null &&
         imageBytesList.isEmpty) {
       return null;
@@ -56,10 +56,10 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                     : FontWeight.normal,
               ),
             ),
-          if (item.link != null) ...[
+          for (final link in item.links) ...[
             const SizedBox(height: 8),
             InkWell(
-              onTap: () => _openLink(item.link!),
+              onTap: () => _openLink(link),
               borderRadius: BorderRadius.circular(4),
               child: Row(
                 children: [
@@ -67,7 +67,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
-                      item.link!,
+                      link,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       softWrap: false,

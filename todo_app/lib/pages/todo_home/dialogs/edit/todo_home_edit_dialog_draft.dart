@@ -8,7 +8,9 @@ class _EditTodoDraft {
        descriptionController = TextEditingController(
          text: item.description ?? '',
        ),
-       linkController = TextEditingController(text: item.link ?? ''),
+       linkControllers = item.links
+           .map((l) => TextEditingController(text: l))
+           .toList(),
        selectedDate = item.dueDate,
        selectedImageBase64List = [...item.imageBase64List],
        selectedTaskTag = item.taskTag,
@@ -21,7 +23,7 @@ class _EditTodoDraft {
 
   final TextEditingController textController;
   final TextEditingController descriptionController;
-  final TextEditingController linkController;
+  final List<TextEditingController> linkControllers;
   DateTime? selectedDate;
   List<String> selectedImageBase64List;
   String? selectedTaskTag;

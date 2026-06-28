@@ -98,4 +98,16 @@ extension _TodoHomeQueries on _TodoHomePageState {
     if (trimmed == null || trimmed.isEmpty) return null;
     return trimmed;
   }
+
+  // テキストをクリップボードにコピーし、確認のスナックバーを表示する
+  void _copyToClipboard(String text, String label) {
+    if (text.trim().isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$labelをコピーしました'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 }

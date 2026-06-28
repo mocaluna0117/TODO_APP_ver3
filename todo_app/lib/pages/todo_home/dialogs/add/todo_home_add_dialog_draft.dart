@@ -9,7 +9,7 @@ class _AddTodoDraft {
 
   final textController = TextEditingController();
   final descriptionController = TextEditingController();
-  final linkController = TextEditingController();
+  final List<TextEditingController> linkControllers = [];
   DateTime? selectedDate;
   List<String> selectedImageBase64List = <String>[];
   String? selectedTaskTag;

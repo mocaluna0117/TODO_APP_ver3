@@ -21,19 +21,18 @@ extension _TodoHomeEditDialogTextFields on _TodoHomePageState {
       decoration: _editDialogTextFieldDecoration(
         '概要を入力（任意）',
         contentPadding: const EdgeInsets.all(16),
-      ),
+      ).copyWith(suffixIcon: _descriptionCopyButton(draft.descriptionController)),
     );
   }
 
-  Widget _buildEditDialogLinkField(_EditTodoDraft draft) {
-    return TextField(
-      controller: draft.linkController,
-      keyboardType: TextInputType.url,
-      textInputAction: TextInputAction.done,
-      hintLocales: const [Locale('ja', 'JP')],
-      decoration: _editDialogTextFieldDecoration('リンク（任意）').copyWith(
-        prefixIcon: Icon(Icons.link, color: s.primaryColor),
-      ),
+  // 概要をワンタップでコピーするボタン（ドラッグ選択せずにコピーできる）
+  Widget _descriptionCopyButton(TextEditingController controller) {
+    return IconButton(
+      icon: const Icon(Icons.copy_rounded, size: 18),
+      color: s.primaryColor,
+      tooltip: '概要をコピー',
+      visualDensity: VisualDensity.compact,
+      onPressed: () => _copyToClipboard(controller.text, '概要'),
     );
   }
 

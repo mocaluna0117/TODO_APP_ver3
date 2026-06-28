@@ -30,7 +30,7 @@ extension _TodoHomeDialogs on _TodoHomePageState {
                 draft.textController.text,
                 category,
                 description: draft.descriptionController.text,
-                link: draft.linkController.text,
+                links: draft.linkControllers.map((c) => c.text).toList(),
                 taskTag: draft.selectedTaskTag,
                 dueDate: draft.selectedDate,
                 recurrenceRule: draft.selectedRecurrenceRule,

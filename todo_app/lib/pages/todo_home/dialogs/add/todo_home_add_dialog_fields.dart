@@ -25,7 +25,13 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
         const SizedBox(height: 12),
         _buildAddDialogDescriptionField(draft),
         const SizedBox(height: 12),
-        _buildAddDialogLinkField(draft),
+        _buildLinksField(
+          controllers: draft.linkControllers,
+          onAdd: () =>
+              setSheetState(() => draft.linkControllers.add(TextEditingController())),
+          onRemove: (i) =>
+              setSheetState(() => draft.linkControllers.removeAt(i)),
+        ),
         const SizedBox(height: 12),
         _buildTaskTagPicker(
           category: category,

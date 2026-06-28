@@ -5,7 +5,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     String title,
     String category, {
     String? description,
-    String? link,
+    List<String> links = const [],
     String? taskTag,
     DateTime? dueDate,
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
@@ -18,7 +18,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     final newItem = TodoItem(
       title: trimmed,
       description: _normalizeOptionalText(description),
-      link: _normalizeOptionalText(link),
+      links: normalizeLinkList(links),
       category: category,
       taskTag: _normalizeKnownTaskTag(taskTag, category),
       dueDate: dueDate,
@@ -38,7 +38,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     TodoItem item,
     String newTitle, {
     String? description,
-    String? link,
+    List<String> links = const [],
     String? taskTag,
     DateTime? dueDate,
     RecurrenceRule recurrenceRule = RecurrenceRule.none,
@@ -52,7 +52,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     _updateState(() {
       item.title = trimmed;
       item.description = _normalizeOptionalText(description);
-      item.link = _normalizeOptionalText(link);
+      item.links = normalizeLinkList(links);
       item.taskTag = _normalizeKnownTaskTag(taskTag, item.category);
       item.dueDate = dueDate;
       item.recurrenceRule = recurrenceRule;
