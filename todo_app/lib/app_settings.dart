@@ -14,6 +14,10 @@ enum NotificationTiming {
 
 enum SortOrder { dueDateAsc, dueDateDesc }
 
+// 通知プリセットの初期値（期限までの分数）。10分前 / 1時間前 / 1日前。
+// 「期限の時間」(0) はピッカーで常に表示するためプリセットには含めない。
+const List<int> defaultNotificationPresets = [10, 60, 1440];
+
 // ─────────────────────────────────────────────
 // アプリ設定モデル
 // ─────────────────────────────────────────────
@@ -43,8 +47,11 @@ class AppSettings {
   Color primaryColor;
   Color accentColor;
 
-  // 通知タイミング
+  // 通知タイミング（新規タスクの既定値）
   NotificationTiming notificationTiming;
+
+  // 通知プリセット（期限までの分数）。通知ピッカーの選択肢として表示する。
+  List<int> notificationPresets;
 
   // タグ（main: やること/今日やること用、future: やりたいこと用）
   List<String> taskTags;
@@ -65,9 +72,13 @@ class AppSettings {
     this.primaryColor = const Color(0xFF4A55A2),
     this.accentColor = const Color(0xFF7895CB),
     this.notificationTiming = NotificationTiming.hour1,
+    List<int>? notificationPresets,
     List<String>? taskTags,
     List<String>? futureTaskTags,
-  }) : taskTags = _normalizeTaskTags(taskTags ?? []),
+  }) : notificationPresets = _normalizeNotificationPresets(
+         notificationPresets ?? defaultNotificationPresets,
+       ),
+       taskTags = _normalizeTaskTags(taskTags ?? []),
        futureTaskTags = _normalizeTaskTags(futureTaskTags ?? []);
 
   // カテゴリに対応するタグリストを返す（future かそれ以外かでグループが分かれる）
@@ -90,6 +101,10 @@ class AppSettings {
     await prefs.setInt('primaryColor', primaryColor.toARGB32());
     await prefs.setInt('accentColor', accentColor.toARGB32());
     await prefs.setInt('notificationTiming', notificationTiming.index);
+    await prefs.setStringList(
+      'notificationPresets',
+      notificationPresets.map((e) => e.toString()).toList(),
+    );
     await prefs.setStringList('taskTags', taskTags);
     await prefs.setStringList('futureTaskTags', futureTaskTags);
   }
@@ -120,10 +135,27 @@ class AppSettings {
       notificationTiming =
           NotificationTiming.values[prefs.getInt('notificationTiming')!];
     }
+    final presetStrings = prefs.getStringList('notificationPresets');
+    if (presetStrings != null) {
+      notificationPresets = _normalizeNotificationPresets(
+        presetStrings.map((e) => int.tryParse(e) ?? -1).toList(),
+      );
+    }
     taskTags = _normalizeTaskTags(prefs.getStringList('taskTags') ?? taskTags);
     futureTaskTags = _normalizeTaskTags(
       prefs.getStringList('futureTaskTags') ?? futureTaskTags,
     );
+  }
+
+  // 通知プリセットを正規化する（1分以上・重複なし・昇順）。
+  // 0（期限の時間）はピッカーで常に表示するためプリセットには含めない。
+  static List<int> _normalizeNotificationPresets(List<int> presets) {
+    final normalized = <int>[];
+    for (final p in presets) {
+      if (p >= 1 && !normalized.contains(p)) normalized.add(p);
+    }
+    normalized.sort();
+    return normalized;
   }
 
   static List<String> _normalizeTaskTags(List<String> tags) {

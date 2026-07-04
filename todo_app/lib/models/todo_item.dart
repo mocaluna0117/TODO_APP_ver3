@@ -85,9 +85,6 @@ TaskPriority normalizeTaskPriority(Object? value) {
   return TaskPriority.none;
 }
 
-// プリセットの通知タイミング（期限までの分数）。0 = 期限の時間。
-const List<int> presetNotificationOffsets = [0, 10, 60, 1440];
-
 // 全体設定の NotificationTiming を「期限までの分数」に変換する。
 int notificationTimingToMinutes(NotificationTiming timing) {
   switch (timing) {
@@ -101,22 +98,6 @@ int notificationTimingToMinutes(NotificationTiming timing) {
     case NotificationTiming.day1:
       return 1440;
   }
-}
-
-// 期限までの分数を「1日2時間前」のような表示ラベルに変換する。
-String notificationOffsetLabel(int minutes) {
-  if (minutes <= 0) return '期限の時間';
-  // ちょうど週単位なら「○週前」と表示する
-  if (minutes % 10080 == 0) return '${minutes ~/ 10080}週前';
-  final days = minutes ~/ 1440;
-  final hours = (minutes % 1440) ~/ 60;
-  final mins = minutes % 60;
-  final buffer = StringBuffer();
-  if (days > 0) buffer.write('$days日');
-  if (hours > 0) buffer.write('$hours時間');
-  if (mins > 0) buffer.write('$mins分');
-  buffer.write('前');
-  return buffer.toString();
 }
 
 // タスク固有の通知タイミング（期限までの分数のリスト）を正規化する。

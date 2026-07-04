@@ -4,6 +4,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'app_settings.dart';
 import 'main.dart'; // TodoItemを使うため
+import 'notification_offset.dart'; // notificationOffsetLabel を使うため
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();

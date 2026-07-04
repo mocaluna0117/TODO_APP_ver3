@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'app_settings.dart';
 import 'settings_page.dart';
 import 'notification_service.dart';
+import 'notification_offset.dart';
 
 part 'models/todo_item.dart';
 part 'app/my_app.dart';

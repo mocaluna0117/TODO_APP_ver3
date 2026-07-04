@@ -7,6 +7,7 @@ extension _SettingsSections on _SettingsPageState {
       ..._buildTabSettingsSection(),
       ..._buildTaskTagSection(),
       ..._buildBehaviorSection(),
+      ..._buildNotificationSection(),
       ..._buildSortSection(),
       ..._buildThemeSection(),
       ..._buildBackupSection(),
