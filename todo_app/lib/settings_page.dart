@@ -65,9 +65,15 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       backgroundColor: const Color(0xFFF5F5FA),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          children: _buildSettingsSections(),
+        // 広い画面（PC等）では中央寄せして横に間延びさせない
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              children: _buildSettingsSections(),
+            ),
+          ),
         ),
       ),
     );

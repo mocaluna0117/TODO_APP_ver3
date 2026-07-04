@@ -17,7 +17,10 @@ extension _TodoHomeAddDialogContent on _TodoHomePageState {
         child: Material(
           color: Colors.transparent,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxModalHeight),
+            constraints: BoxConstraints(
+              maxHeight: maxModalHeight,
+              maxWidth: 560,
+            ),
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
               decoration: BoxDecoration(

@@ -79,45 +79,67 @@ class _TodoHomePageState extends State<TodoHomePage>
   Widget build(BuildContext context) {
     if (_tabController == null) return const SizedBox.shrink();
 
+    final tabBar = TabBar(
+      controller: _tabController,
+      isScrollable: false,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+      tabs: _activeTabKeys
+          .map(
+            (key) => Tab(
+              // 折り返さず、入りきらない分だけ縮小して1行で表示
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(_tabName(key), maxLines: 1, softWrap: false),
+              ),
+            ),
+          )
+          .toList(),
+      indicatorWeight: 3,
+    );
+
     return Scaffold(
       appBar: AppBar(
-        // 完了タブ以外は左上にタスク追加ボタンを表示
-        leading: _currentTabKey == 'done'
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.add),
-                tooltip: '追加',
-                onPressed: _showAddDialog,
-              ),
-        title: Text(
-          s.appTitle,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        centerTitle: true,
-        actions: _buildAppBarActions(),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-          tabs: _activeTabKeys
-              .map(
-                (key) => Tab(
-                  // 折り返さず、入りきらない分だけ縮小して1行で表示
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _tabName(key),
-                      maxLines: 1,
-                      softWrap: false,
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        // AppBarの中身（追加・タイトル・設定）もコンテンツと同じ幅の帯に収めて
+        // 中央寄せし、タブ・リストと左右端を揃える
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: kMaxContentWidth),
+            child: Row(
+              children: [
+                // 完了タブ以外は左端にタスク追加ボタンを表示（幅を揃える）
+                if (_currentTabKey == 'done')
+                  const SizedBox(width: 48)
+                else
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    tooltip: '追加',
+                    onPressed: _showAddDialog,
+                  ),
+                Expanded(
+                  child: Text(
+                    s.appTitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ),
-              )
-              .toList(),
-          indicatorWeight: 3,
+                ..._buildAppBarActions(),
+              ],
+            ),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: tabBar.preferredSize,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: kMaxContentWidth),
+              child: tabBar,
+            ),
+          ),
         ),
       ),
       body: TabBarView(

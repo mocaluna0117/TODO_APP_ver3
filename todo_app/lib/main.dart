@@ -68,6 +68,9 @@ part 'pages/todo_home/list/todo_home_task_labels.dart';
 const String allTaskCategoriesLabel = 'すべて';
 const String noTaskTagLabel = 'タグなし';
 
+// 広い画面（PC等）でコンテンツを中央寄せする際の最大幅
+const double kMaxContentWidth = 720;
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // runappの前にFlutterの機能やプラグインを使うために必要
   runApp(const MyApp());
