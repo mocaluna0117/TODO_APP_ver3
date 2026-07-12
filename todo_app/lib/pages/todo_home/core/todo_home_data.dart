@@ -10,6 +10,69 @@ extension _TodoHomeData on _TodoHomePageState {
         .collection('todos');
   }
 
+  // ログイン中ユーザーの設定ドキュメント（users/{uid}/meta/settings）
+  DocumentReference<Map<String, dynamic>> _settingsDoc() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('meta')
+        .doc('settings');
+  }
+
+  // 設定（タグ等）の端末間同期を開始する。
+  Future<void> _startSettingsSync() async {
+    // 設定を保存するたび Firestore にも書き込むフックを設定
+    s.onCloudSave = (settings) async {
+      if (FirebaseAuth.instance.currentUser == null) return;
+      try {
+        await _settingsDoc().set(settings.toMap());
+      } catch (_) {
+        // ネットワーク等で失敗しても保存自体は続行（オフラインは後で同期）
+      }
+    };
+
+    // 既存のローカル設定を一度だけクラウドへ移行（タグは失わないよう和集合）
+    await _migrateSettingsIfNeeded();
+
+    // リアルタイム同期リスナー。別端末の設定変更を反映する。
+    _settingsSub = _settingsDoc().snapshots().listen((snap) {
+      if (!mounted || !snap.exists) return;
+      final data = snap.data();
+      if (data == null) return;
+      _updateState(() => s.applyMap(data));
+      widget.onSettingsChanged();
+    });
+  }
+
+  Future<void> _migrateSettingsIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('settings_migrated') ?? false) return;
+
+    final doc = _settingsDoc();
+    final snap = await doc.get();
+    if (!snap.exists) {
+      // クラウドに設定がなければローカル設定をアップロード
+      await doc.set(s.toMap());
+    } else {
+      // クラウドにある場合は、この端末のタグを失わないよう和集合にして書き戻す
+      final data = snap.data() ?? {};
+      final cloudTaskTags = (data['taskTags'] as List? ?? const [])
+          .map((e) => e.toString())
+          .toList();
+      final cloudFutureTags = (data['futureTaskTags'] as List? ?? const [])
+          .map((e) => e.toString())
+          .toList();
+      await doc.set({
+        ...data,
+        'taskTags': {...cloudTaskTags, ...s.taskTags}.toList(),
+        'futureTaskTags': {...cloudFutureTags, ...s.futureTaskTags}.toList(),
+      });
+    }
+
+    await prefs.setBool('settings_migrated', true);
+  }
+
   Future<void> _loadData() async {
     final col = _todosCollection();
 

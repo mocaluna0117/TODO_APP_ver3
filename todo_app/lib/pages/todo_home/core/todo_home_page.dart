@@ -37,6 +37,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _todosSub;
   // Firestore 上に存在する todo ドキュメントIDの集合（削除同期用）
   Set<String> _knownTodoDocIds = {};
+  // 設定（タグ等）のリアルタイム同期リスナー
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
 
   AppSettings get s => widget.settings;
 
@@ -54,6 +56,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     super.initState();
     _rebuildTabController();
     _loadData();
+    _startSettingsSync();
   }
 
   @override
@@ -75,6 +78,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   @override
   void dispose() {
     _todosSub?.cancel();
+    _settingsSub?.cancel();
     _tabController?.dispose();
     super.dispose();
   }

@@ -57,6 +57,9 @@ class AppSettings {
   List<String> taskTags;
   List<String> futureTaskTags;
 
+  // クラウド同期用フック。設定保存時に Firestore へも書き込む（アプリ層で設定）。
+  Future<void> Function(AppSettings settings)? onCloudSave;
+
   AppSettings({
     this.appTitle = 'TODO',
     this.todoTabName = 'やること',
@@ -107,6 +110,79 @@ class AppSettings {
     );
     await prefs.setStringList('taskTags', taskTags);
     await prefs.setStringList('futureTaskTags', futureTaskTags);
+    // クラウド（Firestore）へも同期する
+    if (onCloudSave != null) {
+      await onCloudSave!(this);
+    }
+  }
+
+  // Firestore 保存用のマップに変換する。
+  Map<String, dynamic> toMap() => {
+    'appTitle': appTitle,
+    'todoTabName': todoTabName,
+    'todayTabName': todayTabName,
+    'doneTabName': doneTabName,
+    'futureTabName': futureTabName,
+    'showTodayTab': showTodayTab,
+    'showDoneTab': showDoneTab,
+    'showFutureTab': showFutureTab,
+    'showDeleteConfirm': showDeleteConfirm,
+    'enableSwipeDelete': enableSwipeDelete,
+    'sortOrder': sortOrder.index,
+    'primaryColor': primaryColor.toARGB32(),
+    'accentColor': accentColor.toARGB32(),
+    'notificationTiming': notificationTiming.index,
+    'notificationPresets': notificationPresets,
+    'taskTags': taskTags,
+    'futureTaskTags': futureTaskTags,
+  };
+
+  // Firestore から取得したマップを反映する（クラウド優先で上書き）。
+  void applyMap(Map<String, dynamic> data) {
+    appTitle = data['appTitle'] as String? ?? appTitle;
+    todoTabName = data['todoTabName'] as String? ?? todoTabName;
+    todayTabName = data['todayTabName'] as String? ?? todayTabName;
+    doneTabName = data['doneTabName'] as String? ?? doneTabName;
+    futureTabName = data['futureTabName'] as String? ?? futureTabName;
+    showTodayTab = data['showTodayTab'] as bool? ?? showTodayTab;
+    showDoneTab = data['showDoneTab'] as bool? ?? showDoneTab;
+    showFutureTab = data['showFutureTab'] as bool? ?? showFutureTab;
+    showDeleteConfirm = data['showDeleteConfirm'] as bool? ?? showDeleteConfirm;
+    enableSwipeDelete = data['enableSwipeDelete'] as bool? ?? enableSwipeDelete;
+
+    final sortIndex = data['sortOrder'];
+    if (sortIndex is int && sortIndex >= 0 && sortIndex < SortOrder.values.length) {
+      sortOrder = SortOrder.values[sortIndex];
+    }
+    if (data['primaryColor'] is int) {
+      primaryColor = Color(data['primaryColor'] as int);
+    }
+    if (data['accentColor'] is int) {
+      accentColor = Color(data['accentColor'] as int);
+    }
+    final timingIndex = data['notificationTiming'];
+    if (timingIndex is int &&
+        timingIndex >= 0 &&
+        timingIndex < NotificationTiming.values.length) {
+      notificationTiming = NotificationTiming.values[timingIndex];
+    }
+    if (data['notificationPresets'] is List) {
+      notificationPresets = _normalizeNotificationPresets(
+        (data['notificationPresets'] as List)
+            .map((e) => (e as num).toInt())
+            .toList(),
+      );
+    }
+    if (data['taskTags'] is List) {
+      taskTags = _normalizeTaskTags(
+        (data['taskTags'] as List).map((e) => e.toString()).toList(),
+      );
+    }
+    if (data['futureTaskTags'] is List) {
+      futureTaskTags = _normalizeTaskTags(
+        (data['futureTaskTags'] as List).map((e) => e.toString()).toList(),
+      );
+    }
   }
 
   Future<void> loadFromPrefs() async {
