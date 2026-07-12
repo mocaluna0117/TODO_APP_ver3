@@ -10,13 +10,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'app_settings.dart';
 import 'settings_page.dart';
 import 'notification_service.dart';
 import 'notification_offset.dart';
+import 'firebase_options.dart';
 
 part 'models/todo_item.dart';
 part 'app/my_app.dart';
+part 'app/auth_gate.dart';
+part 'pages/sign_in/sign_in_page.dart';
 part 'pages/todo_home/core/todo_home_page.dart';
 part 'pages/todo_home/core/todo_home_data.dart';
 part 'pages/todo_home/core/todo_home_queries.dart';
@@ -71,7 +77,11 @@ const String noTaskTagLabel = 'タグなし';
 // 広い画面（PC等）でコンテンツを中央寄せする際の最大幅
 const double kMaxContentWidth = 720;
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // runappの前にFlutterの機能やプラグインを使うために必要
+  // Firebaseの初期化
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }

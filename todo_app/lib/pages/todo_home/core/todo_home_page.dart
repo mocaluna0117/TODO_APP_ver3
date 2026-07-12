@@ -6,11 +6,15 @@ part of '../../../main.dart';
 class TodoHomePage extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
+  final String? userEmail;
+  final VoidCallback? onSignOut;
 
   const TodoHomePage({
     super.key,
     required this.settings,
     required this.onSettingsChanged,
+    this.userEmail,
+    this.onSignOut,
   });
 
   @override

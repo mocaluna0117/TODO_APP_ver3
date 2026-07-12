@@ -11,6 +11,7 @@ part 'settings/sections/settings_tab_section.dart';
 part 'settings/sections/settings_tag_section.dart';
 part 'settings/sections/settings_backup_section.dart';
 part 'settings/sections/settings_data_section.dart';
+part 'settings/sections/settings_account_section.dart';
 part 'settings/sections/settings_behavior_section.dart';
 part 'settings/sections/settings_notification_section.dart';
 part 'settings/sections/settings_sort_section.dart';
@@ -29,6 +30,8 @@ class SettingsPage extends StatefulWidget {
   final Future<void> Function({required bool completedOnly})? onExportTasks;
   final Future<void> Function()? onImportTasks;
   final VoidCallback? onDeleteAllTasks;
+  final String? userEmail;
+  final VoidCallback? onSignOut;
 
   const SettingsPage({
     super.key,
@@ -39,6 +42,8 @@ class SettingsPage extends StatefulWidget {
     this.onExportTasks,
     this.onImportTasks,
     this.onDeleteAllTasks,
+    this.userEmail,
+    this.onSignOut,
   });
 
   @override

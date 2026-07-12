@@ -26,6 +26,8 @@ extension _TodoHomeSettings on _TodoHomePageState {
           onExportTasks: _exportTasks,
           onImportTasks: _importTasks,
           onDeleteAllTasks: _deleteAllTasks,
+          userEmail: widget.userEmail,
+          onSignOut: widget.onSignOut,
         ),
       ),
     );

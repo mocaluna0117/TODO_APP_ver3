@@ -78,7 +78,7 @@ class _MyAppState extends State<MyApp> {
           child: child!,
         );
       },
-      home: TodoHomePage(
+      home: AuthGate(
         settings: _settings,
         onSettingsChanged: _onSettingsChanged,
       ),
