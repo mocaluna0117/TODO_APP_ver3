@@ -62,6 +62,15 @@ extension _TodoHomeData on _TodoHomePageState {
   // 現在の _allItems を Firestore に反映する（追加/更新 + 削除された分を消す）。
   Future<void> _saveData() async {
     final col = _todosCollection();
+
+    // base64画像を Storage にアップロードし URL に置き換える（Firestoreの1MB制限対策）
+    for (final item in _allItems) {
+      final updated = await _uploadPendingImages(item);
+      if (!identical(updated, item.imageBase64List)) {
+        item.imageBase64List = updated;
+      }
+    }
+
     final batch = FirebaseFirestore.instance.batch();
     final currentIds = _allItems.map((e) => e.id.toString()).toSet();
 

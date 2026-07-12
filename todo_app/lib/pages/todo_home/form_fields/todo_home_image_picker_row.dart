@@ -5,8 +5,6 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
     required List<String> imageBase64List,
     required ValueChanged<List<String>> onImagesChanged,
   }) {
-    final imageBytesList = _decodeImages(imageBase64List);
-
     return InkWell(
       onTap: () async {
         try {
@@ -31,25 +29,24 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (imageBytesList.isNotEmpty) ...[
+            if (imageBase64List.isNotEmpty) ...[
               SizedBox(
                 height: 320,
                 child: PageView.builder(
-                  itemCount: imageBytesList.length,
+                  itemCount: imageBase64List.length,
                   itemBuilder: (context, index) {
-                    final imageBytes = imageBytesList[index];
                     return Stack(
                       children: [
                         Positioned.fill(
                           child: GestureDetector(
                             onTap: () => _showImagePreview(
-                              imageBytesList,
+                              imageBase64List,
                               initialIndex: index,
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.memory(
-                                imageBytes,
+                              child: _buildImage(
+                                imageBase64List[index],
                                 width: double.infinity,
                                 fit: BoxFit.contain,
                               ),
@@ -85,7 +82,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                             ),
                           ),
                         ),
-                        if (imageBytesList.length > 1)
+                        if (imageBase64List.length > 1)
                           Positioned(
                             left: 8,
                             bottom: 8,
@@ -99,7 +96,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
-                                '${index + 1}/${imageBytesList.length}',
+                                '${index + 1}/${imageBase64List.length}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -121,18 +118,18 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    imageBytesList.isNotEmpty
-                        ? '画像を追加（${imageBytesList.length}枚）'
+                    imageBase64List.isNotEmpty
+                        ? '画像を追加（${imageBase64List.length}枚）'
                         : '画像を添付（任意）',
                     style: TextStyle(
                       fontSize: 15,
-                      color: imageBytesList.isNotEmpty
+                      color: imageBase64List.isNotEmpty
                           ? Colors.black87
                           : Colors.grey,
                     ),
                   ),
                 ),
-                if (imageBytesList.isNotEmpty)
+                if (imageBase64List.isNotEmpty)
                   GestureDetector(
                     onTap: () => onImagesChanged([]),
                     child: Icon(

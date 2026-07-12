@@ -2,7 +2,7 @@ part of '../../../main.dart';
 
 extension _TodoHomeTodoSubtitle on _TodoHomePageState {
   Widget? _buildTodoSubtitle(TodoItem item) {
-    final imageBytesList = _decodeImages(item.imageBase64List);
+    final images = _validImageEntries(item.imageBase64List);
     final description = item.description;
     final hasTaskPriority =
         item.category == 'future' && item.priority != TaskPriority.none;
@@ -12,7 +12,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
         description == null &&
         item.links.isEmpty &&
         item.dueDate == null &&
-        imageBytesList.isEmpty) {
+        images.isEmpty) {
       return null;
     }
 
@@ -26,7 +26,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
           if ((item.taskTag != null || item.isRecurring || hasTaskPriority) &&
               (description != null ||
                   item.dueDate != null ||
-                  imageBytesList.isNotEmpty))
+                  images.isNotEmpty))
             const SizedBox(height: 8),
           if (description != null)
             Text(
@@ -40,7 +40,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
               ),
             ),
           if (description != null &&
-              (item.dueDate != null || imageBytesList.isNotEmpty))
+              (item.dueDate != null || images.isNotEmpty))
             const SizedBox(height: 8),
           if (item.dueDate != null)
             Text(
@@ -83,17 +83,16 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
               ),
             ),
           ],
-          if (imageBytesList.isNotEmpty) ...[
+          if (images.isNotEmpty) ...[
             const SizedBox(height: 8),
             SizedBox(
               height: 220,
               child: PageView.builder(
-                itemCount: imageBytesList.length,
+                itemCount: images.length,
                 itemBuilder: (context, index) {
-                  final imageBytes = imageBytesList[index];
                   return GestureDetector(
                     onTap: () =>
-                        _showImagePreview(imageBytesList, initialIndex: index),
+                        _showImagePreview(images, initialIndex: index),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Stack(
@@ -101,13 +100,13 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                           Positioned.fill(
                             child: Container(
                               color: const Color(0xFFF5F5FA),
-                              child: Image.memory(
-                                imageBytes,
+                              child: _buildImage(
+                                images[index],
                                 fit: BoxFit.contain,
                               ),
                             ),
                           ),
-                          if (imageBytesList.length > 1)
+                          if (images.length > 1)
                             Positioned(
                               left: 8,
                               bottom: 8,
@@ -121,7 +120,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  '${index + 1}/${imageBytesList.length}',
+                                  '${index + 1}/${images.length}',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,

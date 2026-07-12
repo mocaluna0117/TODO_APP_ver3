@@ -6,6 +6,13 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
     required String? selectedTaskTag,
     required ValueChanged<String?> onChanged,
   }) {
+    // 選択肢を組み立てる。設定が未同期などで現在のタグが一覧に無い場合も
+    // 選択肢に含める（DropdownButtonFormField の「該当1件」assert を回避）。
+    final tags = <String>[noTaskTagLabel, ...s.tagsForCategory(category)];
+    if (selectedTaskTag != null && !tags.contains(selectedTaskTag)) {
+      tags.add(selectedTaskTag);
+    }
+
     return DropdownButtonFormField<String>(
       initialValue: selectedTaskTag ?? noTaskTagLabel,
       isExpanded: true,
@@ -23,10 +30,9 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
           vertical: 14,
         ),
       ),
-      items: [
-        noTaskTagLabel,
-        ...s.tagsForCategory(category),
-      ].map((tag) => DropdownMenuItem(value: tag, child: Text(tag))).toList(),
+      items: tags
+          .map((tag) => DropdownMenuItem(value: tag, child: Text(tag)))
+          .toList(),
       onChanged: (tag) {
         if (tag != null) {
           onChanged(tag == noTaskTagLabel ? null : tag);

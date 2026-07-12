@@ -25,18 +25,87 @@ extension _TodoHomeMedia on _TodoHomePageState {
     }
   }
 
-  List<Uint8List> _decodeImages(List<String> imageBase64List) {
-    return imageBase64List
-        .map(_decodeImage)
-        .whereType<Uint8List>()
-        .toList(growable: false);
+  // 画像エントリは base64 文字列 または https の画像URL のどちらか。
+  bool _isImageUrl(String entry) => entry.startsWith('http');
+
+  bool _isValidImageEntry(String entry) {
+    if (entry.isEmpty) return false;
+    if (_isImageUrl(entry)) return true;
+    return _decodeImage(entry) != null;
+  }
+
+  // 表示可能な画像エントリ（base64 or URL）だけを返す。
+  List<String> _validImageEntries(List<String> entries) =>
+      entries.where(_isValidImageEntry).toList(growable: false);
+
+  ImageProvider? _imageProviderFor(String entry) {
+    if (_isImageUrl(entry)) return NetworkImage(entry);
+    final bytes = _decodeImage(entry);
+    return bytes == null ? null : MemoryImage(bytes);
+  }
+
+  // 画像1枚の表示ウィジェット（URL/base64 両対応、読み込み中・エラー表示付き）。
+  Widget _buildImage(
+    String entry, {
+    BoxFit fit = BoxFit.contain,
+    double? width,
+    double? height,
+  }) {
+    final provider = _imageProviderFor(entry);
+    if (provider == null) {
+      return const Center(child: Icon(Icons.broken_image, color: Colors.grey));
+    }
+    return Image(
+      image: provider,
+      fit: fit,
+      width: width,
+      height: height,
+      loadingBuilder: (context, child, progress) => progress == null
+          ? child
+          : const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+      errorBuilder: (context, error, stack) =>
+          const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+    );
+  }
+
+  // base64 の画像を Firebase Storage にアップロードして URL に置き換えたリストを返す。
+  // 既に URL のものはそのまま。変更が無ければ元のリストをそのまま返す。
+  Future<List<String>> _uploadPendingImages(TodoItem item) async {
+    final entries = item.imageBase64List;
+    // すべて URL（または空）なら何もしない
+    if (entries.every((e) => e.isEmpty || _isImageUrl(e))) return entries;
+
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final result = <String>[];
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      if (_isImageUrl(entry)) {
+        result.add(entry);
+        continue;
+      }
+      final bytes = _decodeImage(entry);
+      if (bytes == null) continue; // 不正なデータはスキップ
+      final ref = FirebaseStorage.instance.ref(
+        'users/$uid/todos/${item.id}/'
+        '${DateTime.now().microsecondsSinceEpoch}_$i.jpg',
+      );
+      await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      result.add(await ref.getDownloadURL());
+    }
+    return result;
   }
 
   void _showImagePreview(
-    List<Uint8List> imageBytesList, {
+    List<String> entries, {
     int initialIndex = 0,
   }) {
-    if (imageBytesList.isEmpty) return;
+    if (entries.isEmpty) return;
     final pageController = PageController(initialPage: initialIndex);
     var currentIndex = initialIndex;
 
@@ -60,21 +129,20 @@ extension _TodoHomeMedia on _TodoHomePageState {
                         onTap: () => Navigator.pop(context),
                         child: PageView.builder(
                           controller: pageController,
-                          itemCount: imageBytesList.length,
+                          itemCount: entries.length,
                           onPageChanged: (index) {
                             currentIndex = index;
                             setPreviewState(() {});
                           },
                           itemBuilder: (context, index) {
-                            final imageBytes = imageBytesList[index];
                             return Center(
                               child: InteractiveViewer(
                                 minScale: 0.8,
                                 maxScale: 4,
                                 child: GestureDetector(
                                   onTap: () {},
-                                  child: Image.memory(
-                                    imageBytes,
+                                  child: _buildImage(
+                                    entries[index],
                                     fit: BoxFit.contain,
                                     width: double.infinity,
                                     height: double.infinity,
@@ -86,7 +154,7 @@ extension _TodoHomeMedia on _TodoHomePageState {
                         ),
                       ),
                     ),
-                    if (imageBytesList.length > 1)
+                    if (entries.length > 1)
                       Positioned(
                         top: 16,
                         left: 0,
@@ -103,7 +171,7 @@ extension _TodoHomeMedia on _TodoHomePageState {
                               border: Border.all(color: Colors.white24),
                             ),
                             child: Text(
-                              '${currentIndex + 1}/${imageBytesList.length}',
+                              '${currentIndex + 1}/${entries.length}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
