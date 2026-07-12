@@ -38,40 +38,39 @@ extension _TodoHomeMedia on _TodoHomePageState {
   List<String> _validImageEntries(List<String> entries) =>
       entries.where(_isValidImageEntry).toList(growable: false);
 
-  ImageProvider? _imageProviderFor(String entry) {
-    if (_isImageUrl(entry)) return NetworkImage(entry);
-    final bytes = _decodeImage(entry);
-    return bytes == null ? null : MemoryImage(bytes);
-  }
-
-  // 画像1枚の表示ウィジェット（URL/base64 両対応、読み込み中・エラー表示付き）。
+  // 画像1枚の表示ウィジェット。
+  // URLはディスクキャッシュ（cached_network_image）で表示し、一度読み込めば
+  // オフラインでも表示できる。base64はそのままデコードして表示する。
   Widget _buildImage(
     String entry, {
     BoxFit fit = BoxFit.contain,
     double? width,
     double? height,
   }) {
-    final provider = _imageProviderFor(entry);
-    if (provider == null) {
-      return const Center(child: Icon(Icons.broken_image, color: Colors.grey));
-    }
-    return Image(
-      image: provider,
-      fit: fit,
-      width: width,
-      height: height,
-      loadingBuilder: (context, child, progress) => progress == null
-          ? child
-          : const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-      errorBuilder: (context, error, stack) =>
-          const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+    const errorWidget = Center(
+      child: Icon(Icons.broken_image, color: Colors.grey),
     );
+
+    if (_isImageUrl(entry)) {
+      return CachedNetworkImage(
+        imageUrl: entry,
+        fit: fit,
+        width: width,
+        height: height,
+        placeholder: (context, url) => const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        errorWidget: (context, url, error) => errorWidget,
+      );
+    }
+
+    final bytes = _decodeImage(entry);
+    if (bytes == null) return errorWidget;
+    return Image.memory(bytes, fit: fit, width: width, height: height);
   }
 
   // base64 の画像を Firebase Storage にアップロードして URL に置き換えたリストを返す。
