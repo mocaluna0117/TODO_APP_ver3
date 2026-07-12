@@ -33,6 +33,10 @@ class _TodoHomePageState extends State<TodoHomePage>
   // バックアップ復元のファイル選択中フラグ（多重呼び出しによる
   // PlatformException(multiple_request) を防ぐ）
   bool _isPickingBackup = false;
+  // Firestore のリアルタイム同期リスナー
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _todosSub;
+  // Firestore 上に存在する todo ドキュメントIDの集合（削除同期用）
+  Set<String> _knownTodoDocIds = {};
 
   AppSettings get s => widget.settings;
 
@@ -70,6 +74,7 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   @override
   void dispose() {
+    _todosSub?.cancel();
     _tabController?.dispose();
     super.dispose();
   }
