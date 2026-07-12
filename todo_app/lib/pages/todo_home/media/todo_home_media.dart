@@ -100,6 +100,28 @@ extension _TodoHomeMedia on _TodoHomePageState {
     return result;
   }
 
+  // タスクの画像ファイルを Storage からすべて削除する（フォルダごと）。
+  // 失敗しても致命的ではない（孤立ファイルが残るだけ）ので握りつぶす。
+  Future<void> _deleteTaskImages(int itemId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final folder = FirebaseStorage.instance.ref('users/$uid/todos/$itemId');
+      final list = await folder.listAll();
+      await Future.wait(list.items.map((ref) => ref.delete()));
+    } catch (_) {}
+  }
+
+  // 指定した画像URLのファイルを Storage から削除する（編集で外された画像用）。
+  Future<void> _deleteImagesByUrls(Iterable<String> urls) async {
+    for (final url in urls) {
+      if (!_isImageUrl(url)) continue;
+      try {
+        await FirebaseStorage.instance.refFromURL(url).delete();
+      } catch (_) {}
+    }
+  }
+
   void _showImagePreview(
     List<String> entries, {
     int initialIndex = 0,

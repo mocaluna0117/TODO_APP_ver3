@@ -7,6 +7,11 @@ extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
     }
 
     final itemIds = _allItems.map((item) => item.id).toList();
+    // 画像を持つタスクのIDを控えておき、Storageの画像も削除する
+    final imageItemIds = _allItems
+        .where((item) => item.imageBase64List.any(_isImageUrl))
+        .map((item) => item.id)
+        .toList();
     _updateState(() {
       _allItems.clear();
       _fadingOutItems.clear();
@@ -20,6 +25,9 @@ extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
     s.saveToPrefs();
     widget.onSettingsChanged();
 
+    for (final id in imageItemIds) {
+      _deleteTaskImages(id);
+    }
     for (final id in itemIds) {
       NotificationService().cancelNotification(id);
     }
@@ -34,6 +42,11 @@ extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
     });
     _saveData();
 
+    for (final item in items.where(
+      (item) => item.imageBase64List.any(_isImageUrl),
+    )) {
+      _deleteTaskImages(item.id);
+    }
     for (final item in items.where((item) => !item.isDone)) {
       NotificationService().cancelNotification(item.id);
     }

@@ -49,6 +49,10 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
     final hadDueDate = item.dueDate != null;
+    // 編集で外された画像URLは、あとで Storage からも削除する
+    final removedImageUrls = item.imageBase64List
+        .where((e) => _isImageUrl(e) && !imageBase64List.contains(e))
+        .toList();
     _updateState(() {
       item.title = trimmed;
       item.description = _normalizeOptionalText(description);
@@ -61,6 +65,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       item.notificationOffsets = notificationOffsets;
     });
     _saveData();
+    _deleteImagesByUrls(removedImageUrls);
     if (item.dueDate == null && hadDueDate) {
       NotificationService().cancelNotification(item.id);
     } else {
@@ -73,6 +78,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       _allItems.remove(item);
     });
     _saveData();
+    _deleteTaskImages(item.id);
     NotificationService().cancelNotification(item.id);
   }
 
