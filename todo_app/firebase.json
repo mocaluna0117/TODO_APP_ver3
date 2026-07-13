@@ -1,1 +1,33 @@
-{"flutter":{"platforms":{"ios":{"default":{"projectId":"todo-app-mokuson","appId":"1:457389964851:ios:ee0197882e421f52956d46","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"todo-app-mokuson","configurations":{"ios":"1:457389964851:ios:ee0197882e421f52956d46","web":"1:457389964851:web:70cf933f305acc44956d46"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "ios": {
+        "default": {
+          "projectId": "todo-app-mokuson",
+          "appId": "1:457389964851:ios:ee0197882e421f52956d46",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "todo-app-mokuson",
+          "configurations": {
+            "ios": "1:457389964851:ios:ee0197882e421f52956d46",
+            "web": "1:457389964851:web:70cf933f305acc44956d46"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
