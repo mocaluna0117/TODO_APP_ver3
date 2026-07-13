@@ -30,6 +30,7 @@ part 'app/my_app.dart';
 part 'app/auth_gate.dart';
 part 'pages/sign_in/sign_in_page.dart';
 part 'pages/todo_home/core/todo_home_page.dart';
+part 'pages/todo_home/core/todo_home_detail_pane.dart';
 part 'pages/todo_home/core/todo_home_data.dart';
 part 'pages/todo_home/core/todo_home_queries.dart';
 part 'pages/todo_home/core/todo_home_settings.dart';
@@ -82,6 +83,15 @@ const String noTaskTagLabel = 'タグなし';
 
 // 広い画面（PC等）でコンテンツを中央寄せする際の最大幅
 const double kMaxContentWidth = 720;
+
+// これ以上の画面幅では2ペイン（リスト＋詳細）レイアウトにする
+const double kTwoPaneBreakpoint = 1000;
+// 2ペイン時の左側（タスクリスト）の既定幅と最小幅
+// （最大幅は「右ペインの最低幅を確保できる範囲」で画面幅から自動決定）
+const double kListPaneWidth = 420;
+const double kListPaneMinWidth = 300;
+// 2ペイン時に右側（詳細）に最低限確保する幅
+const double kDetailPaneMinWidth = 480;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // runappの前にFlutterの機能やプラグインを使うために必要

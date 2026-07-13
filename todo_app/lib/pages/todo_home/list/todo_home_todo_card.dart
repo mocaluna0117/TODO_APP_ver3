@@ -2,6 +2,9 @@ part of '../../../main.dart';
 
 extension _TodoHomeTodoCard on _TodoHomePageState {
   Widget _buildTodoCard(TodoItem item, String category) {
+    // 2ペイン表示中は、選択中のタスクを枠線でハイライトする
+    final isSelected = _isWideLayout && item.id == _selectedDetailItemId;
+
     return AnimatedOpacity(
       opacity: _fadingOutItems.contains(item.id) ? 0.0 : 1.0,
       duration: const Duration(milliseconds: 350),
@@ -18,6 +21,9 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: isSelected
+                ? BorderSide(color: s.primaryColor, width: 2)
+                : BorderSide.none,
           ),
           color: Colors.white,
           child: ListTile(
@@ -27,7 +33,18 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
             minLeadingWidth: 0,
             onTap: category == 'done'
                 ? null
-                : () => _showEditDialog(item, tabKey: category),
+                : () {
+                    if (_isWideLayout) {
+                      // 2ペイン時はモーダルではなく右の詳細ペインに表示
+                      _updateState(() {
+                        _selectedDetailItemId = item.id;
+                        _selectedDetailTabKey = category;
+                        _detailDraft = null; // ドラフトを作り直す
+                      });
+                    } else {
+                      _showEditDialog(item, tabKey: category);
+                    }
+                  },
             leading: category == 'done' ? null : _buildTodoCardCheckbox(item),
             title: _buildTodoCardTitle(item),
             subtitle: _buildTodoSubtitle(item),

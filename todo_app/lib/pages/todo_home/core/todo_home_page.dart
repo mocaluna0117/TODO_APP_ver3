@@ -41,6 +41,13 @@ class _TodoHomePageState extends State<TodoHomePage>
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
   // 画像をStorageにアップロード中のタスクID（「アップロード中」表示用）
   final Set<int> _uploadingImageItemIds = {};
+  // 2ペイン（広い画面）用: 詳細ペインで選択中のタスクとその編集ドラフト
+  int? _selectedDetailItemId;
+  String _selectedDetailTabKey = '';
+  _EditTodoDraft? _detailDraft;
+  int? _detailDraftItemId;
+  // 2ペイン時の左ペイン幅（境目のドラッグで調整・ローカル保存）
+  double _listPaneWidth = kListPaneWidth;
 
   AppSettings get s => widget.settings;
 
@@ -59,6 +66,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     _rebuildTabController();
     _loadData();
     _startSettingsSync();
+    _loadListPaneWidth();
   }
 
   @override
@@ -112,15 +120,23 @@ class _TodoHomePageState extends State<TodoHomePage>
       indicatorWeight: 3,
     );
 
+    final isWide = _isWideLayout;
+    final tabBarView = TabBarView(
+      controller: _tabController,
+      children: _activeTabKeys.map((key) => _buildTodoList(key)).toList(),
+    );
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         titleSpacing: 0,
         // AppBarの中身（追加・タイトル・設定）もコンテンツと同じ幅の帯に収めて
-        // 中央寄せし、タブ・リストと左右端を揃える
+        // 中央寄せし、タブ・リストと左右端を揃える（2ペイン時は全幅を使う）
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: kMaxContentWidth),
+            constraints: BoxConstraints(
+              maxWidth: isWide ? double.infinity : kMaxContentWidth,
+            ),
             child: Row(
               children: [
                 // 完了タブ以外は左端にタスク追加ボタンを表示（幅を揃える）
@@ -149,18 +165,34 @@ class _TodoHomePageState extends State<TodoHomePage>
         ),
         bottom: PreferredSize(
           preferredSize: tabBar.preferredSize,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kMaxContentWidth),
-              child: tabBar,
-            ),
-          ),
+          // 2ペイン時はタブを左のリストペインの真上に配置する
+          child: isWide
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(width: _effectiveListPaneWidth, child: tabBar),
+                )
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: kMaxContentWidth,
+                    ),
+                    child: tabBar,
+                  ),
+                ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: _activeTabKeys.map((key) => _buildTodoList(key)).toList(),
-      ),
+      // 2ペイン時は左にタスクリスト、右に選択タスクの詳細（編集フォーム）
+      body: isWide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: _effectiveListPaneWidth, child: tabBarView),
+                // 境目をドラッグして左右の幅を調整できる
+                _buildPaneResizer(),
+                Expanded(child: _buildDetailPane()),
+              ],
+            )
+          : tabBarView,
     );
   }
 }
