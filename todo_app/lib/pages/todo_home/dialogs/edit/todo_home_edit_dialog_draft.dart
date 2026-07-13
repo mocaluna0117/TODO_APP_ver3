@@ -26,6 +26,7 @@ class _EditTodoDraft {
   final List<TextEditingController> linkControllers;
   DateTime? selectedDate;
   List<String> selectedImageBase64List;
+  bool isProcessingImage = false;
   String? selectedTaskTag;
   RecurrenceRule selectedRecurrenceRule;
   TaskPriority selectedTaskPriority;

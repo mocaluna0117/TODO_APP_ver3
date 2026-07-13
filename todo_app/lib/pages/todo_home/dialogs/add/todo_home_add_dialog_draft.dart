@@ -12,6 +12,7 @@ class _AddTodoDraft {
   final List<TextEditingController> linkControllers = [];
   DateTime? selectedDate;
   List<String> selectedImageBase64List = <String>[];
+  bool isProcessingImage = false;
   String? selectedTaskTag;
   RecurrenceRule selectedRecurrenceRule = RecurrenceRule.none;
   TaskPriority selectedTaskPriority = TaskPriority.none;

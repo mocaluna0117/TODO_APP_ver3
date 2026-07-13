@@ -4,21 +4,33 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
   Widget _buildImagePickerRow({
     required List<String> imageBase64List,
     required ValueChanged<List<String>> onImagesChanged,
+    required bool isProcessing,
+    required ValueChanged<bool> onProcessingChanged,
   }) {
     return InkWell(
-      onTap: () async {
-        try {
-          final pickedImageBase64List = await _pickImageBase64List();
-          if (pickedImageBase64List.isNotEmpty) {
-            onImagesChanged([...imageBase64List, ...pickedImageBase64List]);
-          }
-        } catch (_) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('画像を選択できませんでした')));
-        }
-      },
+      // 画像の選択～変換中は多重タップを防ぐ
+      onTap: isProcessing
+          ? null
+          : () async {
+              onProcessingChanged(true);
+              try {
+                final pickedImageBase64List = await _pickImageBase64List();
+                if (pickedImageBase64List.isNotEmpty) {
+                  onImagesChanged([
+                    ...imageBase64List,
+                    ...pickedImageBase64List,
+                  ]);
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('画像を選択できませんでした')),
+                  );
+                }
+              } finally {
+                onProcessingChanged(false);
+              }
+            },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -114,22 +126,36 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
             ],
             Row(
               children: [
-                Icon(Icons.image_outlined, size: 20, color: s.primaryColor),
+                if (isProcessing)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: s.primaryColor,
+                    ),
+                  )
+                else
+                  Icon(Icons.image_outlined, size: 20, color: s.primaryColor),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    imageBase64List.isNotEmpty
+                    isProcessing
+                        ? '画像を処理中...'
+                        : imageBase64List.isNotEmpty
                         ? '画像を追加（${imageBase64List.length}枚）'
                         : '画像を添付（任意）',
                     style: TextStyle(
                       fontSize: 15,
-                      color: imageBase64List.isNotEmpty
+                      color: isProcessing
+                          ? s.primaryColor
+                          : imageBase64List.isNotEmpty
                           ? Colors.black87
                           : Colors.grey,
                     ),
                   ),
                 ),
-                if (imageBase64List.isNotEmpty)
+                if (!isProcessing && imageBase64List.isNotEmpty)
                   GestureDetector(
                     onTap: () => onImagesChanged([]),
                     child: Icon(

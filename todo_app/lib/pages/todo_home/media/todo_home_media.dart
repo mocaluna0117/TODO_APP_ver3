@@ -9,11 +9,84 @@ extension _TodoHomeMedia on _TodoHomePageState {
     if (pickedImages.isEmpty) return [];
 
     final encodedImages = <String>[];
+    var rejectedHeic = false;
     for (final pickedImage in pickedImages) {
-      final bytes = await pickedImage.readAsBytes();
+      var bytes = await pickedImage.readAsBytes();
+      if (kIsWeb) {
+        // WebブラウザはHEICを直接デコードできないため、heic2any(JS)でJPEGに変換
+        final name = pickedImage.name.toLowerCase();
+        final mime = (pickedImage.mimeType ?? '').toLowerCase();
+        final isHeic =
+            name.endsWith('.heic') ||
+            name.endsWith('.heif') ||
+            mime.contains('heic') ||
+            mime.contains('heif');
+        if (isHeic) {
+          final converted = await convertHeicToJpeg(bytes);
+          if (converted == null) {
+            rejectedHeic = true;
+            continue;
+          }
+          bytes = converted;
+        }
+      } else {
+        // HEIC等をどこでも表示できるJPEGに変換する（iOS/Android）
+        try {
+          final jpeg = await FlutterImageCompress.compressWithList(
+            bytes,
+            quality: 85,
+            format: CompressFormat.jpeg,
+          );
+          if (jpeg.isNotEmpty) bytes = jpeg;
+        } catch (_) {
+          // 変換に失敗しても元データで続行する
+        }
+      }
       encodedImages.add(base64Encode(bytes));
     }
+    if (rejectedHeic && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('HEIC画像の変換に失敗したため除外しました（JPEG/PNG等をご利用ください）'),
+        ),
+      );
+    }
     return encodedImages;
+  }
+
+  // 画像の先頭バイトから Storage 用の Content-Type を判定する。
+  String _detectImageContentType(Uint8List bytes) {
+    if (bytes.length >= 3 &&
+        bytes[0] == 0xFF &&
+        bytes[1] == 0xD8 &&
+        bytes[2] == 0xFF) {
+      return 'image/jpeg';
+    }
+    if (bytes.length >= 8 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47) {
+      return 'image/png';
+    }
+    if (bytes.length >= 6 &&
+        bytes[0] == 0x47 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46) {
+      return 'image/gif';
+    }
+    if (bytes.length >= 12 &&
+        bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x45 &&
+        bytes[10] == 0x42 &&
+        bytes[11] == 0x50) {
+      return 'image/webp';
+    }
+    return 'image/jpeg';
   }
 
   Uint8List? _decodeImage(String? imageBase64) {
@@ -94,10 +167,54 @@ extension _TodoHomeMedia on _TodoHomePageState {
         'users/$uid/todos/${item.id}/'
         '${DateTime.now().microsecondsSinceEpoch}_$i.jpg',
       );
-      await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-      result.add(await ref.getDownloadURL());
+      await ref.putData(
+        bytes,
+        SettableMetadata(contentType: _detectImageContentType(bytes)),
+      );
+      final url = await ref.getDownloadURL();
+      // アップロード直後にキャッシュへ先読みしておく。
+      // これで表示切り替え時に読み込み待ちが起きず、「アップロード中」表示も
+      // ネット読み込み完了まで出し続けられる。
+      if (mounted) {
+        await precacheImage(
+          CachedNetworkImageProvider(url),
+          context,
+          onError: (error, stackTrace) {},
+        );
+      }
+      result.add(url);
     }
     return result;
+  }
+
+  // 画像アップロード中に画像へ重ねる半透明オーバーレイ。
+  Widget _buildImageUploadingOverlay() {
+    return Container(
+      color: Colors.black45,
+      alignment: Alignment.center,
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'アップロード中...',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // タスクの画像ファイルを Storage からすべて削除する（フォルダごと）。

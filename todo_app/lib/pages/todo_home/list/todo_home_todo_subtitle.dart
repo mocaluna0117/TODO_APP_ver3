@@ -106,6 +106,10 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                               ),
                             ),
                           ),
+                          if (_uploadingImageItemIds.contains(item.id))
+                            Positioned.fill(
+                              child: _buildImageUploadingOverlay(),
+                            ),
                           if (images.length > 1)
                             Positioned(
                               left: 8,

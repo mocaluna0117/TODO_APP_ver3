@@ -126,11 +126,25 @@ extension _TodoHomeData on _TodoHomePageState {
   Future<void> _saveData() async {
     final col = _todosCollection();
 
-    // base64画像を Storage にアップロードし URL に置き換える（Firestoreの1MB制限対策）
+    // base64画像を Storage にアップロードし URL に置き換える（Firestoreの1MB制限対策）。
+    // アップロード中は「アップロード中」表示のためタスクIDを記録する。
     for (final item in _allItems) {
-      final updated = await _uploadPendingImages(item);
-      if (!identical(updated, item.imageBase64List)) {
-        item.imageBase64List = updated;
+      final hasPending = item.imageBase64List.any(
+        (e) => e.isNotEmpty && !_isImageUrl(e),
+      );
+      if (!hasPending) continue;
+      if (mounted) {
+        _updateState(() => _uploadingImageItemIds.add(item.id));
+      }
+      try {
+        final updated = await _uploadPendingImages(item);
+        if (!identical(updated, item.imageBase64List)) {
+          item.imageBase64List = updated;
+        }
+      } finally {
+        if (mounted) {
+          _updateState(() => _uploadingImageItemIds.remove(item.id));
+        }
       }
     }
 

@@ -84,6 +84,9 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
           onImagesChanged: (imageBase64List) => setSheetState(
             () => draft.selectedImageBase64List = imageBase64List,
           ),
+          isProcessing: draft.isProcessingImage,
+          onProcessingChanged: (v) =>
+              setSheetState(() => draft.isProcessingImage = v),
         ),
       ],
     );

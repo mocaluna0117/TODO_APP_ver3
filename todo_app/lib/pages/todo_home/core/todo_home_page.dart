@@ -39,6 +39,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   Set<String> _knownTodoDocIds = {};
   // 設定（タグ等）のリアルタイム同期リスナー
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
+  // 画像をStorageにアップロード中のタスクID（「アップロード中」表示用）
+  final Set<int> _uploadingImageItemIds = {};
 
   AppSettings get s => widget.settings;
 
