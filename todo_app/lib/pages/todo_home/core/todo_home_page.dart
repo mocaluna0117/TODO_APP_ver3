@@ -46,8 +46,12 @@ class _TodoHomePageState extends State<TodoHomePage>
   String _selectedDetailTabKey = '';
   _EditTodoDraft? _detailDraft;
   int? _detailDraftItemId;
-  // 2ペイン時の左ペイン幅（境目のドラッグで調整・ローカル保存）
-  double _listPaneWidth = kListPaneWidth;
+  // 2ペイン時の左ペイン幅（境目のドラッグで調整・ローカル保存）。
+  // null は既定値（画面幅の半分＝1:1）を表す。
+  double? _listPaneWidth;
+  // フォント読み込み世代。Webでは日本語フォントが遅延ロードされるため、
+  // 読み込み完了時にインクリメントして文字幅依存のUI（タグチップ等）を再構築する
+  int _fontGeneration = 0;
 
   AppSettings get s => widget.settings;
 
@@ -67,6 +71,14 @@ class _TodoHomePageState extends State<TodoHomePage>
     _loadData();
     _startSettingsSync();
     _loadListPaneWidth();
+    // 遅延ロードされたフォントの反映（Webの日本語フォント等）を検知する
+    PaintingBinding.instance.systemFonts.addListener(_onSystemFontsChanged);
+  }
+
+  void _onSystemFontsChanged() {
+    if (mounted) {
+      setState(() => _fontGeneration++);
+    }
   }
 
   @override
@@ -87,6 +99,7 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   @override
   void dispose() {
+    PaintingBinding.instance.systemFonts.removeListener(_onSystemFontsChanged);
     _todosSub?.cancel();
     _settingsSub?.cancel();
     _tabController?.dispose();

@@ -7,12 +7,14 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
   bool get _isWideLayout =>
       MediaQuery.sizeOf(context).width >= kTwoPaneBreakpoint;
 
-  // 左ペインの実効幅。右ペインの最低幅を確保できる範囲で自由に調整できる。
+  // 左ペインの実効幅。既定は画面幅の半分（1:1）で、
+  // 右ペインの最低幅を確保できる範囲で自由に調整できる。
   double get _effectiveListPaneWidth {
     final screenWidth = MediaQuery.sizeOf(context).width;
     var maxWidth = screenWidth - kDetailPaneMinWidth;
     if (maxWidth < kListPaneMinWidth) maxWidth = kListPaneMinWidth;
-    return _listPaneWidth.clamp(kListPaneMinWidth, maxWidth);
+    final width = _listPaneWidth ?? screenWidth / 2;
+    return width.clamp(kListPaneMinWidth, maxWidth);
   }
 
   Future<void> _loadListPaneWidth() async {
@@ -25,7 +27,13 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
 
   Future<void> _saveListPaneWidth() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('listPaneWidth', _listPaneWidth);
+    final width = _listPaneWidth;
+    if (width == null) {
+      // 既定（画面幅の半分）に戻した場合は保存値を消し、画面サイズに追従させる
+      await prefs.remove('listPaneWidth');
+    } else {
+      await prefs.setDouble('listPaneWidth', width);
+    }
   }
 
   // ペインの境目に置くドラッグハンドル。左右ドラッグで左ペインの幅を調整する。
@@ -40,9 +48,9 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
           });
         },
         onHorizontalDragEnd: (_) => _saveListPaneWidth(),
-        // ダブルタップで既定幅に戻す
+        // ダブルタップで既定幅（画面幅の半分＝1:1）に戻す
         onDoubleTap: () {
-          _updateState(() => _listPaneWidth = kListPaneWidth);
+          _updateState(() => _listPaneWidth = null);
           _saveListPaneWidth();
         },
         child: SizedBox(

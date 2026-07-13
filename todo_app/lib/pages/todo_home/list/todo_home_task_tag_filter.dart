@@ -32,6 +32,9 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.separated(
+        // フォントの遅延読み込み後にチップを作り直し、文字幅を再計測させる
+        // （Webで日本語フォント読み込み前の幅のまま文字が途切れるのを防ぐ）
+        key: ValueKey('tag-filter-$category-$_fontGeneration'),
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: tags.length + 1,

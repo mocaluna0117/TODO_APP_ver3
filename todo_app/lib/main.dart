@@ -86,9 +86,8 @@ const double kMaxContentWidth = 720;
 
 // これ以上の画面幅では2ペイン（リスト＋詳細）レイアウトにする
 const double kTwoPaneBreakpoint = 1000;
-// 2ペイン時の左側（タスクリスト）の既定幅と最小幅
-// （最大幅は「右ペインの最低幅を確保できる範囲」で画面幅から自動決定）
-const double kListPaneWidth = 420;
+// 2ペイン時の左側（タスクリスト）の最小幅
+// （既定幅は画面幅の半分＝1:1、最大幅は「右ペインの最低幅を確保できる範囲」）
 const double kListPaneMinWidth = 300;
 // 2ペイン時に右側（詳細）に最低限確保する幅
 const double kDetailPaneMinWidth = 480;
