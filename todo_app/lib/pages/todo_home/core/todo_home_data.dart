@@ -91,6 +91,9 @@ extension _TodoHomeData on _TodoHomePageState {
           ..clear()
           ..addAll(items);
       });
+      // 同期で受け取ったタスク（Web等の別端末で作成・編集された分を含む）の
+      // 通知をこの端末で予約し直す（Webでは NotificationService 側で無視される）
+      NotificationService().rescheduleAll(_allItems, s.notificationTiming);
     });
   }
 
