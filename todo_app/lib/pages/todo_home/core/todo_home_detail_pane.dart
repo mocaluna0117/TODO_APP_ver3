@@ -81,7 +81,11 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.checklist_rounded, size: 56, color: Colors.grey.shade300),
+            Icon(
+              Icons.checklist_rounded,
+              size: 56,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
               'タスクを選択して詳細を表示',
@@ -116,10 +120,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
         notificationOffsets: draft.selectedNotificationOffsets,
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('保存しました'),
-          duration: Duration(seconds: 2),
-        ),
+        const SnackBar(content: Text('保存しました'), duration: Duration(seconds: 2)),
       );
     }
 
@@ -127,63 +128,75 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+        // ペイン内にフォーカスがあるとき、Ctrl/Cmd+V でクリップボードの画像を添付できる
+        child: _buildImagePasteShortcut(
+          onPasteImage: () => _handlePasteImage(
+            imageBase64List: draft.selectedImageBase64List,
+            onImagesChanged: (imageBase64List) => _updateState(
+              () => draft.selectedImageBase64List = imageBase64List,
+            ),
+            isProcessing: draft.isProcessingImage,
+            onProcessingChanged: (v) =>
+                _updateState(() => draft.isProcessingImage = v),
           ),
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 8),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      // スクロール（ドラッグ）でキーボードを閉じる
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      child: _buildEditDialogFields(
-                        item: item,
-                        isFromTodayTab: _selectedDetailTabKey == 'today',
-                        draft: draft,
-                        setSheetState: _updateState,
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        // スクロール（ドラッグ）でキーボードを閉じる
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        child: _buildEditDialogFields(
+                          item: item,
+                          isFromTodayTab: _selectedDetailTabKey == 'today',
+                          draft: draft,
+                          setSheetState: _updateState,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: s.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: s.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      child: const Text('保存', style: TextStyle(fontSize: 16)),
                     ),
-                    child: const Text('保存', style: TextStyle(fontSize: 16)),
-                  ),
-                ],
-              ),
-              // 選択を解除して詳細を閉じる
-              Positioned(
-                top: 0,
-                right: 0,
-                child: IconButton(
-                  icon: Icon(Icons.close, color: Colors.grey.shade500),
-                  tooltip: '閉じる',
-                  onPressed: () => _updateState(() {
-                    _selectedDetailItemId = null;
-                    _detailDraft = null;
-                    _detailDraftItemId = null;
-                  }),
+                  ],
                 ),
-              ),
-            ],
+                // 選択を解除して詳細を閉じる
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey.shade500),
+                    tooltip: '閉じる',
+                    onPressed: () => _updateState(() {
+                      _selectedDetailItemId = null;
+                      _detailDraft = null;
+                      _detailDraftItemId = null;
+                    }),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

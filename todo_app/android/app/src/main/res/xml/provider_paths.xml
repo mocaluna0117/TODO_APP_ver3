@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pasteboard（クリップボード画像の読み書き）用の FileProvider パス定義 -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path
+        name="external_files"
+        path="." />
+</paths>

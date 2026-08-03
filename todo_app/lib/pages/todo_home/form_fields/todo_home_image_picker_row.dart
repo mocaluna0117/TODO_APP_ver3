@@ -155,15 +155,40 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                     ),
                   ),
                 ),
-                if (!isProcessing && imageBase64List.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => onImagesChanged([]),
-                    child: Icon(
-                      Icons.close,
-                      size: 18,
-                      color: Colors.grey.shade400,
+                if (!isProcessing) ...[
+                  // コピーした画像（スクリーンショット等）をクリップボードから追加
+                  Tooltip(
+                    message: 'コピーした画像を貼り付け',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _handlePasteImage(
+                        imageBase64List: imageBase64List,
+                        onImagesChanged: onImagesChanged,
+                        isProcessing: isProcessing,
+                        onProcessingChanged: onProcessingChanged,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          Icons.content_paste,
+                          size: 18,
+                          color: s.primaryColor,
+                        ),
+                      ),
                     ),
                   ),
+                  if (imageBase64List.isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () => onImagesChanged([]),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           ],
