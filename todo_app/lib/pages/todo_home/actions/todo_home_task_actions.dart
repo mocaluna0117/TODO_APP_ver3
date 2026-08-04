@@ -73,6 +73,23 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     }
   }
 
+  // やること⇔やりたいことの間でタスクを移動する
+  void _moveItemToOppositeCategory(TodoItem item) {
+    final toCategory = item.category == 'future' ? 'todo' : 'future';
+    _updateState(() {
+      item.category = toCategory;
+      // タグはカテゴリごとに別管理なので、移動先に存在しないタグは外す
+      item.taskTag = _normalizeKnownTaskTag(item.taskTag, toCategory);
+    });
+    _saveData();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「${_tabName(toCategory)}」へ移動しました'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _deleteItem(TodoItem item) {
     _updateState(() {
       _allItems.remove(item);

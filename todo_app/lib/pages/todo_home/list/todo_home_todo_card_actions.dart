@@ -11,6 +11,20 @@ extension _TodoHomeTodoCardActions on _TodoHomePageState {
             onPressed: () => _confirmRestoreTodo(item),
             tooltip: '未完了に戻す',
           ),
+        // やること⇔やりたいことの移動（完了済みはまず未完了に戻してもらう）
+        if (!item.isDone &&
+            (item.category == 'todo' || item.category == 'future'))
+          _compactTodoCardIconButton(
+            icon: Icon(
+              Icons.drive_file_move_outlined,
+              color: Colors.grey.shade500,
+              size: 20,
+            ),
+            onPressed: () => _moveItemToOppositeCategory(item),
+            tooltip: item.category == 'future'
+                ? '「${_tabName('todo')}」へ移動'
+                : '「${_tabName('future')}」へ移動',
+          ),
         _compactTodoCardIconButton(
           icon: Icon(
             Icons.delete_outline,
