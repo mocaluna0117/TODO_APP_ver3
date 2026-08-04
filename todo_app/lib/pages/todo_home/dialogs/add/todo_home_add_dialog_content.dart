@@ -53,6 +53,7 @@ extension _TodoHomeAddDialogContent on _TodoHomePageState {
                           isFromTodayTab: isFromTodayTab,
                           draft: draft,
                           setSheetState: setSheetState,
+                          submit: submit,
                         ),
                       ),
                     ),

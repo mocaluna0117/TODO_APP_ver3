@@ -1,12 +1,21 @@
 part of '../../../../main.dart';
 
 extension _TodoHomeAddDialogTextFields on _TodoHomePageState {
-  Widget _buildAddDialogTitleField(_AddTodoDraft draft) {
+  Widget _buildAddDialogTitleField(
+    _AddTodoDraft draft, {
+    required VoidCallback onSubmit,
+  }) {
     return TextField(
       controller: draft.textController,
       autofocus: true,
       keyboardType: TextInputType.text,
-      textInputAction: TextInputAction.next,
+      textInputAction: TextInputAction.done,
+      // Enter（決定キー）でそのままタスクを追加する。
+      // 日本語入力の変換確定のEnterでは発火しない（onSubmittedは未変換時のみ）。
+      onSubmitted: (text) {
+        if (text.trim().isEmpty) return;
+        onSubmit();
+      },
       hintLocales: const [Locale('ja', 'JP')],
       decoration: _addDialogTextFieldDecoration('タスクを入力...'),
     );
@@ -21,10 +30,13 @@ extension _TodoHomeAddDialogTextFields on _TodoHomePageState {
       hintLocales: const [Locale('ja', 'JP')],
       minLines: 1,
       maxLines: 4,
-      decoration: _addDialogTextFieldDecoration(
-        '概要を入力（任意）',
-        contentPadding: const EdgeInsets.all(16),
-      ).copyWith(suffixIcon: _descriptionCopyButton(draft.descriptionController)),
+      decoration:
+          _addDialogTextFieldDecoration(
+            '概要を入力（任意）',
+            contentPadding: const EdgeInsets.all(16),
+          ).copyWith(
+            suffixIcon: _descriptionCopyButton(draft.descriptionController),
+          ),
     );
   }
 

@@ -179,19 +179,42 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                 // コピーした画像（スクリーンショット等）をクリップボードから追加
                 Tooltip(
                   message: 'クリップボードの画像を貼り付け',
-                  child: TextButton.icon(
-                    onPressed: () => _handlePasteImage(
-                      imageBase64List: imageBase64List,
-                      onImagesChanged: onImagesChanged,
-                      isProcessing: isProcessing,
-                      onProcessingChanged: onProcessingChanged,
-                    ),
-                    icon: const Icon(Icons.content_paste, size: 16),
-                    label: const Text('ペースト'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: s.primaryColor,
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Material(
+                    color: s.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                    child: InkWell(
+                      onTap: () => _handlePasteImage(
+                        imageBase64List: imageBase64List,
+                        onImagesChanged: onImagesChanged,
+                        isProcessing: isProcessing,
+                        onProcessingChanged: onProcessingChanged,
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.content_paste_rounded,
+                              size: 15,
+                              color: s.primaryColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'ペースト',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: s.primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

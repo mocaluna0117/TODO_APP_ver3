@@ -6,6 +6,7 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
     required bool isFromTodayTab,
     required _AddTodoDraft draft,
     required StateSetter setSheetState,
+    required VoidCallback submit,
   }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -21,14 +22,15 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
           ),
         ),
         const SizedBox(height: 16),
-        _buildAddDialogTitleField(draft),
+        _buildAddDialogTitleField(draft, onSubmit: submit),
         const SizedBox(height: 12),
         _buildAddDialogDescriptionField(draft),
         const SizedBox(height: 12),
         _buildLinksField(
           controllers: draft.linkControllers,
-          onAdd: () =>
-              setSheetState(() => draft.linkControllers.add(TextEditingController())),
+          onAdd: () => setSheetState(
+            () => draft.linkControllers.add(TextEditingController()),
+          ),
           onRemove: (i) =>
               setSheetState(() => draft.linkControllers.removeAt(i)),
         ),
@@ -74,8 +76,9 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
           _buildNotificationTimingPicker(
             dueDate: draft.selectedDate!,
             selectedOffsets: draft.selectedNotificationOffsets,
-            onChanged: (offsets) =>
-                setSheetState(() => draft.selectedNotificationOffsets = offsets),
+            onChanged: (offsets) => setSheetState(
+              () => draft.selectedNotificationOffsets = offsets,
+            ),
           ),
         ],
         const SizedBox(height: 12),
