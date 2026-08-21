@@ -9,26 +9,26 @@ extension _TodoHomeDatePickerRow on _TodoHomePageState {
     return InkWell(
       onTap: () async {
         final now = DateTime.now();
+        // 過去の日付も期限に設定できるようにする（記録漏れの後追い入力など）
+        final firstDate = DateTime(now.year - 5, now.month, now.day);
+        final lastDate = now.add(const Duration(days: 365 * 5));
+        // 保存済みの期限が選択範囲外でも落ちないように範囲内へ丸めておく
+        var initialDate = selectedDate ?? now;
+        if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+        if (initialDate.isAfter(lastDate)) initialDate = lastDate;
         final pickedDate = await showDatePicker(
           context: context,
-          initialDate: selectedDate != null && selectedDate.isAfter(now)
-              ? selectedDate
-              : now,
-          firstDate: DateTime(now.year, now.month, now.day),
-          lastDate: now.add(const Duration(days: 365 * 5)),
+          initialDate: initialDate,
+          firstDate: firstDate,
+          lastDate: lastDate,
           locale: const Locale('ja'),
         );
         if (pickedDate != null) {
           if (!mounted) return;
-          final isToday =
-              pickedDate.year == now.year &&
-              pickedDate.month == now.month &&
-              pickedDate.day == now.day;
           final pickedTime = await _pickDueTime(
             selectedDate != null
                 ? TimeOfDay.fromDateTime(selectedDate)
                 : const TimeOfDay(hour: 9, minute: 0),
-            minimumDateTime: isToday ? now : null,
           );
           if (pickedTime != null) {
             onDateSelected(

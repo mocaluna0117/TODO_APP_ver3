@@ -9,14 +9,11 @@ extension _TodoHomeTimePickerRow on _TodoHomePageState {
     return InkWell(
       onTap: () async {
         final now = DateTime.now();
-        // 現在時刻〜今日の終了時刻(23:59)の範囲に制限する
-        final endOfToday = DateTime(now.year, now.month, now.day, 23, 59);
+        // 過去の時刻も設定できるようにするため、今日の 0:00〜23:59 を自由に選べる
         final pickedTime = await _pickDueTime(
           selectedDate != null
               ? TimeOfDay.fromDateTime(selectedDate)
               : const TimeOfDay(hour: 9, minute: 0),
-          minimumDateTime: now,
-          maximumDateTime: endOfToday,
         );
         if (pickedTime != null) {
           onTimeSelected(

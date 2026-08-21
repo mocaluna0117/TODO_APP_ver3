@@ -71,7 +71,9 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
                 setSheetState(() => draft.selectedRecurrenceRule = rule),
           ),
         ],
-        if (draft.selectedDate != null) ...[
+        // 期限が既に過ぎている場合は通知を鳴らせないため、通知の選択自体を出さない
+        if (draft.selectedDate != null &&
+            draft.selectedDate!.isAfter(DateTime.now())) ...[
           const SizedBox(height: 12),
           _buildNotificationTimingPicker(
             dueDate: draft.selectedDate!,
