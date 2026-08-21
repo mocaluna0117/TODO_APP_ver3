@@ -55,6 +55,22 @@ extension _SettingsAccountSection on _SettingsPageState {
       ),
     );
     if (confirmed != true) return;
-    widget.onSignOut?.call();
+
+    final signOut = widget.onSignOut;
+    if (signOut == null) return;
+    try {
+      await signOut();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ログアウトに失敗しました: $e')));
+      return;
+    }
+    if (!mounted) return;
+    // 設定ページはホーム画面の上に push されているため、ここで閉じないと
+    // ログアウト後もこの画面が残り続け、何も起きていないように見えてしまう。
+    // ルートまで戻すと AuthGate がサインイン画面に切り替わる。
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }

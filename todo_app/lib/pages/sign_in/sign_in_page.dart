@@ -20,7 +20,10 @@ class _SignInPageState extends State<SignInPage> {
       _error = null;
     });
     try {
-      final provider = GoogleAuthProvider();
+      // prompt=select_account を付けると、前回のアカウントで自動ログインせず
+      // 毎回アカウント選択画面（別のアカウントを使う導線を含む）が出る
+      final provider = GoogleAuthProvider()
+        ..setCustomParameters({'prompt': 'select_account'});
       if (kIsWeb) {
         await FirebaseAuth.instance.signInWithPopup(provider);
       } else {

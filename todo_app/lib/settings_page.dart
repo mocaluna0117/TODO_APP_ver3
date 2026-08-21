@@ -31,7 +31,8 @@ class SettingsPage extends StatefulWidget {
   final Future<void> Function()? onImportTasks;
   final VoidCallback? onDeleteAllTasks;
   final String? userEmail;
-  final VoidCallback? onSignOut;
+  // ログアウト完了を待ってから設定ページを閉じたいので Future を返す
+  final Future<void> Function()? onSignOut;
 
   const SettingsPage({
     super.key,

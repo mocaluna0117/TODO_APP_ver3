@@ -7,7 +7,7 @@ class TodoHomePage extends StatefulWidget {
   final AppSettings settings;
   final VoidCallback onSettingsChanged;
   final String? userEmail;
-  final VoidCallback? onSignOut;
+  final Future<void> Function()? onSignOut;
 
   const TodoHomePage({
     super.key,
