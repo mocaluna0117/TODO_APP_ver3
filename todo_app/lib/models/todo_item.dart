@@ -4,10 +4,72 @@ enum RecurrenceRule {
   none('なし'),
   daily('毎日'),
   weekly('毎週'),
-  monthly('毎月');
+  monthly('毎月'),
+  // ここから下は後から追加した値。normalizeRecurrenceRule が index 表記も
+  // 解釈するため、保存済みデータとの互換性を保つように末尾へ足していく。
+  // 画面上の並び順は recurrenceRuleMenuOrder で定義する。
+  biweekly('2週ごと'),
+  every3Weeks('3週ごと'),
+  every4Weeks('4週ごと'),
+  monthlyNthWeekday('毎月第n○曜日'),
+  monthlyLastWeekday('毎月最終○曜日');
 
   final String label;
   const RecurrenceRule(this.label);
+}
+
+// 繰り返しドロップダウンの表示順（enum の宣言順は互換性のため変えられない）
+const List<RecurrenceRule> recurrenceRuleMenuOrder = [
+  RecurrenceRule.none,
+  RecurrenceRule.daily,
+  RecurrenceRule.weekly,
+  RecurrenceRule.biweekly,
+  RecurrenceRule.every3Weeks,
+  RecurrenceRule.every4Weeks,
+  RecurrenceRule.monthly,
+  RecurrenceRule.monthlyNthWeekday,
+  RecurrenceRule.monthlyLastWeekday,
+];
+
+// 曜日ベースの繰り返しラベルで使う曜日名（DateTime.weekday は月曜=1）
+const List<String> _weekdayNames = ['月', '火', '水', '木', '金', '土', '日'];
+
+// 期限がその月の「第何週目の同曜日」かを返す（1〜5）
+int recurrenceWeekdayOrdinal(DateTime date) => (date.day - 1) ~/ 7 + 1;
+
+// 週単位で繰り返すルールの間隔（週数）。週単位でないルールは null。
+int? recurrenceWeekInterval(RecurrenceRule rule) {
+  switch (rule) {
+    case RecurrenceRule.weekly:
+      return 1;
+    case RecurrenceRule.biweekly:
+      return 2;
+    case RecurrenceRule.every3Weeks:
+      return 3;
+    case RecurrenceRule.every4Weeks:
+      return 4;
+    default:
+      return null;
+  }
+}
+
+// 繰り返しの表示ラベル。曜日と第n週は期限の日付から決まるので、期限が
+// 設定されているときは「毎月第2火曜日」のように具体的な表記にする。
+String recurrenceRuleLabel(RecurrenceRule rule, DateTime? dueDate) {
+  if (dueDate == null) return rule.label;
+  final weekday = _weekdayNames[dueDate.weekday - 1];
+  switch (rule) {
+    case RecurrenceRule.biweekly:
+    case RecurrenceRule.every3Weeks:
+    case RecurrenceRule.every4Weeks:
+      return '${rule.label}の$weekday曜日';
+    case RecurrenceRule.monthlyNthWeekday:
+      return '毎月第${recurrenceWeekdayOrdinal(dueDate)}$weekday曜日';
+    case RecurrenceRule.monthlyLastWeekday:
+      return '毎月最終$weekday曜日';
+    default:
+      return rule.label;
+  }
 }
 
 enum TaskPriority {

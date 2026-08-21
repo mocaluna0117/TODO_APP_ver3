@@ -67,6 +67,7 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
           const SizedBox(height: 12),
           _buildRecurrencePicker(
             selectedRecurrenceRule: draft.selectedRecurrenceRule,
+            dueDate: draft.selectedDate,
             onChanged: (rule) =>
                 setSheetState(() => draft.selectedRecurrenceRule = rule),
           ),

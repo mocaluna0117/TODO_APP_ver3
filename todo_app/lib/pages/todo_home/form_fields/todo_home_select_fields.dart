@@ -41,8 +41,10 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
     );
   }
 
+  // [dueDate] は「毎月第2火曜日」のように曜日・第n週を含むラベルを作るために使う
   Widget _buildRecurrencePicker({
     required RecurrenceRule selectedRecurrenceRule,
+    required DateTime? dueDate,
     required ValueChanged<RecurrenceRule> onChanged,
   }) {
     return DropdownButtonFormField<RecurrenceRule>(
@@ -62,8 +64,13 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
           vertical: 14,
         ),
       ),
-      items: RecurrenceRule.values
-          .map((rule) => DropdownMenuItem(value: rule, child: Text(rule.label)))
+      items: recurrenceRuleMenuOrder
+          .map(
+            (rule) => DropdownMenuItem(
+              value: rule,
+              child: Text(recurrenceRuleLabel(rule, dueDate)),
+            ),
+          )
           .toList(),
       onChanged: (rule) {
         if (rule != null) {
