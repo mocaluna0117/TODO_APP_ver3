@@ -172,15 +172,27 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
 
   // 「今見ているカード」を決める基準線の、リスト上端からの距離。
   //
-  // 常に上端付近に置くと、末尾の数件は基準線まで上がってこられず選べない
-  // （一番下までスクロールしても画面の下側に残るため）。そこで、残りの
-  // スクロール量が画面1つ分を切ったら、その減った分だけ基準線を下げていく。
-  // 最後まで送ると基準線が下端に来て、末尾のタスクまで順に選べる。
+  // 基準線を上端付近に固定すると末尾の数件が選べず（一番下まで送っても
+  // 画面の下側に残るため）、逆に下げっぱなしにすると先頭の数件が選べない。
+  // そこで「残りスクロール量」に応じて上端→下端へ動かす。
+  //
+  // 動かす幅は、画面1つ分と実際にスクロールできる距離の小さい方。
+  // ・長い一覧: 最後の1画面ぶんに入るまでは上端のまま（一番上のカードを選ぶ）
+  // ・少ししかスクロールできない一覧: その短い距離で上端から下端まで動かす
+  // どちらの場合も、一番上では先頭のタスク、一番下では末尾のタスクになる。
   double _visibleCardLineOffset(double viewportHeight, ScrollMetrics metrics) {
     var remaining = metrics.maxScrollExtent - metrics.pixels;
     if (remaining < 0) remaining = 0;
-    var offset = viewportHeight - remaining;
-    if (offset < _visibleCardThreshold) offset = _visibleCardThreshold;
+    var sweep = metrics.maxScrollExtent;
+    if (sweep > viewportHeight) sweep = viewportHeight;
+    if (sweep <= 0) return _visibleCardThreshold;
+
+    var offset = viewportHeight * (1 - remaining / sweep);
+    // 上端ぎりぎりに残っているだけのカードは選ばない。
+    // ただし一番上まで戻したときは先頭のカードを選べるよう下限も下げる。
+    var lower = _visibleCardThreshold;
+    if (metrics.pixels < lower) lower = metrics.pixels;
+    if (offset < lower) offset = lower;
     if (offset > viewportHeight - 1) offset = viewportHeight - 1;
     return offset;
   }
