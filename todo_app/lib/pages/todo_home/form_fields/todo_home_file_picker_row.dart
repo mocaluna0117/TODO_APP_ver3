@@ -18,7 +18,7 @@ extension _TodoHomeFilePickerRow on _TodoHomePageState {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FA),
+        color: s.fieldColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -66,7 +66,7 @@ extension _TodoHomeFilePickerRow on _TodoHomePageState {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 15,
-                        color: total > 0 ? Colors.black87 : Colors.grey,
+                        color: total > 0 ? s.primaryTextColor : Colors.grey,
                       ),
                     ),
                   ),
@@ -120,7 +120,7 @@ extension _TodoHomeFilePickerRow on _TodoHomePageState {
                       pendingLabel,
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
+                        color: s.secondaryTextColor,
                       ),
                     ),
                 ],

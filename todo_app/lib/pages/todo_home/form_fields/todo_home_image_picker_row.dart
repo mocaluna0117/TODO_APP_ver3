@@ -29,7 +29,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FA),
+        color: s.fieldColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -165,7 +165,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                                 style: TextStyle(
                                   fontSize: 15,
                                   color: imageBase64List.isNotEmpty
-                                      ? Colors.black87
+                                      ? s.primaryTextColor
                                       : Colors.grey,
                                 ),
                               ),

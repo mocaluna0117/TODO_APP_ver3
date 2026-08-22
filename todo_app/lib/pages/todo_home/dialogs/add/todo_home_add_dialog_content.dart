@@ -35,7 +35,7 @@ extension _TodoHomeAddDialogContent on _TodoHomePageState {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: s.surfaceColor,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(

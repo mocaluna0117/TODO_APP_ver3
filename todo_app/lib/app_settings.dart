@@ -43,6 +43,13 @@ class AppSettings {
   // 並び順
   SortOrder sortOrder;
 
+  // 画面の明暗（system は端末の設定に従う）
+  ThemeMode themeMode;
+
+  // いま暗い配色で描画しているか。MyApp が毎回のビルドで設定する。
+  // themeMode が system のときは端末の設定で決まるため、この値は保存しない。
+  bool isDarkMode = false;
+
   // テーマカラー
   Color primaryColor;
   Color accentColor;
@@ -72,6 +79,7 @@ class AppSettings {
     this.showDeleteConfirm = true,
     this.enableSwipeDelete = false,
     this.sortOrder = SortOrder.dueDateAsc,
+    this.themeMode = ThemeMode.system,
     this.primaryColor = const Color(0xFF4A55A2),
     this.accentColor = const Color(0xFF7895CB),
     this.notificationTiming = NotificationTiming.hour1,
@@ -83,6 +91,37 @@ class AppSettings {
        ),
        taskTags = _normalizeTaskTags(taskTags ?? []),
        futureTaskTags = _normalizeTaskTags(futureTaskTags ?? []);
+
+  // ─── 配色 ───
+  // 画面の明暗で変わる色はここにまとめ、各画面はこれを参照する。
+  // 面（カード・シート）と下地（入力欄）で明度を分け、暗い配色でも段差が
+  // 分かるようにしている。
+  static const Color lightBackground = Color(0xFFF5F5FA);
+  static const Color darkBackground = Color(0xFF121217);
+  static const Color darkSurface = Color(0xFF1E1E26);
+  static const Color darkField = Color(0xFF2A2A34);
+
+  // 画面全体の背景
+  Color get backgroundColor => isDarkMode ? darkBackground : lightBackground;
+  // カード・シート・ダイアログの面
+  Color get surfaceColor => isDarkMode ? darkSurface : Colors.white;
+  // 入力欄やボタンの下地
+  Color get fieldColor => isDarkMode ? darkField : lightBackground;
+  // 本文の文字
+  Color get primaryTextColor =>
+      isDarkMode ? const Color(0xFFECECF1) : Colors.black87;
+  // 補助的な文字
+  Color get secondaryTextColor =>
+      isDarkMode ? const Color(0xFFA8A8B4) : Colors.black54;
+  // 未入力・無効を表す文字
+  Color get hintTextColor =>
+      isDarkMode ? const Color(0xFF80808C) : Colors.grey;
+  // 区切り線
+  Color get dividerColor =>
+      isDarkMode ? const Color(0xFF32323C) : Colors.grey.shade200;
+  // 枠線や、内容が無いことを示す大きなアイコン
+  Color get outlineColor =>
+      isDarkMode ? const Color(0xFF3D3D49) : Colors.grey.shade300;
 
   // カテゴリに対応するタグリストを返す（future かそれ以外かでグループが分かれる）
   List<String> tagsForCategory(String category) =>
@@ -101,6 +140,7 @@ class AppSettings {
     await prefs.setBool('showDeleteConfirm', showDeleteConfirm);
     await prefs.setBool('enableSwipeDelete', enableSwipeDelete);
     await prefs.setInt('sortOrder', sortOrder.index);
+    await prefs.setInt('themeMode', themeMode.index);
     await prefs.setInt('primaryColor', primaryColor.toARGB32());
     await prefs.setInt('accentColor', accentColor.toARGB32());
     await prefs.setInt('notificationTiming', notificationTiming.index);
@@ -129,6 +169,7 @@ class AppSettings {
     'showDeleteConfirm': showDeleteConfirm,
     'enableSwipeDelete': enableSwipeDelete,
     'sortOrder': sortOrder.index,
+    'themeMode': themeMode.index,
     'primaryColor': primaryColor.toARGB32(),
     'accentColor': accentColor.toARGB32(),
     'notificationTiming': notificationTiming.index,
@@ -153,6 +194,12 @@ class AppSettings {
     final sortIndex = data['sortOrder'];
     if (sortIndex is int && sortIndex >= 0 && sortIndex < SortOrder.values.length) {
       sortOrder = SortOrder.values[sortIndex];
+    }
+    final themeIndex = data['themeMode'];
+    if (themeIndex is int &&
+        themeIndex >= 0 &&
+        themeIndex < ThemeMode.values.length) {
+      themeMode = ThemeMode.values[themeIndex];
     }
     if (data['primaryColor'] is int) {
       primaryColor = Color(data['primaryColor'] as int);
@@ -200,6 +247,12 @@ class AppSettings {
 
     if (prefs.containsKey('sortOrder')) {
       sortOrder = SortOrder.values[prefs.getInt('sortOrder')!];
+    }
+    final savedThemeMode = prefs.getInt('themeMode');
+    if (savedThemeMode != null &&
+        savedThemeMode >= 0 &&
+        savedThemeMode < ThemeMode.values.length) {
+      themeMode = ThemeMode.values[savedThemeMode];
     }
     if (prefs.containsKey('primaryColor')) {
       primaryColor = Color(prefs.getInt('primaryColor')!);

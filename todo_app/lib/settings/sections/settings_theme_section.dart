@@ -3,6 +3,15 @@ part of '../../settings_page.dart';
 extension _SettingsThemeSection on _SettingsPageState {
   List<Widget> _buildThemeSection() {
     return [
+      _buildSectionHeader('画面の明るさ'),
+      _buildCard(
+        children: [
+          for (final mode in ThemeMode.values) ...[
+            _buildThemeModeTile(mode),
+            if (mode != ThemeMode.values.last) _divider(),
+          ],
+        ],
+      ),
       _buildSectionHeader('カラーテーマ'),
       _buildCard(
         children: [
@@ -17,6 +26,34 @@ extension _SettingsThemeSection on _SettingsPageState {
         ],
       ),
     ];
+  }
+
+  Widget _buildThemeModeTile(ThemeMode mode) {
+    final selected = s.themeMode == mode;
+    final (icon, label, description) = switch (mode) {
+      ThemeMode.system => (
+        Icons.brightness_auto_outlined,
+        '端末の設定に合わせる',
+        '端末がダークモードなら暗い配色になります',
+      ),
+      ThemeMode.light => (Icons.light_mode_outlined, 'ライト', '明るい配色で固定します'),
+      ThemeMode.dark => (Icons.dark_mode_outlined, 'ダーク', '暗い配色で固定します'),
+    };
+
+    return ListTile(
+      leading: Icon(icon, color: selected ? s.primaryColor : Colors.grey),
+      title: Text(label),
+      subtitle: Text(description, style: const TextStyle(fontSize: 12)),
+      trailing: selected
+          ? Icon(Icons.check, color: s.primaryColor)
+          : null,
+      onTap: selected
+          ? null
+          : () {
+              s.themeMode = mode;
+              _notify();
+            },
+    );
   }
 
   Widget _buildThemeSwatch(ColorThemeOption theme) {
@@ -41,7 +78,7 @@ extension _SettingsThemeSection on _SettingsPageState {
               ),
               shape: BoxShape.circle,
               border: isSelected
-                  ? Border.all(color: Colors.black87, width: 3)
+                  ? Border.all(color: s.primaryTextColor, width: 3)
                   : null,
               boxShadow: isSelected
                   ? [
@@ -62,7 +99,7 @@ extension _SettingsThemeSection on _SettingsPageState {
             style: TextStyle(
               fontSize: 11,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? theme.primary : Colors.grey.shade600,
+              color: isSelected ? theme.primary : s.secondaryTextColor,
             ),
           ),
         ],

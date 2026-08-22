@@ -61,7 +61,7 @@ extension _SettingsTabSection on _SettingsPageState {
             leading: Icon(Icons.refresh, color: Colors.grey.shade500),
             title: Text(
               'タブ名をデフォルトに戻す',
-              style: TextStyle(color: Colors.grey.shade700),
+              style: TextStyle(color: s.secondaryTextColor),
             ),
             onTap: () {
               s.todoTabName = 'やること';

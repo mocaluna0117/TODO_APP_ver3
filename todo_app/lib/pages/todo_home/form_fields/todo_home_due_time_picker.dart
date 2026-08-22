@@ -20,7 +20,7 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
       builder: (context) {
         return Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: s.surfaceColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -69,7 +69,7 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
                   ],
                 ),
               ),
-              Divider(height: 1, color: Colors.grey.shade200),
+              Divider(height: 1, color: s.dividerColor),
               SizedBox(
                 height: 216,
                 child: CupertinoDatePicker(

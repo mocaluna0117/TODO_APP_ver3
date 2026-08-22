@@ -11,7 +11,7 @@ extension _TodoHomeLinksField on _TodoHomePageState {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FA),
+        color: s.fieldColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

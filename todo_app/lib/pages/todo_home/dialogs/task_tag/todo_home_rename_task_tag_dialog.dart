@@ -19,7 +19,7 @@ extension _TodoHomeRenameTaskTagDialog on _TodoHomePageState {
           decoration: InputDecoration(
             hintText: 'タグ名',
             filled: true,
-            fillColor: const Color(0xFFF5F5FA),
+            fillColor: s.fieldColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

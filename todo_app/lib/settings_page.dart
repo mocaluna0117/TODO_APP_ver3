@@ -78,7 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: s.primaryColor,
         foregroundColor: Colors.white,
       ),
-      backgroundColor: const Color(0xFFF5F5FA),
+      backgroundColor: s.backgroundColor,
       body: SafeArea(
         // 広い画面（PC等）では中央寄せして横に間延びさせない
         child: Center(

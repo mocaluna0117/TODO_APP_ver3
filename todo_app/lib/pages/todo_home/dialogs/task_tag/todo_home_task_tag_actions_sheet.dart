@@ -9,7 +9,7 @@ extension _TodoHomeTaskTagActionsSheet on _TodoHomePageState {
         // 白い背景を外側に置き、セーフエリア分の下部まできちんと白くする
         return Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: s.surfaceColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: SafeArea(
@@ -21,7 +21,7 @@ extension _TodoHomeTaskTagActionsSheet on _TodoHomePageState {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: s.outlineColor,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),

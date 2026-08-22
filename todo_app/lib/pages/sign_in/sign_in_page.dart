@@ -70,7 +70,7 @@ class _SignInPageState extends State<SignInPage> {
                 const SizedBox(height: 8),
                 Text(
                   'ログインしてデータを同期',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
                 if (_error != null) ...[

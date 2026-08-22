@@ -31,7 +31,7 @@ extension _TodoHomeTimePickerRow on _TodoHomePageState {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5FA),
+          color: s.fieldColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -45,7 +45,7 @@ extension _TodoHomeTimePickerRow on _TodoHomePageState {
                     : '時間を設定（任意）',
                 style: TextStyle(
                   fontSize: 15,
-                  color: selectedDate != null ? Colors.black87 : Colors.grey,
+                  color: selectedDate != null ? s.primaryTextColor : Colors.grey,
                 ),
               ),
             ),

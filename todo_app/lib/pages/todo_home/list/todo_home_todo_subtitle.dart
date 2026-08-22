@@ -37,7 +37,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
-                color: item.isDone ? Colors.grey.shade500 : Colors.black54,
+                color: item.isDone ? Colors.grey.shade500 : s.secondaryTextColor,
               ),
             ),
           if (description != null &&
@@ -51,7 +51,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
               softWrap: false,
               style: TextStyle(
                 fontSize: 12,
-                color: item.isOverdue ? Colors.red : Colors.grey.shade700,
+                color: item.isOverdue ? Colors.red : s.secondaryTextColor,
                 fontWeight: item.isOverdue
                     ? FontWeight.bold
                     : FontWeight.normal,
@@ -134,7 +134,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                         children: [
                           Positioned.fill(
                             child: Container(
-                              color: const Color(0xFFF5F5FA),
+                              color: s.fieldColor,
                               child: _buildImage(
                                 images[index],
                                 fit: BoxFit.contain,

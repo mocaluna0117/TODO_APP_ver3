@@ -21,7 +21,7 @@ extension _SettingsWidgets on _SettingsPageState {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: s.surfaceColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(children: children),
@@ -29,5 +29,5 @@ extension _SettingsWidgets on _SettingsPageState {
   }
 
   Widget _divider() =>
-      Divider(height: 1, indent: 56, color: Colors.grey.shade200);
+      Divider(height: 1, indent: 56, color: s.dividerColor);
 }

@@ -10,7 +10,7 @@ extension _TodoHomePriorityPicker on _TodoHomePageState {
     return Container(
       padding: const EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FA),
+        color: s.fieldColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -19,7 +19,7 @@ extension _TodoHomePriorityPicker on _TodoHomePageState {
           const SizedBox(width: 10),
           const Text(
             '優先度',
-            style: TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(fontSize: 15, color: s.primaryTextColor),
           ),
           const Spacer(),
           Row(

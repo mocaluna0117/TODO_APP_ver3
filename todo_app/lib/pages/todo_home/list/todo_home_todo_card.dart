@@ -32,7 +32,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
                 ? BorderSide(color: s.primaryColor, width: 2)
                 : BorderSide.none,
           ),
-          color: Colors.white,
+          color: s.surfaceColor,
           child: ListTile(
             contentPadding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
             // チェックボックスを左に寄せ、タイトルとの間隔も詰めて本文幅を広げる
@@ -94,7 +94,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
         decoration: item.isDone
             ? TextDecoration.lineThrough
             : TextDecoration.none,
-        color: item.isDone ? Colors.grey : Colors.black87,
+        color: item.isDone ? Colors.grey : s.primaryTextColor,
       ),
     );
   }

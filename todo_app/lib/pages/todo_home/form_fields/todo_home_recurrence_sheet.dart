@@ -11,7 +11,6 @@ Future<Recurrence?> showRecurrenceSheet(
   return showModalBottomSheet<Recurrence>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -124,7 +123,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(accent),
-            Divider(height: 1, color: Colors.grey.shade200),
+            Divider(height: 1, color: s.dividerColor),
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -161,7 +160,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
                         '期限の月日（${_base.month}月${_base.day}日）で繰り返します',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade600,
+                          color: s.secondaryTextColor,
                         ),
                       ),
                     ],
@@ -238,7 +237,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
       style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
-        color: Colors.grey.shade700,
+        color: s.secondaryTextColor,
       ),
     );
   }
@@ -295,10 +294,10 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
         height: 38,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? accent : const Color(0xFFF5F5FA),
+          color: selected ? accent : s.fieldColor,
           shape: BoxShape.circle,
           border: Border.all(
-            color: selected ? accent : Colors.grey.shade300,
+            color: selected ? accent : s.outlineColor,
           ),
         ),
         child: Text(
@@ -306,7 +305,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: selected ? Colors.white : Colors.black54,
+            color: selected ? Colors.white : s.secondaryTextColor,
           ),
         ),
       ),
@@ -344,7 +343,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
             padding: const EdgeInsets.only(left: 30, bottom: 4),
             child: Text(
               '$_monthDay日が無い月は月末になります',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: s.secondaryTextColor),
             ),
           ),
         _buildChoiceRow(
@@ -393,7 +392,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
             padding: const EdgeInsets.only(left: 30),
             child: Text(
               '第5週が無い月は、その月で最後の同じ曜日になります',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: s.secondaryTextColor),
             ),
           ),
       ],
@@ -460,7 +459,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
             padding: const EdgeInsets.only(left: 30),
             child: Text(
               '今の期限を1回目として数えます',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: s.secondaryTextColor),
             ),
           ),
       ],
@@ -527,7 +526,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FA),
+        color: s.fieldColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButton<T>(
@@ -540,7 +539,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
             : null,
         underline: const SizedBox.shrink(),
         isDense: true,
-        style: const TextStyle(fontSize: 14, color: Colors.black87),
+        style: const TextStyle(fontSize: 14, color: s.primaryTextColor),
       ),
     );
   }

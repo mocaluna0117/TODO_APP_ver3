@@ -56,7 +56,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
         child: SizedBox(
           width: 9,
           child: Center(
-            child: Container(width: 1, color: Colors.grey.shade300),
+            child: Container(width: 1, color: s.outlineColor),
           ),
         ),
       ),
@@ -265,7 +265,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
             Icon(
               Icons.checklist_rounded,
               size: 56,
-              color: Colors.grey.shade300,
+              color: s.outlineColor,
             ),
             const SizedBox(height: 12),
             Text(
@@ -326,7 +326,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: s.surfaceColor,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Stack(

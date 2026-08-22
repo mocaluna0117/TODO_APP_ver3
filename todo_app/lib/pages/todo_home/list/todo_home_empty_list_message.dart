@@ -20,7 +20,7 @@ extension _TodoHomeEmptyListMessage on _TodoHomePageState {
                 ? Icons.today_outlined
                 : Icons.inbox_outlined,
             size: 64,
-            color: Colors.grey.shade300,
+            color: s.outlineColor,
           ),
           const SizedBox(height: 12),
           Text(

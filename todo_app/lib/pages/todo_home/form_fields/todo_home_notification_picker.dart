@@ -52,7 +52,7 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FA),
+        color: s.fieldColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -182,11 +182,11 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
                 label,
                 style: TextStyle(
                   fontSize: 15,
-                  color: isPlaceholder ? Colors.grey.shade600 : Colors.black87,
+                  color: isPlaceholder ? s.secondaryTextColor : s.primaryTextColor,
                 ),
               ),
             ),
-            Icon(Icons.unfold_more, size: 20, color: Colors.grey.shade600),
+            Icon(Icons.unfold_more, size: 20, color: s.secondaryTextColor),
           ],
         ),
       ),

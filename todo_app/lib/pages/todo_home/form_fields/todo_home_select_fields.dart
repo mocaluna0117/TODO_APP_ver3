@@ -24,7 +24,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
         labelText: 'タグ',
         prefixIcon: Icon(Icons.label_outline, color: s.primaryColor),
         filled: true,
-        fillColor: const Color(0xFFF5F5FA),
+        fillColor: s.fieldColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -107,7 +107,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5FA),
+          color: s.fieldColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -121,11 +121,11 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
                     : recurrenceLabel(selected, dueDate),
                 style: TextStyle(
                   fontSize: 15,
-                  color: selected == null ? Colors.grey : Colors.black87,
+                  color: selected == null ? Colors.grey : s.primaryTextColor,
                 ),
               ),
             ),
-            Icon(Icons.unfold_more, size: 20, color: Colors.grey.shade600),
+            Icon(Icons.unfold_more, size: 20, color: s.secondaryTextColor),
           ],
         ),
       ),
