@@ -20,11 +20,14 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// notification 付きで送っているので通常はブラウザが自動表示するが、
-// data だけのメッセージが来た場合もここで表示する。
 messaging.onBackgroundMessage((payload) => {
-  const title = (payload.notification && payload.notification.title) || 'Todo';
-  const body = (payload.notification && payload.notification.body) || '';
+  // notification 付きのメッセージは Firebase の SDK が自動で表示するので、
+  // ここで表示すると二重になる。PC(Chrome) は tag が同じ通知をまとめるため
+  // 1件に見えるが、iOS Safari は tag による重複排除が効かず2件出てしまう。
+  if (payload.notification) return;
+
+  const title = 'Todo';
+  const body = (payload.data && payload.data.body) || '';
   self.registration.showNotification(title, {
     body: body,
     icon: '/icons/Icon-192.png',
