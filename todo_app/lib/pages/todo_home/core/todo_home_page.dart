@@ -50,6 +50,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   // タブ切り替えの検知用（直前のタブ位置と、位置合わせ待ちかどうか）
   int _lastTabIndex = 0;
   bool _pendingScrollToSelectedCard = false;
+  // タブ復帰時の自動スクロールで、スクロール追従が働かないようにするフラグ
+  bool _ignoreNextScrollEnd = false;
   _EditTodoDraft? _detailDraft;
   int? _detailDraftItemId;
   // 2ペイン時の左ペイン幅（境目のドラッグで調整・ローカル保存）。

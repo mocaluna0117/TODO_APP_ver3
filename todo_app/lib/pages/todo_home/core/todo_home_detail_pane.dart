@@ -89,13 +89,21 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
           ? null
           : _cardKeys[_currentTabKey]?[id]?.currentContext;
       if (cardContext == null) return;
+      // 自動スクロールの結果でスクロール追従が働くと、末尾付近では
+      // 選択が別のタスクへ飛んでしまうので、その1回だけ追従を止める
+      _ignoreNextScrollEnd = true;
       Scrollable.ensureVisible(
         cardContext,
         // スクロール追従の基準（リスト上端）と揃えておく
         alignment: 0,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
-      );
+      ).whenComplete(() {
+        // 通知はアニメーション終了と同じフレームで飛ぶので1フレーム待つ
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _ignoreNextScrollEnd = false;
+        });
+      });
     });
   }
 
@@ -109,6 +117,8 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
     ScrollEndNotification notification,
   ) {
     if (!_isWideLayout || category != _currentTabKey) return;
+    // タブ復帰時の自動スクロールによる通知は追従の対象外
+    if (_ignoreNextScrollEnd) return;
     // まだ何も選んでいないときは、スクロールだけで詳細を開かない
     final selectedId = _selectedDetailItemIds[category];
     if (selectedId == null) return;
@@ -117,12 +127,22 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
 
     final viewport = notification.context?.findRenderObject();
     if (viewport is! RenderBox || !viewport.attached) return;
-    final referenceY =
-        viewport.localToGlobal(Offset.zero).dy + _visibleCardThreshold;
+    final metrics = notification.metrics;
+    // そもそもスクロールできない短い一覧では追従しない
+    if (metrics.maxScrollExtent <= 0) return;
+
+    final items = _itemsByCategory(category);
+    if (items.isEmpty) return;
 
     final keys = _cardKeys[category];
     if (keys == null) return;
-    for (final item in _itemsByCategory(category)) {
+
+    final referenceY =
+        viewport.localToGlobal(Offset.zero).dy +
+        _visibleCardLineOffset(viewport.size.height, metrics);
+
+    TodoItem? target;
+    for (final item in items) {
       final cardContext = keys[item.id]?.currentContext;
       // 画面外でまだ組み立てられていないカードは飛ばす
       if (cardContext == null) continue;
@@ -132,17 +152,37 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
       if (box.localToGlobal(Offset.zero).dy + box.size.height <= referenceY) {
         continue;
       }
-      if (item.id == selectedId) return; // すでに一致している
-      // スクロール処理中の setState を避けてフレーム後に反映する
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _updateState(() {
-          _selectedDetailItemIds[category] = item.id;
-          _detailDraft = null; // 別タスクなのでドラフトを作り直す
-        });
-      });
-      return;
+      target = item;
+      break;
     }
+    // 基準線より下にカードが無い（一番下まで来ている）ときは末尾のタスク
+    target ??= items.last;
+
+    if (target.id == selectedId) return; // すでに一致している
+    final id = target.id;
+    // スクロール処理中の setState を避けてフレーム後に反映する
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _updateState(() {
+        _selectedDetailItemIds[category] = id;
+        _detailDraft = null; // 別タスクなのでドラフトを作り直す
+      });
+    });
+  }
+
+  // 「今見ているカード」を決める基準線の、リスト上端からの距離。
+  //
+  // 常に上端付近に置くと、末尾の数件は基準線まで上がってこられず選べない
+  // （一番下までスクロールしても画面の下側に残るため）。そこで、残りの
+  // スクロール量が画面1つ分を切ったら、その減った分だけ基準線を下げていく。
+  // 最後まで送ると基準線が下端に来て、末尾のタスクまで順に選べる。
+  double _visibleCardLineOffset(double viewportHeight, ScrollMetrics metrics) {
+    var remaining = metrics.maxScrollExtent - metrics.pixels;
+    if (remaining < 0) remaining = 0;
+    var offset = viewportHeight - remaining;
+    if (offset < _visibleCardThreshold) offset = _visibleCardThreshold;
+    if (offset > viewportHeight - 1) offset = viewportHeight - 1;
+    return offset;
   }
 
   // 右ペインに未保存の変更があるか
