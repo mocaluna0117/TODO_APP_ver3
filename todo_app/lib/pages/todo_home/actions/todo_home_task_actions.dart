@@ -112,6 +112,17 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     });
   }
 
+  // 2ペイン表示で同じタスクを開いている場合、期限・繰り返しの変更をドラフトへ
+  // 反映する。ドラフトは選択中タスクのIDが変わるまで作り直されないため、
+  // これをしないと保存時に古い期限へ巻き戻ってしまう。
+  void _syncOpenDetailDraft(TodoItem item) {
+    if (_detailDraftItemId != item.id) return;
+    final draft = _detailDraft;
+    if (draft == null) return;
+    draft.selectedDate = item.dueDate;
+    draft.selectedRecurrence = item.recurrence;
+  }
+
   void _toggleItem(TodoItem item) {
     final recurrence = item.recurrence;
     final dueDate = item.dueDate;
@@ -121,20 +132,24 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       final now = DateTime.now();
       // 期限が過去でも「今より後」の回に進める
       final after = now.isAfter(dueDate) ? now : dueDate;
-      final nextDueDate = nextRecurrenceDate(recurrence, dueDate, after);
+      // 曜日・日を省略している設定は、ここで今の期限を基準に確定させる。
+      // 毎回導出し直すと、月末などで丸めが起きた月以降ずっとずれてしまう。
+      final resolved = recurrence.resolvedFor(dueDate);
+      final nextDueDate = nextRecurrenceDate(resolved, dueDate, after);
       // 回数指定は、今回の完了で上限に達したらそこで打ち切る
-      final total = recurrence.count;
-      final reachedCount =
-          recurrence.end == RecurrenceEnd.count &&
-          total != null &&
-          recurrence.doneCount + 1 >= total;
+      final total = resolved.count;
+      final isCountLimited =
+          resolved.end == RecurrenceEnd.count && total != null;
+      final reachedCount = isCountLimited && resolved.doneCount + 1 >= total;
 
       if (nextDueDate != null && !reachedCount) {
         _updateState(() {
           item.dueDate = nextDueDate;
-          item.recurrence = recurrence.copyWith(
-            doneCount: recurrence.doneCount + 1,
-          );
+          // doneCount は回数指定の進捗にしか使わないので、そのときだけ数える
+          item.recurrence = isCountLimited
+              ? resolved.copyWith(doneCount: resolved.doneCount + 1)
+              : resolved;
+          _syncOpenDetailDraft(item);
         });
         _saveData();
         NotificationService().scheduleNotification(item, s.notificationTiming);
@@ -151,11 +166,12 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
 
       // 終了条件（終了日・回数）に達したので、繰り返しを終えて完了にする
       _updateState(() {
-        if (total != null) {
-          item.recurrence = recurrence.copyWith(doneCount: total);
-        }
+        item.recurrence = isCountLimited
+            ? resolved.copyWith(doneCount: total)
+            : resolved;
         item.isDone = true;
         item.completedAt = DateTime.now();
+        _syncOpenDetailDraft(item);
       });
       _saveData();
       NotificationService().cancelNotification(item.id);

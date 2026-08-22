@@ -449,6 +449,66 @@ void main() {
     });
   });
 
+  group('基準の確定（resolvedFor）', () {
+    test('日付未指定の毎月は最初の完了で基準を固定し、以降ずれない', () {
+      // 旧形式から移行した「毎月」（monthDay 未指定）相当
+      var recurrence = const Recurrence(freq: RecurrenceFreq.monthly);
+      var current = DateTime(2027, 1, 31, 9, 0);
+      final dates = <DateTime>[];
+      // _toggleItem と同じ手順（確定 → 次回算出 → 確定後の設定を保存）
+      for (var i = 0; i < 3; i++) {
+        final resolved = recurrence.resolvedFor(current);
+        final next = nextRecurrenceDate(resolved, current, current)!;
+        dates.add(next);
+        recurrence = resolved;
+        current = next;
+      }
+      expect(_iso(dates), [
+        DateTime(2027, 2, 28, 9, 0).toIso8601String(), // 2月は月末へ
+        DateTime(2027, 3, 31, 9, 0).toIso8601String(), // 31日に戻る
+        DateTime(2027, 4, 30, 9, 0).toIso8601String(),
+      ]);
+      expect(recurrence.monthDay, 31);
+    });
+
+    test('第n週も期限から確定される', () {
+      final resolved = const Recurrence(
+        freq: RecurrenceFreq.monthly,
+        monthlyMode: MonthlyMode.nthWeekday,
+      ).resolvedFor(DateTime(2026, 8, 31, 9, 0)); // 第5月曜
+      expect(resolved.weekOrdinal, 5);
+      expect(resolved.monthWeekday, 1);
+    });
+
+    test('関係のない項目は埋めない（プリセット判定を壊さない）', () {
+      final due = DateTime(2026, 8, 11, 9, 0);
+      final monthly = const Recurrence(
+        freq: RecurrenceFreq.monthly,
+      ).resolvedFor(due);
+      expect(monthly.weekdays, isEmpty);
+      expect(monthly.weekOrdinal, isNull);
+
+      final weekly = const Recurrence(
+        freq: RecurrenceFreq.weekly,
+      ).resolvedFor(due);
+      expect(weekly.weekdays, {2}); // 火曜
+      expect(weekly.monthDay, isNull);
+    });
+
+    test('確定後は対応するプリセットとして認識される', () {
+      final due = DateTime(2026, 8, 11, 9, 0); // 火曜・第2週
+      final presets = recurrencePresets(due);
+      for (final legacy in ['weekly', 'monthly', 'monthlyNthWeekday']) {
+        final resolved = recurrenceFromLegacyRule(legacy)!.resolvedFor(due);
+        expect(
+          presets.any((preset) => preset.hasSameConfig(resolved)),
+          isTrue,
+          reason: '$legacy がプリセットと一致しない',
+        );
+      }
+    });
+  });
+
   group('表示ラベル', () {
     final due = DateTime(2026, 8, 11, 9, 0); // 火曜・第2週
 
@@ -578,12 +638,15 @@ void main() {
       );
     });
 
-    test('期限が未設定でもプリセットを作れる', () {
+    test('期限が未設定でもプリセットを作れ、ラベルが重複しない', () {
       final presets = recurrencePresets(null);
       expect(presets, isNotEmpty);
-      for (final preset in presets) {
-        expect(recurrenceLabel(preset, null), isNotEmpty);
+      final labels = presets.map((p) => recurrenceLabel(p, null)).toList();
+      for (final label in labels) {
+        expect(label, isNotEmpty);
       }
+      // 「毎月」が2行並ぶなど、見分けの付かない選択肢にならないこと
+      expect(labels.toSet().length, labels.length, reason: '$labels');
     });
   });
 }

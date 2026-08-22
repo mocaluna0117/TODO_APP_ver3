@@ -102,6 +102,32 @@ class Recurrence {
     );
   }
 
+  // 曜日・日を省略している項目を [dueDate] の値で確定させた設定を返す。
+  // 完了のたびに「その時点の期限」から導出すると、月末や第5週で丸めが起きた
+  // 月以降ずっと日付がずれてしまうため、繰り返す前に基準を固定する。
+  Recurrence resolvedFor(DateTime dueDate) {
+    final isWeekly = freq == RecurrenceFreq.weekly;
+    final isMonthly = freq == RecurrenceFreq.monthly;
+    final byWeekday = isMonthly && monthlyMode == MonthlyMode.nthWeekday;
+    return Recurrence(
+      freq: freq,
+      interval: interval,
+      weekdays: isWeekly && weekdays.isEmpty
+          ? <int>{dueDate.weekday}
+          : weekdays,
+      monthlyMode: monthlyMode,
+      monthDay: isMonthly && !byWeekday ? (monthDay ?? dueDate.day) : monthDay,
+      weekOrdinal: byWeekday
+          ? (weekOrdinal ?? recurrenceWeekdayOrdinal(dueDate))
+          : weekOrdinal,
+      monthWeekday: byWeekday ? (monthWeekday ?? dueDate.weekday) : monthWeekday,
+      end: end,
+      until: until,
+      count: count,
+      doneCount: doneCount,
+    );
+  }
+
   // 進捗（doneCount）を除いた「設定」が同じかどうか。
   // プリセットと現在の設定を突き合わせるのに使う。
   bool hasSameConfig(Recurrence other) {
@@ -429,7 +455,9 @@ String _recurrenceBaseLabel(Recurrence recurrence, DateTime? dueDate) {
                 ? (dueDate != null ? <int>{dueDate.weekday} : <int>{})
                 : recurrence.weekdays).toList()
             ..sort();
-      if (weekdays.isEmpty) return head;
+      // 期限が未設定で曜日が決まらないときは、他のプリセットと
+      // 見分けが付くように補足を付ける
+      if (weekdays.isEmpty) return '$head（期限の曜日）';
       final names = weekdays.map((w) => weekdayNames[w - 1]).join('・');
       // 1曜日だけなら「毎週火曜日」、複数なら「毎週 月・水・金」
       if (weekdays.length == 1) {
@@ -442,13 +470,13 @@ String _recurrenceBaseLabel(Recurrence recurrence, DateTime? dueDate) {
       final sep = isEvery ? '' : ' ';
       if (recurrence.monthlyMode == MonthlyMode.dayOfMonth) {
         final day = recurrence.monthDay ?? dueDate?.day;
-        return day == null ? head : '$head$sep$day日';
+        return day == null ? '$head（期限の日）' : '$head$sep$day日';
       }
       final weekday = recurrence.monthWeekday ?? dueDate?.weekday;
       final ordinal =
           recurrence.weekOrdinal ??
           (dueDate != null ? recurrenceWeekdayOrdinal(dueDate) : null);
-      if (weekday == null || ordinal == null) return head;
+      if (weekday == null || ordinal == null) return '$head（期限の曜日）';
       final name = weekdayNames[weekday - 1];
       return ordinal == lastWeekdayOrdinal
           ? '$head$sep最終$name曜日'

@@ -149,7 +149,7 @@ todo_app/
 | `category` | String | `todo` / `done` / `future` |
 | `taskTag` | String? | タグ |
 | `dueDate` | DateTime? | 期限（日付＋時刻） |
-| `recurrenceRule` | enum | なし / 毎日 / 毎週 / 毎月 |
+| `recurrence` | Map? | 繰り返し設定（null は繰り返しなし）。単位・間隔・曜日・月内の位置・終了条件を持つ入れ子オブジェクト |
 | `imageBase64List` | List\<String\> | 添付画像（Base64） |
 | `priority` | enum | なし / 低 / 中 / 高 |
 | `completedAt` | DateTime? | 完了日時 |

@@ -82,7 +82,15 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
   // 曜日を1つも選んでいない週次設定は日付が決まらないため確定させない
   bool get _isValid => _freq != RecurrenceFreq.weekly || _weekdays.isNotEmpty;
 
+  // 終了条件が変わっていなければ、これまでの繰り返し回数を引き継ぐ
+  bool get _keepsProgress {
+    final initial = widget.initial;
+    if (initial == null || initial.end != _end) return false;
+    return _end != RecurrenceEnd.count || initial.count == _count;
+  }
+
   Recurrence _buildResult() {
+    final initial = widget.initial;
     final isWeekly = _freq == RecurrenceFreq.weekly;
     final isMonthly = _freq == RecurrenceFreq.monthly;
     final byWeekday = isMonthly && _monthlyMode == MonthlyMode.nthWeekday;
@@ -97,8 +105,9 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
       end: _end,
       until: _end == RecurrenceEnd.until ? _until : null,
       count: _end == RecurrenceEnd.count ? _count : null,
-      // 設定を編集しても「これまでに繰り返した回数」は引き継ぐ
-      doneCount: widget.initial?.doneCount ?? 0,
+      // 「n回で終了」の進捗は終了条件を変えたらリセットする。指定した回数が
+      // そのまま「これから繰り返す回数」になるようにするため。
+      doneCount: _keepsProgress ? initial!.doneCount : 0,
     );
   }
 
@@ -462,13 +471,16 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
     final base = _base;
     // 終了日は期限より前にできない（1回も繰り返さない設定を防ぐ）
     final firstDate = DateTime(base.year, base.month, base.day);
+    final lastDate = DateTime(base.year + 10, base.month, base.day);
+    // 保存済みの終了日が選択範囲の外でも showDatePicker が落ちないよう丸める
     var initialDate = _until;
     if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+    if (initialDate.isAfter(lastDate)) initialDate = lastDate;
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: firstDate,
-      lastDate: DateTime(base.year + 10, base.month, base.day),
+      lastDate: lastDate,
       locale: const Locale('ja'),
     );
     if (picked == null || !mounted) return;
