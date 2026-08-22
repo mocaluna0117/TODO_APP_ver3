@@ -28,6 +28,15 @@ extension _TodoHomeSettings on _TodoHomePageState {
           onDeleteAllTasks: _deleteAllTasks,
           userEmail: widget.userEmail,
           onSignOut: widget.onSignOut,
+          onEnablePushNotifications: () async {
+            final enabled = await NotificationService()
+                .enablePushFromUserAction();
+            if (enabled) {
+              await NotificationService().registerCurrentDevice();
+            }
+            return enabled;
+          },
+          isPushEnabled: () => NotificationService().usesPush,
         ),
       ),
     );

@@ -1,10 +1,74 @@
 part of '../../settings_page.dart';
 
 extension _SettingsNotificationSection on _SettingsPageState {
+  // この端末で通知を受け取るための許可。
+  // ブラウザ（特に iPhone のホーム画面アプリ）は、利用者がボタンを押した
+  // ときにしか許可を求められないため、設定画面に導線を置く。
+  List<Widget> _buildPushPermissionSection() {
+    final isEnabled = widget.isPushEnabled;
+    final enable = widget.onEnablePushNotifications;
+    if (isEnabled == null || enable == null) return const [];
+
+    final enabled = isEnabled();
+    return [
+      _buildSectionHeader('この端末の通知'),
+      _buildCard(
+        children: [
+          ListTile(
+            leading: Icon(
+              enabled
+                  ? Icons.notifications_active
+                  : Icons.notifications_off_outlined,
+              color: enabled ? s.primaryColor : Colors.grey,
+            ),
+            title: Text(enabled ? '通知を受け取れます' : 'この端末で通知を受け取る'),
+            subtitle: Text(
+              enabled
+                  ? '他の端末で設定した通知も、この端末に届きます'
+                  : 'タップして許可すると、他の端末で設定した通知もこの端末に届きます',
+              style: const TextStyle(fontSize: 12),
+            ),
+            trailing: enabled
+                ? Icon(Icons.check, color: s.primaryColor)
+                : const Icon(Icons.chevron_right, color: Colors.grey),
+            onTap: enabled ? null : () => _enablePushNotifications(enable),
+          ),
+          _divider(),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Text(
+              'iPhone では、ホーム画面に追加したアプリからのみ通知を受け取れます'
+              '（Safari のタブでは受け取れません）。',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Future<void> _enablePushNotifications(
+    Future<bool> Function() enable,
+  ) async {
+    final granted = await enable();
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          granted
+              ? 'この端末で通知を受け取れるようになりました'
+              : '通知を許可できませんでした。ブラウザやOSの設定を確認してください',
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildNotificationSection() {
     final presets = [...s.notificationPresets]..sort();
 
     return [
+      ..._buildPushPermissionSection(),
       _buildSectionHeader('通知プリセット'),
       _buildCard(
         children: [

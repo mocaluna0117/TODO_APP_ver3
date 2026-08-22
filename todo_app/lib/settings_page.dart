@@ -33,6 +33,10 @@ class SettingsPage extends StatefulWidget {
   final String? userEmail;
   // ログアウト完了を待ってから設定ページを閉じたいので Future を返す
   final Future<void> Function()? onSignOut;
+  // この端末で通知を受け取れるようにする（ブラウザは利用者の操作が必要）
+  final Future<bool> Function()? onEnablePushNotifications;
+  // 現在この端末で通知を受け取れる状態か
+  final bool Function()? isPushEnabled;
 
   const SettingsPage({
     super.key,
@@ -45,6 +49,8 @@ class SettingsPage extends StatefulWidget {
     this.onDeleteAllTasks,
     this.userEmail,
     this.onSignOut,
+    this.onEnablePushNotifications,
+    this.isPushEnabled,
   });
 
   @override

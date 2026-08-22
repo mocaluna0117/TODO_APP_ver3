@@ -186,16 +186,35 @@ class NotificationService {
   // APNs 未設定の iOS など、プッシュを使えない端末では例外を握りつぶして
   // 端末内スケジュール（ローカル通知）にフォールバックする。
   Future<void> _initPush() async {
+    // ブラウザは「利用者の操作」からでないと通知の許可を求められない。
+    // 特に iOS のホーム画面アプリでは、起動時に自動で求めると拒否扱いになり、
+    // 二度と許可ダイアログを出せなくなる。そのため Web では、すでに許可済みの
+    // ときだけ設定を進め、未許可なら設定画面のボタンから求める。
+    if (kIsWeb && !isBrowserNotificationGranted()) return;
+    await _setupPush(requestPermission: !kIsWeb);
+  }
+
+  // 設定画面のボタン（利用者の操作）から通知を有効にする。
+  // 有効にできたら true。
+  Future<bool> enablePushFromUserAction() async {
+    if (kIsWeb) {
+      final granted = await requestBrowserNotificationPermission();
+      if (!granted) return false;
+    }
+    await init();
+    await _setupPush(requestPermission: !kIsWeb);
+    return usesPush;
+  }
+
+  Future<void> _setupPush({required bool requestPermission}) async {
+    if (_pushToken != null) return; // すでに設定済み
     try {
       final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.requestPermission();
-      if (settings.authorizationStatus == AuthorizationStatus.denied) return;
-
-      if (kIsWeb) {
-        if (_webVapidKey.isEmpty) return; // 鍵が未設定ならWebのプッシュは使わない
-        // ブラウザの通知許可（フォアグラウンド表示にも必要）
-        await requestBrowserNotificationPermission();
+      if (requestPermission) {
+        final settings = await messaging.requestPermission();
+        if (settings.authorizationStatus == AuthorizationStatus.denied) return;
       }
+      if (kIsWeb && _webVapidKey.isEmpty) return; // 鍵が無ければ使わない
 
       final token = kIsWeb
           ? await messaging.getToken(vapidKey: _webVapidKey)
