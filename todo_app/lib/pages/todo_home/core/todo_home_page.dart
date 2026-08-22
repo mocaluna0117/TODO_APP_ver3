@@ -35,6 +35,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   bool _isPickingBackup = false;
   // Firestore のリアルタイム同期リスナー
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _todosSub;
+  // 起動後に一度だけ、既存タスクぶんの通知予定を作ったかどうか
+  bool _didInitialNotificationSync = false;
   // Firestore 上に存在する todo ドキュメントIDの集合（削除同期用）
   Set<String> _knownTodoDocIds = {};
   // 最後に Firestore と一致していた内容（ドキュメントID -> JSON文字列）。
