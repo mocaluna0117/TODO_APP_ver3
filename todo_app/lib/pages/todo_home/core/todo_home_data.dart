@@ -129,21 +129,31 @@ extension _TodoHomeData on _TodoHomePageState {
   Future<void> _saveData() async {
     final col = _todosCollection();
 
-    // base64画像を Storage にアップロードし URL に置き換える（Firestoreの1MB制限対策）。
+    // base64画像とPDFを Storage にアップロードし URL に置き換える（Firestoreの1MB制限対策）。
     // アップロード中は「アップロード中」表示のためタスクIDを記録する。
     for (final item in _allItems) {
-      final hasPending = item.imageBase64List.any(
+      final hasPendingImage = item.imageBase64List.any(
         (e) => e.isNotEmpty && !_isImageUrl(e),
       );
-      if (!hasPending) continue;
+      final hasPendingFile = item.pendingFiles.isNotEmpty;
+      if (!hasPendingImage && !hasPendingFile) continue;
       if (mounted) {
         _updateState(() => _uploadingImageItemIds.add(item.id));
       }
       try {
-        final updated = await _uploadPendingImages(item);
-        if (!identical(updated, item.imageBase64List)) {
-          item.imageBase64List = updated;
+        if (hasPendingImage) {
+          final updated = await _uploadPendingImages(item);
+          if (!identical(updated, item.imageBase64List)) {
+            item.imageBase64List = updated;
+          }
         }
+        if (hasPendingFile) {
+          // PDF は base64 のまま持たず、ここで Storage へ送って URL に置き換える
+          item.attachments = await _uploadPendingFiles(item);
+          item.pendingFiles = [];
+        }
+        // 2ペインで開いたままなら、URLに置き換わった結果をドラフトにも反映する
+        _syncOpenDetailDraftAttachments(item);
       } finally {
         if (mounted) {
           _updateState(() => _uploadingImageItemIds.remove(item.id));

@@ -32,6 +32,8 @@ extension _TodoHomeEditDialog on _TodoHomePageState {
                 dueDate: draft.selectedDate,
                 recurrence: draft.selectedRecurrence,
                 imageBase64List: draft.selectedImageBase64List,
+                attachments: draft.selectedFiles,
+                pendingFiles: draft.pendingFiles,
                 priority: draft.selectedTaskPriority,
                 notificationOffsets: draft.selectedNotificationOffsets,
               );

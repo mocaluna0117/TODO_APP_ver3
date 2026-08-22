@@ -227,6 +227,14 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
     )) {
       return true;
     }
+    // 添付PDF（未アップロードのぶんも含めて比べる）
+    if (draft.pendingFiles.length != item.pendingFiles.length) return true;
+    if (!_sameDetailList(
+      draft.selectedFiles.map((file) => file.url).toList(),
+      item.attachments.map((file) => file.url).toList(),
+    )) {
+      return true;
+    }
     return !_sameDetailList(
       draft.selectedNotificationOffsets,
       item.notificationOffsets ?? _defaultNotificationOffsets(),
@@ -289,6 +297,8 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
         dueDate: draft.selectedDate,
         recurrence: draft.selectedRecurrence,
         imageBase64List: draft.selectedImageBase64List,
+        attachments: draft.selectedFiles,
+        pendingFiles: draft.pendingFiles,
         priority: draft.selectedTaskPriority,
         notificationOffsets: draft.selectedNotificationOffsets,
       );

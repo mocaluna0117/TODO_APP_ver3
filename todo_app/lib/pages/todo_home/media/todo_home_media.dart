@@ -205,6 +205,34 @@ extension _TodoHomeMedia on _TodoHomePageState {
     return result;
   }
 
+  // 添付ファイル（PDF）を Storage へアップロードし、URL付きの一覧を返す。
+  // 画像と同じくタスクのフォルダに置くので、タスク削除時にまとめて消える。
+  Future<List<TaskFile>> _uploadPendingFiles(TodoItem item) async {
+    if (item.pendingFiles.isEmpty) return item.attachments;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uploaded = <TaskFile>[...item.attachments];
+    for (var i = 0; i < item.pendingFiles.length; i++) {
+      final pending = item.pendingFiles[i];
+      final ref = FirebaseStorage.instance.ref(
+        'users/$uid/todos/${item.id}/'
+        '${DateTime.now().microsecondsSinceEpoch}_$i.pdf',
+      );
+      await ref.putData(
+        pending.bytes,
+        SettableMetadata(
+          contentType: 'application/pdf',
+          // ブラウザで開いたときに元のファイル名で見えるようにする
+          contentDisposition:
+              'inline; filename="${pending.name.replaceAll('"', '')}"',
+        ),
+      );
+      uploaded.add(
+        TaskFile(url: await ref.getDownloadURL(), name: pending.name),
+      );
+    }
+    return uploaded;
+  }
+
   // 画像アップロード中に画像へ重ねる半透明オーバーレイ。
   Widget _buildImageUploadingOverlay() {
     return Container(
@@ -235,7 +263,7 @@ extension _TodoHomeMedia on _TodoHomePageState {
     );
   }
 
-  // タスクの画像ファイルを Storage からすべて削除する（フォルダごと）。
+  // タスクの添付（画像・PDF）を Storage からすべて削除する（フォルダごと）。
   // 失敗しても致命的ではない（孤立ファイルが残るだけ）ので握りつぶす。
   Future<void> _deleteTaskImages(int itemId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -247,10 +275,10 @@ extension _TodoHomeMedia on _TodoHomePageState {
     } catch (_) {}
   }
 
-  // 指定した画像URLのファイルを Storage から削除する（編集で外された画像用）。
-  Future<void> _deleteImagesByUrls(Iterable<String> urls) async {
+  // 指定したURLのファイルを Storage から削除する（編集で外された添付用）。
+  Future<void> _deleteStorageFilesByUrls(Iterable<String> urls) async {
     for (final url in urls) {
-      if (!_isImageUrl(url)) continue;
+      if (!_isImageUrl(url)) continue; // http(s) のものだけ消す
       try {
         await FirebaseStorage.instance.refFromURL(url).delete();
       } catch (_) {}

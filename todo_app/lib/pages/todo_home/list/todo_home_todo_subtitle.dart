@@ -12,6 +12,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
         description == null &&
         item.links.isEmpty &&
         item.dueDate == null &&
+        item.attachments.isEmpty &&
         images.isEmpty) {
       return null;
     }
@@ -74,6 +75,40 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                       style: TextStyle(
                         fontSize: 12,
                         color: s.primaryColor,
+                        decoration: TextDecoration.underline,
+                        decorationColor: s.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // 添付したPDF（タップで開く）
+          for (final file in item.attachments) ...[
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => _openLink(file.url),
+              borderRadius: BorderRadius.circular(4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.picture_as_pdf,
+                    size: 14,
+                    color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      file.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: item.isDone
+                            ? Colors.grey.shade500
+                            : s.primaryColor,
                         decoration: TextDecoration.underline,
                         decorationColor: s.primaryColor,
                       ),

@@ -67,6 +67,7 @@ part 'pages/todo_home/form_fields/todo_home_date_picker_row.dart';
 part 'pages/todo_home/form_fields/todo_home_time_picker_row.dart';
 part 'pages/todo_home/form_fields/todo_home_due_time_picker.dart';
 part 'pages/todo_home/form_fields/todo_home_image_picker_row.dart';
+part 'pages/todo_home/form_fields/todo_home_file_picker_row.dart';
 part 'pages/todo_home/form_fields/todo_home_links_field.dart';
 part 'pages/todo_home/form_fields/todo_home_select_fields.dart';
 part 'pages/todo_home/form_fields/todo_home_recurrence_sheet.dart';

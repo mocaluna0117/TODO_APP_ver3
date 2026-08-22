@@ -13,6 +13,8 @@ class _EditTodoDraft {
            .toList(),
        selectedDate = item.dueDate,
        selectedImageBase64List = [...item.imageBase64List],
+       selectedFiles = [...item.attachments],
+       pendingFiles = [...item.pendingFiles],
        selectedTaskTag = item.taskTag,
        selectedRecurrence = item.recurrence,
        selectedTaskPriority = item.priority,
@@ -26,6 +28,8 @@ class _EditTodoDraft {
   final List<TextEditingController> linkControllers;
   DateTime? selectedDate;
   List<String> selectedImageBase64List;
+  List<TaskFile> selectedFiles;
+  List<PendingTaskFile> pendingFiles;
   bool isProcessingImage = false;
   String? selectedTaskTag;
   Recurrence? selectedRecurrence;

@@ -166,6 +166,51 @@ List<String> normalizeImageBase64List(Map<String, dynamic> json) {
 }
 
 // ─────────────────────────────────────────────
+// タスクに添付したファイル（PDF）
+//
+// 実体は Firebase Storage に置き、タスクには URL と表示名だけを持たせる。
+// 画像のように base64 で持つと Firestore の1ドキュメント1MB制限に掛かるため。
+// ─────────────────────────────────────────────
+class TaskFile {
+  const TaskFile({required this.url, required this.name});
+
+  final String url;
+  final String name;
+
+  Map<String, dynamic> toJson() => {'url': url, 'name': name};
+
+  static TaskFile? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final url = value['url']?.toString();
+    if (url == null || url.isEmpty) return null;
+    final name = value['name']?.toString();
+    return TaskFile(
+      url: url,
+      name: (name == null || name.isEmpty) ? 'ファイル' : name,
+    );
+  }
+}
+
+// まだアップロードしていない添付ファイル。保存時に Storage へ送るまで
+// メモリ上だけで持ち、JSON には出さない（Firestore に実体を入れないため）。
+class PendingTaskFile {
+  const PendingTaskFile({required this.name, required this.bytes});
+
+  final String name;
+  final Uint8List bytes;
+}
+
+List<TaskFile> taskFilesFromJson(Object? value) {
+  if (value is! List) return [];
+  final files = <TaskFile>[];
+  for (final raw in value) {
+    final file = TaskFile.fromJson(raw);
+    if (file != null) files.add(file);
+  }
+  return files;
+}
+
+// ─────────────────────────────────────────────
 // TODOアイテムのデータモデル
 // ─────────────────────────────────────────────
 class TodoItem {
@@ -181,6 +226,10 @@ class TodoItem {
   // 繰り返し設定。null は繰り返しなし。
   Recurrence? recurrence;
   List<String> imageBase64List;
+  // 添付ファイル（PDF）。attachments は保存済み、pendingFiles は
+  // まだアップロードしていないもの（保存時に Storage へ送る）。
+  List<TaskFile> attachments;
+  List<PendingTaskFile> pendingFiles;
   TaskPriority priority;
   DateTime? completedAt;
   // タスクごとの通知タイミング（期限までの分数のリスト）。
@@ -199,10 +248,14 @@ class TodoItem {
     this.dueDate,
     this.recurrence,
     List<String>? imageBase64List,
+    List<TaskFile>? attachments,
+    List<PendingTaskFile>? pendingFiles,
     this.priority = TaskPriority.none,
     this.completedAt,
     this.notificationOffsets,
   }) : imageBase64List = imageBase64List ?? [],
+       attachments = attachments ?? [],
+       pendingFiles = pendingFiles ?? [],
        links = normalizeLinkList(links ?? const []),
        id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
@@ -224,6 +277,7 @@ class TodoItem {
     'dueDate': dueDate?.toIso8601String(),
     'recurrence': recurrence?.toJson(),
     'imageBase64List': imageBase64List,
+    'attachments': attachments.map((file) => file.toJson()).toList(),
     'priority': priority.name,
     'completedAt': completedAt?.toIso8601String(),
     'notificationOffsets': notificationOffsets,
@@ -243,6 +297,7 @@ class TodoItem {
         Recurrence.fromJson(json['recurrence']) ??
         recurrenceFromLegacyRule(json['recurrenceRule']),
     imageBase64List: normalizeImageBase64List(json),
+    attachments: taskFilesFromJson(json['attachments']),
     priority: normalizeTaskPriority(json['priority']),
     completedAt: json['completedAt'] != null
         ? DateTime.parse(json['completedAt'])

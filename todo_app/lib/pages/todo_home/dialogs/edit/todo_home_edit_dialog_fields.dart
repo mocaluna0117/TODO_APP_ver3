@@ -79,6 +79,15 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
           ),
         ],
         const SizedBox(height: 12),
+        _buildFilePickerRow(
+          attachments: draft.selectedFiles,
+          pendingFiles: draft.pendingFiles,
+          onAttachmentsChanged: (files) =>
+              setSheetState(() => draft.selectedFiles = files),
+          onPendingFilesChanged: (files) =>
+              setSheetState(() => draft.pendingFiles = files),
+        ),
+        const SizedBox(height: 12),
         _buildImagePickerRow(
           imageBase64List: draft.selectedImageBase64List,
           onImagesChanged: (imageBase64List) => setSheetState(

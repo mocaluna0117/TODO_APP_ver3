@@ -10,6 +10,8 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     DateTime? dueDate,
     Recurrence? recurrence,
     List<String> imageBase64List = const [],
+    List<TaskFile> attachments = const [],
+    List<PendingTaskFile> pendingFiles = const [],
     TaskPriority priority = TaskPriority.none,
     List<int>? notificationOffsets,
   }) {
@@ -24,6 +26,8 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       dueDate: dueDate,
       recurrence: recurrence,
       imageBase64List: imageBase64List,
+      attachments: [...attachments],
+      pendingFiles: [...pendingFiles],
       priority: priority,
       notificationOffsets: notificationOffsets,
     );
@@ -43,16 +47,24 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     DateTime? dueDate,
     Recurrence? recurrence,
     List<String> imageBase64List = const [],
+    List<TaskFile> attachments = const [],
+    List<PendingTaskFile> pendingFiles = const [],
     TaskPriority priority = TaskPriority.none,
     List<int>? notificationOffsets,
   }) {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
     final hadDueDate = item.dueDate != null;
-    // 編集で外された画像URLは、あとで Storage からも削除する
-    final removedImageUrls = item.imageBase64List
-        .where((e) => _isImageUrl(e) && !imageBase64List.contains(e))
-        .toList();
+    // 編集で外された画像・添付ファイルは、あとで Storage からも削除する
+    final keptFileUrls = attachments.map((file) => file.url).toSet();
+    final removedUrls = [
+      ...item.imageBase64List.where(
+        (e) => _isImageUrl(e) && !imageBase64List.contains(e),
+      ),
+      ...item.attachments
+          .map((file) => file.url)
+          .where((url) => !keptFileUrls.contains(url)),
+    ];
     _updateState(() {
       item.title = trimmed;
       item.description = _normalizeOptionalText(description);
@@ -61,11 +73,13 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       item.dueDate = dueDate;
       item.recurrence = recurrence;
       item.imageBase64List = imageBase64List;
+      item.attachments = [...attachments];
+      item.pendingFiles = [...pendingFiles];
       item.priority = priority;
       item.notificationOffsets = notificationOffsets;
     });
     _saveData();
-    _deleteImagesByUrls(removedImageUrls);
+    _deleteStorageFilesByUrls(removedUrls);
     if (item.dueDate == null && hadDueDate) {
       NotificationService().cancelNotification(item.id);
     } else {
@@ -112,15 +126,25 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     });
   }
 
-  // 2ペイン表示で同じタスクを開いている場合、期限・繰り返しの変更をドラフトへ
-  // 反映する。ドラフトは選択中タスクのIDが変わるまで作り直されないため、
-  // これをしないと保存時に古い期限へ巻き戻ってしまう。
+  // 2ペイン表示で同じタスクを開いている場合、アプリ側で書き換えた内容を
+  // ドラフトへ反映する。ドラフトは選択中タスクのIDが変わるまで作り直されない
+  // ため、これをしないと保存時に古い内容へ巻き戻ってしまう。
   void _syncOpenDetailDraft(TodoItem item) {
     if (_detailDraftItemId != item.id) return;
     final draft = _detailDraft;
     if (draft == null) return;
     draft.selectedDate = item.dueDate;
     draft.selectedRecurrence = item.recurrence;
+  }
+
+  // 添付のアップロード完了（base64→URL、PDFのアップロード）をドラフトへ反映する
+  void _syncOpenDetailDraftAttachments(TodoItem item) {
+    if (_detailDraftItemId != item.id) return;
+    final draft = _detailDraft;
+    if (draft == null) return;
+    draft.selectedImageBase64List = [...item.imageBase64List];
+    draft.selectedFiles = [...item.attachments];
+    draft.pendingFiles = [...item.pendingFiles];
   }
 
   void _toggleItem(TodoItem item) {
