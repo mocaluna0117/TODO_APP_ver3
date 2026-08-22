@@ -1,0 +1,66 @@
+# main へ push すると Flutter web をビルドして Firebase Hosting へデプロイする。
+# ローカルに Flutter SDK が無くても web 版を更新できるようにするためのワークフロー。
+name: Deploy web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'todo_app/**'
+      - '.github/workflows/deploy-web.yml'
+  # 手動実行（Actions タブの Run workflow）でもデプロイできるようにする
+  workflow_dispatch:
+
+# 同じブランチで連続 push したときは古い実行を打ち切る
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: todo_app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      # シークレット未設定でもビルドだけは走るようにしておく（if で secrets を
+      # 直接参照できないため、ここで真偽値の文字列に変換しておく）
+      HAS_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # バージョンは固定する（勝手に上がって突然ビルドが壊れるのを防ぐ）。
+      # 上げたいときはここの flutter-version を書き換える。
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+
+      - run: flutter pub get
+
+      # 静的解析。既存の警告でデプロイが止まらないよう、今は失敗を無視する。
+      # 警告がゼロになったら continue-on-error を外して門番にするとよい。
+      - name: flutter analyze
+        run: flutter analyze
+        continue-on-error: true
+
+      - run: flutter build web --release
+
+      - name: Deploy to Firebase Hosting
+        if: env.HAS_SERVICE_ACCOUNT == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: todo-app-mokuson
+          channelId: live
+          # firebase.json があるディレクトリ（リポジトリ直下からの相対パス）
+          entryPoint: ./todo_app
+
+      - name: シークレット未設定の案内
+        if: env.HAS_SERVICE_ACCOUNT != 'true'
+        run: |
+          echo "::warning::FIREBASE_SERVICE_ACCOUNT が未設定のため、ビルドのみ実行してデプロイはスキップしました"
