@@ -48,6 +48,11 @@ jobs:
         run: flutter analyze
         continue-on-error: true
 
+      # 繰り返しロジックの単体テスト。
+      # widget_test.dart は Firebase 前提の古いテストで動かないため、
+      # 実行するファイルを明示している。
+      - run: flutter test test/recurrence_test.dart
+
       - run: flutter build web --release
 
       - name: Deploy to Firebase Hosting

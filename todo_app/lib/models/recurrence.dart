@@ -107,7 +107,7 @@ class Recurrence {
   bool hasSameConfig(Recurrence other) {
     return freq == other.freq &&
         interval == other.interval &&
-        setEquals(weekdays, other.weekdays) &&
+        _sameWeekdaySet(weekdays, other.weekdays) &&
         monthlyMode == other.monthlyMode &&
         monthDay == other.monthDay &&
         weekOrdinal == other.weekOrdinal &&
@@ -183,6 +183,10 @@ class Recurrence {
     );
   }
 }
+
+// 曜日の集合が同じかどうか（setEquals は material 経由では見えないため自前で持つ）
+bool _sameWeekdaySet(Set<int> a, Set<int> b) =>
+    a.length == b.length && a.every(b.contains);
 
 T? _recurrenceEnumByName<T extends Enum>(List<T> values, Object? raw) {
   final name = raw?.toString();
