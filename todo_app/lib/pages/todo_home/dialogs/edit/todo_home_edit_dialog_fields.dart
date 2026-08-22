@@ -62,10 +62,10 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
           ),
         const SizedBox(height: 12),
         _buildRecurrencePicker(
-          selectedRecurrenceRule: draft.selectedRecurrenceRule,
+          selectedRecurrence: draft.selectedRecurrence,
           dueDate: draft.selectedDate,
-          onChanged: (rule) =>
-              setSheetState(() => draft.selectedRecurrenceRule = rule),
+          onChanged: (recurrence) =>
+              setSheetState(() => draft.selectedRecurrence = recurrence),
         ),
         // 期限が既に過ぎている場合は通知を鳴らせないため、通知の選択自体を出さない
         if (draft.selectedDate != null &&

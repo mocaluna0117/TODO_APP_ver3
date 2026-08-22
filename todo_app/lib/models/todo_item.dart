@@ -1,77 +1,5 @@
 part of '../main.dart';
 
-enum RecurrenceRule {
-  none('なし'),
-  daily('毎日'),
-  weekly('毎週'),
-  monthly('毎月'),
-  // ここから下は後から追加した値。normalizeRecurrenceRule が index 表記も
-  // 解釈するため、保存済みデータとの互換性を保つように末尾へ足していく。
-  // 画面上の並び順は recurrenceRuleMenuOrder で定義する。
-  biweekly('2週ごと'),
-  every3Weeks('3週ごと'),
-  every4Weeks('4週ごと'),
-  monthlyNthWeekday('毎月第n○曜日'),
-  monthlyLastWeekday('毎月最終○曜日');
-
-  final String label;
-  const RecurrenceRule(this.label);
-}
-
-// 繰り返しドロップダウンの表示順（enum の宣言順は互換性のため変えられない）
-const List<RecurrenceRule> recurrenceRuleMenuOrder = [
-  RecurrenceRule.none,
-  RecurrenceRule.daily,
-  RecurrenceRule.weekly,
-  RecurrenceRule.biweekly,
-  RecurrenceRule.every3Weeks,
-  RecurrenceRule.every4Weeks,
-  RecurrenceRule.monthly,
-  RecurrenceRule.monthlyNthWeekday,
-  RecurrenceRule.monthlyLastWeekday,
-];
-
-// 曜日ベースの繰り返しラベルで使う曜日名（DateTime.weekday は月曜=1）
-const List<String> _weekdayNames = ['月', '火', '水', '木', '金', '土', '日'];
-
-// 期限がその月の「第何週目の同曜日」かを返す（1〜5）
-int recurrenceWeekdayOrdinal(DateTime date) => (date.day - 1) ~/ 7 + 1;
-
-// 週単位で繰り返すルールの間隔（週数）。週単位でないルールは null。
-int? recurrenceWeekInterval(RecurrenceRule rule) {
-  switch (rule) {
-    case RecurrenceRule.weekly:
-      return 1;
-    case RecurrenceRule.biweekly:
-      return 2;
-    case RecurrenceRule.every3Weeks:
-      return 3;
-    case RecurrenceRule.every4Weeks:
-      return 4;
-    default:
-      return null;
-  }
-}
-
-// 繰り返しの表示ラベル。曜日と第n週は期限の日付から決まるので、期限が
-// 設定されているときは「毎月第2火曜日」のように具体的な表記にする。
-String recurrenceRuleLabel(RecurrenceRule rule, DateTime? dueDate) {
-  if (dueDate == null) return rule.label;
-  final weekday = _weekdayNames[dueDate.weekday - 1];
-  switch (rule) {
-    case RecurrenceRule.biweekly:
-    case RecurrenceRule.every3Weeks:
-    case RecurrenceRule.every4Weeks:
-      return '${rule.label}の$weekday曜日';
-    case RecurrenceRule.monthlyNthWeekday:
-      return '毎月第${recurrenceWeekdayOrdinal(dueDate)}$weekday曜日';
-    case RecurrenceRule.monthlyLastWeekday:
-      return '毎月最終$weekday曜日';
-    default:
-      return rule.label;
-  }
-}
-
 enum TaskPriority {
   none('なし'),
   low('低'),
@@ -125,17 +53,6 @@ String? normalizeTaskTag(Object? value) {
   final tag = value?.toString().trim();
   if (tag == null || tag.isEmpty) return null;
   return tag;
-}
-
-RecurrenceRule normalizeRecurrenceRule(Object? value) {
-  final rawValue = value?.toString();
-  if (rawValue == null || rawValue.isEmpty) return RecurrenceRule.none;
-  for (final rule in RecurrenceRule.values) {
-    if (rawValue == rule.name || rawValue == rule.index.toString()) {
-      return rule;
-    }
-  }
-  return RecurrenceRule.none;
 }
 
 TaskPriority normalizeTaskPriority(Object? value) {
@@ -261,7 +178,8 @@ class TodoItem {
   String category;
   String? taskTag;
   DateTime? dueDate;
-  RecurrenceRule recurrenceRule;
+  // 繰り返し設定。null は繰り返しなし。
+  Recurrence? recurrence;
   List<String> imageBase64List;
   TaskPriority priority;
   DateTime? completedAt;
@@ -279,7 +197,7 @@ class TodoItem {
     this.category = 'todo',
     this.taskTag,
     this.dueDate,
-    this.recurrenceRule = RecurrenceRule.none,
+    this.recurrence,
     List<String>? imageBase64List,
     this.priority = TaskPriority.none,
     this.completedAt,
@@ -288,7 +206,7 @@ class TodoItem {
        links = normalizeLinkList(links ?? const []),
        id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
-  bool get isRecurring => recurrenceRule != RecurrenceRule.none;
+  bool get isRecurring => recurrence != null;
 
   bool get isOverdue =>
       dueDate != null &&
@@ -304,7 +222,7 @@ class TodoItem {
     'category': category,
     'taskTag': taskTag,
     'dueDate': dueDate?.toIso8601String(),
-    'recurrenceRule': recurrenceRule.name,
+    'recurrence': recurrence?.toJson(),
     'imageBase64List': imageBase64List,
     'priority': priority.name,
     'completedAt': completedAt?.toIso8601String(),
@@ -320,7 +238,10 @@ class TodoItem {
     category: json['category'] ?? 'todo',
     taskTag: normalizeTaskTag(json['taskTag'] ?? json['taskCategory']),
     dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
-    recurrenceRule: normalizeRecurrenceRule(json['recurrenceRule']),
+    // 旧形式（recurrenceRule）で保存されたタスクはここで新形式へ移行する
+    recurrence:
+        Recurrence.fromJson(json['recurrence']) ??
+        recurrenceFromLegacyRule(json['recurrenceRule']),
     imageBase64List: normalizeImageBase64List(json),
     priority: normalizeTaskPriority(json['priority']),
     completedAt: json['completedAt'] != null

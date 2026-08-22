@@ -14,7 +14,7 @@ class _EditTodoDraft {
        selectedDate = item.dueDate,
        selectedImageBase64List = [...item.imageBase64List],
        selectedTaskTag = item.taskTag,
-       selectedRecurrenceRule = item.recurrenceRule,
+       selectedRecurrence = item.recurrence,
        selectedTaskPriority = item.priority,
        // タスク固有の設定があればそれを、無ければ既定の通知タイミングを初期値にする
        selectedNotificationOffsets = item.notificationOffsets != null
@@ -28,7 +28,7 @@ class _EditTodoDraft {
   List<String> selectedImageBase64List;
   bool isProcessingImage = false;
   String? selectedTaskTag;
-  RecurrenceRule selectedRecurrenceRule;
+  Recurrence? selectedRecurrence;
   TaskPriority selectedTaskPriority;
   List<int> selectedNotificationOffsets;
 }

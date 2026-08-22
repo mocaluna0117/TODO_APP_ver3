@@ -1,5 +1,9 @@
 part of '../../../main.dart';
 
+// 繰り返し選択メニューのアクション用センチネル（プリセットは 0 以上の添字）
+const int _recurrenceNoneAction = -1;
+const int _recurrenceCustomAction = -2;
+
 extension _TodoHomeSelectFields on _TodoHomePageState {
   Widget _buildTaskTagPicker({
     required String category,
@@ -41,42 +45,111 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
     );
   }
 
-  // [dueDate] は「毎月第2火曜日」のように曜日・第n週を含むラベルを作るために使う
+  // 繰り返しの選択行。プリセットから選ぶか「カスタム...」で詳細シートを開く。
+  // 曜日・第n週・日は期限の日付から補うため [dueDate] を受け取る。
   Widget _buildRecurrencePicker({
-    required RecurrenceRule selectedRecurrenceRule,
+    required Recurrence? selectedRecurrence,
     required DateTime? dueDate,
-    required ValueChanged<RecurrenceRule> onChanged,
+    required ValueChanged<Recurrence?> onChanged,
   }) {
-    return DropdownButtonFormField<RecurrenceRule>(
-      initialValue: selectedRecurrenceRule,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: '繰り返し',
-        prefixIcon: Icon(Icons.repeat, color: s.primaryColor),
-        filled: true,
-        fillColor: const Color(0xFFF5F5FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+    final presets = recurrencePresets(dueDate);
+    final selected = selectedRecurrence;
+    // 現在の設定がプリセットのどれかと一致するか（一致しなければカスタム扱い）
+    final matchedIndex = selected == null
+        ? -1
+        : presets.indexWhere((preset) => preset.hasSameConfig(selected));
+    final isCustom = selected != null && matchedIndex < 0;
+
+    return PopupMenuButton<int>(
+      tooltip: '繰り返しを選択',
+      position: PopupMenuPosition.under,
+      constraints: const BoxConstraints(minWidth: 260),
+      onSelected: (value) async {
+        if (value == _recurrenceNoneAction) {
+          onChanged(null);
+          return;
+        }
+        if (value == _recurrenceCustomAction) {
+          final result = await showRecurrenceSheet(
+            context,
+            initial: selected,
+            dueDate: dueDate,
+            accentColor: s.primaryColor,
+          );
+          // キャンセル時（null）は今の設定を保つ
+          if (result != null) onChanged(result);
+          return;
+        }
+        onChanged(presets[value]);
+      },
+      itemBuilder: (context) => [
+        _buildRecurrenceMenuItem(
+          value: _recurrenceNoneAction,
+          label: 'なし',
+          isSelected: selected == null,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+        for (var i = 0; i < presets.length; i++)
+          _buildRecurrenceMenuItem(
+            value: i,
+            label: recurrenceLabel(presets[i], dueDate),
+            isSelected: i == matchedIndex,
+          ),
+        const PopupMenuDivider(),
+        _buildRecurrenceMenuItem(
+          value: _recurrenceCustomAction,
+          // カスタム設定中はその内容も添えて、何が選ばれているか分かるようにする
+          label: isCustom
+              ? 'カスタム...（${recurrenceLabel(selected, dueDate)}）'
+              : 'カスタム...',
+          isSelected: isCustom,
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5FA),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.repeat, size: 18, color: s.primaryColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                selected == null
+                    ? '繰り返しを設定（任意）'
+                    : recurrenceLabel(selected, dueDate),
+                style: TextStyle(
+                  fontSize: 15,
+                  color: selected == null ? Colors.grey : Colors.black87,
+                ),
+              ),
+            ),
+            Icon(Icons.unfold_more, size: 20, color: Colors.grey.shade600),
+          ],
         ),
       ),
-      items: recurrenceRuleMenuOrder
-          .map(
-            (rule) => DropdownMenuItem(
-              value: rule,
-              child: Text(recurrenceRuleLabel(rule, dueDate)),
-            ),
-          )
-          .toList(),
-      onChanged: (rule) {
-        if (rule != null) {
-          onChanged(rule);
-        }
-      },
+    );
+  }
+
+  PopupMenuItem<int> _buildRecurrenceMenuItem({
+    required int value,
+    required String label,
+    required bool isSelected,
+  }) {
+    return PopupMenuItem<int>(
+      value: value,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: isSelected
+                ? Icon(Icons.check, size: 18, color: s.primaryColor)
+                : null,
+          ),
+          Expanded(child: Text(label)),
+        ],
+      ),
     );
   }
 }

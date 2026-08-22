@@ -26,6 +26,7 @@ import 'notification_service.dart';
 import 'notification_offset.dart';
 import 'firebase_options.dart';
 
+part 'models/recurrence.dart';
 part 'models/todo_item.dart';
 part 'app/my_app.dart';
 part 'app/auth_gate.dart';
@@ -68,6 +69,7 @@ part 'pages/todo_home/form_fields/todo_home_due_time_picker.dart';
 part 'pages/todo_home/form_fields/todo_home_image_picker_row.dart';
 part 'pages/todo_home/form_fields/todo_home_links_field.dart';
 part 'pages/todo_home/form_fields/todo_home_select_fields.dart';
+part 'pages/todo_home/form_fields/todo_home_recurrence_sheet.dart';
 part 'pages/todo_home/form_fields/todo_home_priority_picker.dart';
 part 'pages/todo_home/form_fields/todo_home_notification_picker.dart';
 part 'pages/todo_home/list/todo_home_list.dart';

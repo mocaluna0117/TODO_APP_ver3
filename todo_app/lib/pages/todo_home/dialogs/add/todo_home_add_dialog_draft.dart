@@ -14,7 +14,7 @@ class _AddTodoDraft {
   List<String> selectedImageBase64List = <String>[];
   bool isProcessingImage = false;
   String? selectedTaskTag;
-  RecurrenceRule selectedRecurrenceRule = RecurrenceRule.none;
+  Recurrence? selectedRecurrence;
   TaskPriority selectedTaskPriority = TaskPriority.none;
   List<int> selectedNotificationOffsets;
 

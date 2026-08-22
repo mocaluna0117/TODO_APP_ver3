@@ -69,7 +69,7 @@ extension _TodoHomeTaskLabels on _TodoHomePageState {
           ),
           const SizedBox(width: 3),
           Text(
-            recurrenceRuleLabel(item.recurrenceRule, item.dueDate),
+            recurrenceLabel(item.recurrence!, item.dueDate),
             style: TextStyle(
               color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
               fontSize: 11,
