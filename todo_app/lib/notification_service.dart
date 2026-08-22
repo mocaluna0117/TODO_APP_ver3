@@ -20,8 +20,13 @@ class NotificationService {
   Future<void>? _initFuture;
 
   // Web用のプッシュ鍵（Firebaseコンソール → Cloud Messaging → ウェブプッシュ証明書）。
-  // ビルド時に --dart-define=FCM_VAPID_KEY=... で渡す。未設定ならWebのプッシュは無効。
-  static const String _webVapidKey = String.fromEnvironment('FCM_VAPID_KEY');
+  // これはブラウザへ配られる公開鍵なので、リポジトリに置いても問題ない。
+  // 鍵を差し替えたいときは --dart-define=FCM_VAPID_KEY=... で上書きできる。
+  static const String _webVapidKey = String.fromEnvironment(
+    'FCM_VAPID_KEY',
+    defaultValue:
+        'BCsvlVCLLDpwbsSatacXD14YXBYSBSRClI1x79-OCDyPtSuJAfClL4zQdDHHlGD-FSYYcsTB97ObZSzXnH57WoY',
+  );
 
   // プッシュ（FCM）が使えている端末かどうか。
   // 使えている端末では端末内スケジュールを行わず、二重に鳴らないようにする。
