@@ -49,17 +49,33 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(right: 16),
               itemCount: groupTags.length,
+              // 既定のままだと、PCでは各チップに「≡」のつまみが重ねて
+              // 描画されてしまうため、自分でドラッグの起点を仕込む
+              buildDefaultDragHandles: false,
               onReorderItem: (oldIndex, newIndex) =>
                   _reorderTaskTagsFromHome(category, oldIndex, newIndex),
               itemBuilder: (context, index) {
                 final tag = groupTags[index];
-                return Padding(
-                  key: ValueKey('tag-$category-$tag'),
+                final chip = Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Center(
                     child: _buildTagFilterChip(tag, category, selectedFilter),
                   ),
                 );
+                final key = ValueKey('tag-$category-$tag');
+                // タッチ操作は長押しで、マウスはそのままドラッグで並び替える
+                // （タッチで即ドラッグにすると横スクロールができなくなる）
+                return _usesTouchDrag
+                    ? ReorderableDelayedDragStartListener(
+                        key: key,
+                        index: index,
+                        child: chip,
+                      )
+                    : ReorderableDragStartListener(
+                        key: key,
+                        index: index,
+                        child: chip,
+                      );
               },
             ),
           ),
@@ -67,6 +83,12 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
       ),
     );
   }
+
+  // 指で操作する端末かどうか（並び替えの起点を長押しにするか決める）
+  bool get _usesTouchDrag => switch (Theme.of(context).platform) {
+    TargetPlatform.iOS || TargetPlatform.android => true,
+    _ => false,
+  };
 
   // 絞り込みチップ1つ。長押しでつかんで並び替えられる（並び替えは
   // ReorderableListView 側が処理するので、ここではタップだけ扱う）。
