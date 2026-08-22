@@ -3,7 +3,12 @@ part of '../../../main.dart';
 extension _TodoHomeTodoCard on _TodoHomePageState {
   Widget _buildTodoCard(TodoItem item, String category) {
     // 2ペイン表示中は、選択中のタスクを枠線でハイライトする
-    final isSelected = _isWideLayout && item.id == _selectedDetailItemId;
+    final isSelected =
+        _isWideLayout && item.id == _selectedDetailItemIds[category];
+    // 選択中のカードには、あとでスクロールして見せるためのキーを付ける
+    final selectedCardKey = isSelected
+        ? (_selectedCardKeys[category] ??= GlobalKey())
+        : null;
 
     return AnimatedOpacity(
       opacity: _fadingOutItems.contains(item.id) ? 0.0 : 1.0,
@@ -17,6 +22,8 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
         confirmDismiss: (_) => _handleDelete(item),
         background: _buildTodoCardDeleteBackground(),
         child: Card(
+          // 選択中のカードだけキーを持たせ、タブ復帰時にここへスクロールする
+          key: selectedCardKey,
           margin: const EdgeInsets.only(bottom: 8),
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -37,8 +44,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
                     if (_isWideLayout) {
                       // 2ペイン時はモーダルではなく右の詳細ペインに表示
                       _updateState(() {
-                        _selectedDetailItemId = item.id;
-                        _selectedDetailTabKey = category;
+                        _selectedDetailItemIds[category] = item.id;
                         _detailDraft = null; // ドラフトを作り直す
                       });
                     } else {

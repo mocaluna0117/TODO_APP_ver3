@@ -41,9 +41,14 @@ class _TodoHomePageState extends State<TodoHomePage>
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
   // 画像をStorageにアップロード中のタスクID（「アップロード中」表示用）
   final Set<int> _uploadingImageItemIds = {};
-  // 2ペイン（広い画面）用: 詳細ペインで選択中のタスクとその編集ドラフト
-  int? _selectedDetailItemId;
-  String _selectedDetailTabKey = '';
+  // 2ペイン（広い画面）用: 詳細ペインで選択中のタスクとその編集ドラフト。
+  // 選択はタブごとに覚えて、タブを戻したときにそのタブで見ていた詳細へ戻す。
+  final Map<String, int> _selectedDetailItemIds = {};
+  // 選択中のカードへスクロールするためのキー（タブごと）
+  final Map<String, GlobalKey> _selectedCardKeys = {};
+  // タブ切り替えの検知用（直前のタブ位置と、位置合わせ待ちかどうか）
+  int _lastTabIndex = 0;
+  bool _pendingScrollToSelectedCard = false;
   _EditTodoDraft? _detailDraft;
   int? _detailDraftItemId;
   // 2ペイン時の左ペイン幅（境目のドラッグで調整・ローカル保存）。
@@ -94,7 +99,24 @@ class _TodoHomePageState extends State<TodoHomePage>
   void _rebuildTabController() {
     _tabController?.dispose();
     _tabController = TabController(length: _activeTabKeys.length, vsync: this);
-    _tabController!.addListener(() => setState(() {}));
+    _lastTabIndex = _tabController!.index;
+    _tabController!.addListener(_handleTabChanged);
+  }
+
+  void _handleTabChanged() {
+    setState(() {});
+    final index = _tabController!.index;
+    // リスナーはアニメーション中も呼ばれるので、変わった瞬間だけ予約する
+    if (index != _lastTabIndex) {
+      _lastTabIndex = index;
+      _pendingScrollToSelectedCard = true;
+    }
+    // タブをタップした場合は切り替えアニメーションの完了を待つ。
+    // 移動先のリストが組み上がる前にスクロールしても効かないため。
+    if (_pendingScrollToSelectedCard && !_tabController!.indexIsChanging) {
+      _pendingScrollToSelectedCard = false;
+      _scrollToSelectedCardAfterBuild();
+    }
   }
 
   @override

@@ -63,14 +63,36 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
     );
   }
 
-  // 選択中のタスク（削除や同期で消えた場合は null）
+  // 現在のタブで選択中のタスク。
+  // 左の一覧（タブ＋タグ絞り込み後）に居ないタスクは詳細も出さない。
+  // 削除・完了・タグ絞り込み・カテゴリ移動で一覧から消えたときに、
+  // 右だけ古いタスクを表示し続けるのを防ぐ。
   TodoItem? get _selectedDetailItem {
-    final id = _selectedDetailItemId;
+    final id = _selectedDetailItemIds[_currentTabKey];
     if (id == null) return null;
-    for (final item in _allItems) {
+    for (final item in _itemsByCategory(_currentTabKey)) {
       if (item.id == id) return item;
     }
     return null;
+  }
+
+  // 選択中のカードが左ペインで見えるようにスクロールする。
+  // タブを戻したときに、右の詳細と左で見えているものを一致させるため。
+  void _scrollToSelectedCardAfterBuild() {
+    if (!_isWideLayout) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // まだ組み立てられていない（画面外の遠く）場合は何もしない。
+      // その場合もリストの位置自体は PageStorage で復元されている。
+      final cardContext = _selectedCardKeys[_currentTabKey]?.currentContext;
+      if (cardContext == null) return;
+      Scrollable.ensureVisible(
+        cardContext,
+        alignment: 0.3,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Widget _buildDetailPane() {
@@ -160,7 +182,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         child: _buildEditDialogFields(
                           item: item,
-                          isFromTodayTab: _selectedDetailTabKey == 'today',
+                          isFromTodayTab: _currentTabKey == 'today',
                           draft: draft,
                           setSheetState: _updateState,
                         ),
@@ -189,7 +211,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
                     icon: Icon(Icons.close, color: Colors.grey.shade500),
                     tooltip: '閉じる',
                     onPressed: () => _updateState(() {
-                      _selectedDetailItemId = null;
+                      _selectedDetailItemIds.remove(_currentTabKey);
                       _detailDraft = null;
                       _detailDraftItemId = null;
                     }),
