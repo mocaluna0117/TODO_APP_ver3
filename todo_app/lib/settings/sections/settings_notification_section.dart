@@ -33,15 +33,6 @@ extension _SettingsNotificationSection on _SettingsPageState {
                 : const Icon(Icons.chevron_right, color: Colors.grey),
             onTap: enabled ? null : () => _enablePushNotifications(enable),
           ),
-          _divider(),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Text(
-              'iPhone では、ホーム画面に追加したアプリからのみ通知を受け取れます'
-              '（Safari のタブでは受け取れません）。',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ),
         ],
       ),
     ];
