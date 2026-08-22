@@ -21,25 +21,6 @@ const List<int> defaultNotificationPresets = [10, 60, 1440];
 // ─────────────────────────────────────────────
 // アプリ設定モデル
 // ─────────────────────────────────────────────
-// タブの既定の並び順（キーの一覧でもある）
-const List<String> kDefaultTabOrder = ['todo', 'today', 'done', 'future'];
-
-// 保存された並び順を正規化する。知らないキーや重複は取り除き、足りないキーは
-// 既定の順で末尾に足す（保存データが古くてもタブが消えないようにする）。
-List<String> normalizeTabOrder(Iterable<Object?>? values) {
-  final result = <String>[];
-  for (final value in values ?? const <Object?>[]) {
-    final key = value?.toString();
-    if (key == null || !kDefaultTabOrder.contains(key)) continue;
-    if (result.contains(key)) continue;
-    result.add(key);
-  }
-  for (final key in kDefaultTabOrder) {
-    if (!result.contains(key)) result.add(key);
-  }
-  return result;
-}
-
 class AppSettings {
   // アプリタイトル
   String appTitle;
@@ -49,9 +30,6 @@ class AppSettings {
   String todayTabName;
   String doneTabName;
   String futureTabName;
-
-  // タブの並び順（キー: todo / today / done / future）
-  List<String> tabOrder;
 
   // タブ表示ON/OFF（todoは常にtrue）
   bool showTodayTab;
@@ -88,7 +66,6 @@ class AppSettings {
     this.todayTabName = '今日やること',
     this.doneTabName = '完了済み',
     this.futureTabName = 'やりたいこと',
-    List<String>? tabOrder,
     this.showTodayTab = true,
     this.showDoneTab = true,
     this.showFutureTab = true,
@@ -101,8 +78,7 @@ class AppSettings {
     List<int>? notificationPresets,
     List<String>? taskTags,
     List<String>? futureTaskTags,
-  }) : tabOrder = normalizeTabOrder(tabOrder),
-       notificationPresets = _normalizeNotificationPresets(
+  }) : notificationPresets = _normalizeNotificationPresets(
          notificationPresets ?? defaultNotificationPresets,
        ),
        taskTags = _normalizeTaskTags(taskTags ?? []),
@@ -119,7 +95,6 @@ class AppSettings {
     await prefs.setString('todayTabName', todayTabName);
     await prefs.setString('doneTabName', doneTabName);
     await prefs.setString('futureTabName', futureTabName);
-    await prefs.setStringList('tabOrder', tabOrder);
     await prefs.setBool('showTodayTab', showTodayTab);
     await prefs.setBool('showDoneTab', showDoneTab);
     await prefs.setBool('showFutureTab', showFutureTab);
@@ -148,7 +123,6 @@ class AppSettings {
     'todayTabName': todayTabName,
     'doneTabName': doneTabName,
     'futureTabName': futureTabName,
-    'tabOrder': tabOrder,
     'showTodayTab': showTodayTab,
     'showDoneTab': showDoneTab,
     'showFutureTab': showFutureTab,
@@ -170,9 +144,6 @@ class AppSettings {
     todayTabName = data['todayTabName'] as String? ?? todayTabName;
     doneTabName = data['doneTabName'] as String? ?? doneTabName;
     futureTabName = data['futureTabName'] as String? ?? futureTabName;
-    if (data['tabOrder'] != null) {
-      tabOrder = normalizeTabOrder(data['tabOrder'] as List?);
-    }
     showTodayTab = data['showTodayTab'] as bool? ?? showTodayTab;
     showDoneTab = data['showDoneTab'] as bool? ?? showDoneTab;
     showFutureTab = data['showFutureTab'] as bool? ?? showFutureTab;
@@ -221,8 +192,6 @@ class AppSettings {
     todayTabName = prefs.getString('todayTabName') ?? todayTabName;
     doneTabName = prefs.getString('doneTabName') ?? doneTabName;
     futureTabName = prefs.getString('futureTabName') ?? futureTabName;
-    final savedTabOrder = prefs.getStringList('tabOrder');
-    if (savedTabOrder != null) tabOrder = normalizeTabOrder(savedTabOrder);
     showTodayTab = prefs.getBool('showTodayTab') ?? showTodayTab;
     showDoneTab = prefs.getBool('showDoneTab') ?? showDoneTab;
     showFutureTab = prefs.getBool('showFutureTab') ?? showFutureTab;
