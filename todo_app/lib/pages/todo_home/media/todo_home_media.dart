@@ -123,20 +123,37 @@ extension _TodoHomeMedia on _TodoHomePageState {
     const errorWidget = Center(
       child: Icon(Icons.broken_image, color: Colors.grey),
     );
+    const loadingWidget = Center(
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    );
 
     if (_isImageUrl(entry)) {
+      // Web では cached_network_image を使わない。公式に「web は最小限の対応で
+      // キャッシュは行わない」とされていてディスクキャッシュの利点が無く、
+      // 一方で一度表示した画像を再表示すると黒く描画される不具合の報告がある
+      // （スクロールで画面外に出て戻したときに再デコードが走るため）。
+      // Web はブラウザのHTTPキャッシュが効くので Image.network で十分。
+      if (kIsWeb) {
+        return Image.network(
+          entry,
+          fit: fit,
+          width: width,
+          height: height,
+          loadingBuilder: (context, child, progress) =>
+              progress == null ? child : loadingWidget,
+          errorBuilder: (context, error, stackTrace) => errorWidget,
+        );
+      }
       return CachedNetworkImage(
         imageUrl: entry,
         fit: fit,
         width: width,
         height: height,
-        placeholder: (context, url) => const Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
+        placeholder: (context, url) => loadingWidget,
         errorWidget: (context, url, error) => errorWidget,
       );
     }
@@ -177,7 +194,8 @@ extension _TodoHomeMedia on _TodoHomePageState {
       // ネット読み込み完了まで出し続けられる。
       if (mounted) {
         await precacheImage(
-          CachedNetworkImageProvider(url),
+          // 表示に使うのと同じプロバイダで先読みしないとキャッシュが効かない
+          kIsWeb ? NetworkImage(url) : CachedNetworkImageProvider(url),
           context,
           onError: (error, stackTrace) {},
         );
