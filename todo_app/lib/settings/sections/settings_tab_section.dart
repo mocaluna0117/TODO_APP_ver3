@@ -19,7 +19,7 @@ extension _SettingsTabSection on _SettingsPageState {
             physics: const NeverScrollableScrollPhysics(),
             // 行にスイッチがあるため、長押しではなく専用のつまみで並び替える
             buildDefaultDragHandles: false,
-            onReorder: _reorderTabs,
+            onReorderItem: _reorderTabs,
             children: [
               for (var i = 0; i < s.tabOrder.length; i++)
                 _buildTabTile(s.tabOrder[i], i),
@@ -50,8 +50,7 @@ extension _SettingsTabSection on _SettingsPageState {
   }
 
   void _reorderTabs(int oldIndex, int newIndex) {
-    // ReorderableListView は「移動元を抜く前」の位置を渡してくるため補正する
-    if (newIndex > oldIndex) newIndex -= 1;
+    // onReorderItem は移動元を抜いたあとの位置を渡してくるので補正は不要
     final order = [...s.tabOrder];
     order.insert(newIndex, order.removeAt(oldIndex));
     s.tabOrder = order;
