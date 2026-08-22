@@ -10,6 +10,20 @@ extension _SettingsTagActions on _SettingsPageState {
   List<String> _tagListFor(bool isFuture) =>
       isFuture ? s.futureTaskTags : s.taskTags;
 
+  // タグの並び順を入れ替える。この順番がタスク一覧の絞り込みチップや、
+  // タスク編集時のタグ選択肢の並びにそのまま使われる。
+  void _reorderTaskTags(
+    int oldIndex,
+    int newIndex, {
+    required bool isFuture,
+  }) {
+    final tags = _tagListFor(isFuture);
+    if (oldIndex < 0 || oldIndex >= tags.length) return;
+    final moved = tags.removeAt(oldIndex);
+    tags.insert(newIndex.clamp(0, tags.length), moved);
+    _notify();
+  }
+
   void _addTaskTag(String tag, {required bool isFuture}) {
     final tags = _tagListFor(isFuture);
     if (tags.contains(tag)) {
