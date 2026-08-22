@@ -37,6 +37,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _todosSub;
   // Firestore 上に存在する todo ドキュメントIDの集合（削除同期用）
   Set<String> _knownTodoDocIds = {};
+  // 最後に Firestore と一致していた内容（ドキュメントID -> JSON文字列）。
+  // 変更のあったタスクだけ書き込むために使う（書き込み回数を減らす）。
+  final Map<String, String> _syncedTodoJson = {};
   // 設定（タグ等）のリアルタイム同期リスナー
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
   // 画像をStorageにアップロード中のタスクID（「アップロード中」表示用）

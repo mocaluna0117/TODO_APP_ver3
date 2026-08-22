@@ -86,6 +86,12 @@ extension _TodoHomeData on _TodoHomePageState {
           .map((doc) => TodoItem.fromJson(doc.data()))
           .toList();
       _knownTodoDocIds = snapshot.docs.map((d) => d.id).toSet();
+      // 受信した内容＝Firestore の中身なので、これを基準に差分を判定する
+      _syncedTodoJson
+        ..clear()
+        ..addEntries(
+          items.map((item) => MapEntry(item.id.toString(), _encodeTodo(item))),
+        );
       _updateState(() {
         _allItems
           ..clear()
@@ -163,17 +169,39 @@ extension _TodoHomeData on _TodoHomePageState {
 
     final batch = FirebaseFirestore.instance.batch();
     final currentIds = _allItems.map((e) => e.id.toString()).toSet();
+    // 書き込みが成功したあとに反映する差分（途中で失敗したら次回やり直す）
+    final written = <String, String>{};
+    final removed = <String>[];
+    var operations = 0;
 
+    // 中身が変わったタスクだけ書き込む。全件書き直すと、1回の保存で
+    // タスク数ぶんの書き込みが発生して無料枠を無駄に消費するため。
     for (final item in _allItems) {
-      batch.set(col.doc(item.id.toString()), item.toJson());
+      final id = item.id.toString();
+      final encoded = _encodeTodo(item);
+      if (_syncedTodoJson[id] == encoded) continue;
+      batch.set(col.doc(id), item.toJson());
+      written[id] = encoded;
+      operations++;
     }
     // _allItems から消えた項目を Firestore からも削除
     for (final knownId in _knownTodoDocIds) {
       if (!currentIds.contains(knownId)) {
         batch.delete(col.doc(knownId));
+        removed.add(knownId);
+        operations++;
       }
     }
 
+    // 変更が無ければ通信しない
+    if (operations == 0) return;
+
     await batch.commit();
+    _syncedTodoJson.addAll(written);
+    _syncedTodoJson.removeWhere((id, _) => removed.contains(id));
   }
+
+  // 差分判定用に、Firestore へ書き込む形へそろえた文字列を作る。
+  // toJson のキー順は固定なので、そのまま文字列比較できる。
+  String _encodeTodo(TodoItem item) => jsonEncode(item.toJson());
 }

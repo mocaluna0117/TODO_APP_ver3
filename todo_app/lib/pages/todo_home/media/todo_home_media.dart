@@ -1,5 +1,9 @@
 part of '../../../main.dart';
 
+// 添付ファイルのキャッシュ指定。アップロード先のパスは毎回ユニークで
+// 中身が変わらないので、長期間キャッシュしても古いものは出てこない。
+const String kAttachmentCacheControl = 'public, max-age=31536000, immutable';
+
 extension _TodoHomeMedia on _TodoHomePageState {
   Future<List<String>> _pickImageBase64List() async {
     final pickedImages = await _imagePicker.pickMultiImage(
@@ -186,7 +190,12 @@ extension _TodoHomeMedia on _TodoHomePageState {
       );
       await ref.putData(
         bytes,
-        SettableMetadata(contentType: _detectImageContentType(bytes)),
+        SettableMetadata(
+          contentType: _detectImageContentType(bytes),
+          // 保存先のパスは毎回ユニークで中身も変わらないため、長期キャッシュを
+          // 明示する。2回目以降の表示でダウンロードが発生しなくなる。
+          cacheControl: kAttachmentCacheControl,
+        ),
       );
       final url = await ref.getDownloadURL();
       // アップロード直後にキャッシュへ先読みしておく。
@@ -221,6 +230,7 @@ extension _TodoHomeMedia on _TodoHomePageState {
         pending.bytes,
         SettableMetadata(
           contentType: 'application/pdf',
+          cacheControl: kAttachmentCacheControl,
           // ブラウザで開いたときに元のファイル名で見えるようにする
           contentDisposition:
               'inline; filename="${pending.name.replaceAll('"', '')}"',
