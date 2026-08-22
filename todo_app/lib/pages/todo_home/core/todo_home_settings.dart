@@ -39,6 +39,8 @@ extension _TodoHomeSettings on _TodoHomePageState {
     // 通知タイミングが変わっていたら全ての通知を再スケジュール
     if (timingBefore != s.notificationTiming) {
       NotificationService().rescheduleAll(_allItems, s.notificationTiming);
+      // サーバーから送る分の予定も作り直す
+      _resyncAllNotifications();
     }
     _updateState(() {});
   }

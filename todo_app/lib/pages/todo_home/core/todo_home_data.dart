@@ -10,6 +10,16 @@ extension _TodoHomeData on _TodoHomePageState {
         .collection('todos');
   }
 
+  // ログイン中ユーザーの通知予定コレクション（users/{uid}/notifications）。
+  // Cloud Functions がここを見て、時刻になった通知を全端末へ送る。
+  CollectionReference<Map<String, dynamic>> _notificationsCollection() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notifications');
+  }
+
   // ログイン中ユーザーの設定ドキュメント（users/{uid}/meta/settings）
   DocumentReference<Map<String, dynamic>> _settingsDoc() {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -176,20 +186,25 @@ extension _TodoHomeData on _TodoHomePageState {
 
     // 中身が変わったタスクだけ書き込む。全件書き直すと、1回の保存で
     // タスク数ぶんの書き込みが発生して無料枠を無駄に消費するため。
+    final notificationCol = _notificationsCollection();
+
     for (final item in _allItems) {
       final id = item.id.toString();
       final encoded = _encodeTodo(item);
       if (_syncedTodoJson[id] == encoded) continue;
       batch.set(col.doc(id), item.toJson());
+      // 内容が変わったタスクは、送信予定の通知も作り直す
+      _addNotificationOps(batch, notificationCol, item);
       written[id] = encoded;
-      operations++;
+      operations += 2;
     }
     // _allItems から消えた項目を Firestore からも削除
     for (final knownId in _knownTodoDocIds) {
       if (!currentIds.contains(knownId)) {
         batch.delete(col.doc(knownId));
+        batch.delete(notificationCol.doc(knownId));
         removed.add(knownId);
-        operations++;
+        operations += 2;
       }
     }
 
@@ -199,6 +214,66 @@ extension _TodoHomeData on _TodoHomePageState {
     await batch.commit();
     _syncedTodoJson.addAll(written);
     _syncedTodoJson.removeWhere((id, _) => removed.contains(id));
+  }
+
+  // 送信予定のプッシュ通知を、タスク1件につき1ドキュメントで持たせる。
+  // Cloud Functions は nextSendAt を見て、時刻が来た分を全端末へ送る。
+  void _addNotificationOps(
+    WriteBatch batch,
+    CollectionReference<Map<String, dynamic>> col,
+    TodoItem item,
+  ) {
+    final docRef = col.doc(item.id.toString());
+    final entries = _pendingNotificationEntries(item);
+    if (entries.isEmpty) {
+      batch.delete(docRef);
+      return;
+    }
+    batch.set(docRef, {
+      'taskId': item.id,
+      'title': '期限が近づいています',
+      'entries': entries,
+      // 次に送る時刻。関数はこれで対象を絞り込む。
+      'nextSendAt': entries.first['sendAt'],
+    });
+  }
+
+  // 送信時刻の早い順に並べた通知予定（すでに過ぎた分は含めない）
+  List<Map<String, dynamic>> _pendingNotificationEntries(TodoItem item) {
+    final dueDate = item.dueDate;
+    if (item.isDone || dueDate == null) return const [];
+    final now = DateTime.now();
+    final service = NotificationService();
+    final offsets = service.resolveOffsets(item, s.notificationTiming).toList()
+      // 期限までの分数が大きいほど早く送ることになる
+      ..sort((a, b) => b.compareTo(a));
+    final entries = <Map<String, dynamic>>[];
+    for (final minutes in offsets) {
+      final sendAt = dueDate.subtract(Duration(minutes: minutes));
+      if (!sendAt.isAfter(now)) continue;
+      entries.add({
+        'sendAt': Timestamp.fromDate(sendAt),
+        'body': service.notificationBody(item, minutes),
+      });
+    }
+    return entries;
+  }
+
+  // 全タスクの通知予定を作り直す（全体の通知タイミング設定を変えたとき用）。
+  // タスク自体は変わらないので、通知ドキュメントだけを書き換える。
+  Future<void> _resyncAllNotifications() async {
+    if (FirebaseAuth.instance.currentUser == null) return;
+    final col = _notificationsCollection();
+    final batch = FirebaseFirestore.instance.batch();
+    for (final item in _allItems) {
+      _addNotificationOps(batch, col, item);
+    }
+    if (_allItems.isEmpty) return;
+    try {
+      await batch.commit();
+    } catch (error) {
+      debugPrint('Failed to sync notifications: $error');
+    }
   }
 
   // 差分判定用に、Firestore へ書き込む形へそろえた文字列を作る。

@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -5,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'app_settings.dart';
 import 'main.dart'; // TodoItemを使うため
 import 'notification_offset.dart'; // notificationOffsetLabel を使うため
+import 'push_notification_display.dart'; // Webのフォアグラウンド表示
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -15,9 +19,19 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   Future<void>? _initFuture;
 
+  // Web用のプッシュ鍵（Firebaseコンソール → Cloud Messaging → ウェブプッシュ証明書）。
+  // ビルド時に --dart-define=FCM_VAPID_KEY=... で渡す。未設定ならWebのプッシュは無効。
+  static const String _webVapidKey = String.fromEnvironment('FCM_VAPID_KEY');
+
+  // プッシュ（FCM）が使えている端末かどうか。
+  // 使えている端末では端末内スケジュールを行わず、二重に鳴らないようにする。
+  bool get usesPush => _pushToken != null;
+  String? _pushToken;
+
   Future<void> init() => _initFuture ??= _init();
 
   Future<void> _init() async {
+    await _initPush();
     if (kIsWeb) return;
 
     // タイムゾーンの初期化
@@ -63,6 +77,8 @@ class NotificationService {
     if (kIsWeb) return;
 
     await init();
+    // プッシュが使える端末では、サーバーから送られる分だけを鳴らす
+    if (usesPush) return;
 
     // 一旦このタスクの既存通知をすべてキャンセル
     await cancelNotification(item.id);
@@ -71,17 +87,7 @@ class NotificationService {
       return;
     }
 
-    // タスク固有の設定があればそれを、無ければ全体のデフォルトを使用する。
-    // 値は「期限までの分数」。
-    final List<int> offsets;
-    if (item.notificationOffsets != null) {
-      offsets = item.notificationOffsets!;
-    } else if (defaultTiming == NotificationTiming.none) {
-      offsets = const [];
-    } else {
-      offsets = [notificationTimingToMinutes(defaultTiming)];
-    }
-    final uniqueOffsets = offsets.where((m) => m >= 0).toSet();
+    final uniqueOffsets = resolveOffsets(item, defaultTiming);
     if (uniqueOffsets.isEmpty) {
       return;
     }
@@ -121,6 +127,23 @@ class NotificationService {
     }
   }
 
+  // タスクに適用される通知タイミング（期限までの分数）を返す。
+  // タスク固有の設定があればそれを、無ければ全体のデフォルトを使う。
+  Set<int> resolveOffsets(TodoItem item, NotificationTiming defaultTiming) {
+    final List<int> offsets;
+    if (item.notificationOffsets != null) {
+      offsets = item.notificationOffsets!;
+    } else if (defaultTiming == NotificationTiming.none) {
+      offsets = const [];
+    } else {
+      offsets = [notificationTimingToMinutes(defaultTiming)];
+    }
+    return offsets.where((m) => m >= 0).toSet();
+  }
+
+  String notificationBody(TodoItem item, int minutes) =>
+      _notificationBody(item, minutes);
+
   String _notificationBody(TodoItem item, int minutes) {
     if (minutes <= 0) {
       return '「${item.title}」が期限の時間です！';
@@ -150,6 +173,93 @@ class NotificationService {
     }
   }
 
+  // ─── プッシュ通知（FCM） ───
+  //
+  // 端末のトークンを Firestore に登録しておき、サーバー側（Cloud Functions）が
+  // 時刻になったら同じアカウントの全端末へ送る。これで、ある端末で設定した
+  // 通知が別の端末でも鳴る。
+  // APNs 未設定の iOS など、プッシュを使えない端末では例外を握りつぶして
+  // 端末内スケジュール（ローカル通知）にフォールバックする。
+  Future<void> _initPush() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.requestPermission();
+      if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+
+      if (kIsWeb) {
+        if (_webVapidKey.isEmpty) return; // 鍵が未設定ならWebのプッシュは使わない
+        // ブラウザの通知許可（フォアグラウンド表示にも必要）
+        await requestBrowserNotificationPermission();
+      }
+
+      final token = kIsWeb
+          ? await messaging.getToken(vapidKey: _webVapidKey)
+          : await messaging.getToken();
+      if (token == null || token.isEmpty) return;
+
+      _pushToken = token;
+      await _saveDeviceToken(token);
+      messaging.onTokenRefresh.listen((refreshed) {
+        _pushToken = refreshed;
+        _saveDeviceToken(refreshed);
+      });
+
+      // アプリを開いている間に届いた分は自分で表示する
+      // （この状態ではOS/ブラウザが自動表示しないため）
+      FirebaseMessaging.onMessage.listen(_showForegroundMessage);
+    } catch (error, stackTrace) {
+      debugPrint('Push notifications unavailable: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  // 端末のトークンを users/{uid}/devices/{token} に登録する
+  Future<void> _saveDeviceToken(String token) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('devices')
+          .doc(token)
+          .set({
+            'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+    } catch (error) {
+      debugPrint('Failed to register device token: $error');
+    }
+  }
+
+  void _showForegroundMessage(RemoteMessage message) {
+    final notification = message.notification;
+    if (notification == null) return;
+    final title = notification.title ?? '通知';
+    final body = notification.body ?? '';
+
+    if (kIsWeb) {
+      showBrowserNotification(title, body);
+      return;
+    }
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'todo_app_channel',
+        'Todo Notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+    _notificationsPlugin.show(
+      id: message.hashCode & 0x7FFFFFFF,
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: message.data['taskId']?.toString(),
+    );
+  }
+
   // 全ての通知を再スケジュール（設定画面でタイミングが変更された時に使用）
   Future<void> rescheduleAll(
     List<TodoItem> items,
@@ -158,6 +268,8 @@ class NotificationService {
     if (kIsWeb) return;
     await init();
     await _notificationsPlugin.cancelAll();
+    // プッシュが使える端末では端末内スケジュールは持たない
+    if (usesPush) return;
     for (var item in items) {
       if (!item.isDone && item.dueDate != null) {
         await scheduleNotification(item, defaultTiming);
