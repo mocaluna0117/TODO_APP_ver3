@@ -8,7 +8,7 @@ extension _TodoHomeTaskTagActionsSheet on _TodoHomePageState {
       builder: (context) {
         // 白い背景を外側に置き、セーフエリア分の下部まできちんと白くする
         return Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: s.surfaceColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),

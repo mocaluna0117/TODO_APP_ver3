@@ -19,7 +19,7 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: s.surfaceColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),

@@ -75,6 +75,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
             initial: selected,
             dueDate: dueDate,
             accentColor: s.primaryColor,
+            settings: s,
           );
           // キャンセル時（null）は今の設定を保つ
           if (result != null) onChanged(result);

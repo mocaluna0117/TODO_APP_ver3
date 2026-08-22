@@ -17,7 +17,7 @@ extension _TodoHomePriorityPicker on _TodoHomePageState {
         children: [
           Icon(Icons.star_outline_rounded, color: s.primaryColor),
           const SizedBox(width: 10),
-          const Text(
+          Text(
             '優先度',
             style: TextStyle(fontSize: 15, color: s.primaryTextColor),
           ),

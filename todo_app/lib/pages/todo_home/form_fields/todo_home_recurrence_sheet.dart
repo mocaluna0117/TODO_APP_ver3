@@ -7,6 +7,7 @@ Future<Recurrence?> showRecurrenceSheet(
   required Recurrence? initial,
   required DateTime? dueDate,
   required Color accentColor,
+  required AppSettings settings,
 }) {
   return showModalBottomSheet<Recurrence>(
     context: context,
@@ -18,6 +19,7 @@ Future<Recurrence?> showRecurrenceSheet(
       initial: initial,
       dueDate: dueDate,
       accentColor: accentColor,
+      settings: settings,
     ),
   );
 }
@@ -27,11 +29,14 @@ class _RecurrenceSheet extends StatefulWidget {
     required this.initial,
     required this.dueDate,
     required this.accentColor,
+    required this.settings,
   });
 
   final Recurrence? initial;
   final DateTime? dueDate;
   final Color accentColor;
+  // 配色（明暗）を参照するために受け取る
+  final AppSettings settings;
 
   @override
   State<_RecurrenceSheet> createState() => _RecurrenceSheetState();
@@ -53,6 +58,9 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
   late RecurrenceEnd _end;
   late DateTime _until;
   late int _count;
+
+  // 他の画面と同じ書き方で配色を参照できるようにする
+  AppSettings get s => widget.settings;
 
   // 曜日・日を省略している設定を具体化するときの基準日
   DateTime get _base => widget.dueDate ?? DateTime.now();
@@ -539,7 +547,7 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
             : null,
         underline: const SizedBox.shrink(),
         isDense: true,
-        style: const TextStyle(fontSize: 14, color: s.primaryTextColor),
+        style: TextStyle(fontSize: 14, color: s.primaryTextColor),
       ),
     );
   }
