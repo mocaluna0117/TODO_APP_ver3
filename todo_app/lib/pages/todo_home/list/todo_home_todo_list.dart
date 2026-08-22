@@ -14,15 +14,23 @@ extension _TodoHomeTodoList on _TodoHomePageState {
         Expanded(
           child: items.isEmpty
               ? _buildEmptyListMessage(category)
-              : ListView.builder(
-                  // タブを移動して戻ったとき、見ていた位置に復帰させる
-                  key: PageStorageKey<String>('todo-list-$category'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+              : NotificationListener<ScrollEndNotification>(
+                  // 2ペイン時、スクロールが止まったら右の詳細を
+                  // いま見えているタスクに合わせる
+                  onNotification: (notification) {
+                    _syncDetailToVisibleCard(category, notification);
+                    return false;
+                  },
+                  child: ListView.builder(
+                    // タブを移動して戻ったとき、見ていた位置に復帰させる
+                    key: PageStorageKey<String>('todo-list-$category'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (_, i) => _buildTodoCard(items[i], category),
                   ),
-                  itemCount: items.length,
-                  itemBuilder: (_, i) => _buildTodoCard(items[i], category),
                 ),
         ),
       ],

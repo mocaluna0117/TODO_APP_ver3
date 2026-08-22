@@ -84,15 +84,114 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
       if (!mounted) return;
       // まだ組み立てられていない（画面外の遠く）場合は何もしない。
       // その場合もリストの位置自体は PageStorage で復元されている。
-      final cardContext = _selectedCardKeys[_currentTabKey]?.currentContext;
+      final id = _selectedDetailItemIds[_currentTabKey];
+      final cardContext = id == null
+          ? null
+          : _cardKeys[_currentTabKey]?[id]?.currentContext;
       if (cardContext == null) return;
       Scrollable.ensureVisible(
         cardContext,
-        alignment: 0.3,
+        // スクロール追従の基準（リスト上端）と揃えておく
+        alignment: 0,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
     });
+  }
+
+  // 「今見ているカード」とみなす基準線を、リスト上端からどれだけ下に置くか。
+  // 上端ぎりぎりに残っているだけのカードを選ばないための余白。
+  static const double _visibleCardThreshold = 24;
+
+  // スクロールが止まったとき、左で見えているタスクに右の詳細を合わせる。
+  void _syncDetailToVisibleCard(
+    String category,
+    ScrollEndNotification notification,
+  ) {
+    if (!_isWideLayout || category != _currentTabKey) return;
+    // まだ何も選んでいないときは、スクロールだけで詳細を開かない
+    final selectedId = _selectedDetailItemIds[category];
+    if (selectedId == null) return;
+    // 未保存の入力があるときは切り替えない（入力を捨てないため）
+    if (_hasUnsavedDetailChanges()) return;
+
+    final viewport = notification.context?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.attached) return;
+    final referenceY =
+        viewport.localToGlobal(Offset.zero).dy + _visibleCardThreshold;
+
+    final keys = _cardKeys[category];
+    if (keys == null) return;
+    for (final item in _itemsByCategory(category)) {
+      final cardContext = keys[item.id]?.currentContext;
+      // 画面外でまだ組み立てられていないカードは飛ばす
+      if (cardContext == null) continue;
+      final box = cardContext.findRenderObject();
+      if (box is! RenderBox || !box.attached) continue;
+      // 基準線より上に流れ切ったカードは対象外
+      if (box.localToGlobal(Offset.zero).dy + box.size.height <= referenceY) {
+        continue;
+      }
+      if (item.id == selectedId) return; // すでに一致している
+      // スクロール処理中の setState を避けてフレーム後に反映する
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _updateState(() {
+          _selectedDetailItemIds[category] = item.id;
+          _detailDraft = null; // 別タスクなのでドラフトを作り直す
+        });
+      });
+      return;
+    }
+  }
+
+  // 右ペインに未保存の変更があるか
+  bool _hasUnsavedDetailChanges() {
+    final draft = _detailDraft;
+    final item = _selectedDetailItem;
+    if (draft == null || item == null || _detailDraftItemId != item.id) {
+      return false;
+    }
+    if (draft.textController.text != item.title) return true;
+    if (_normalizeOptionalText(draft.descriptionController.text) !=
+        item.description) {
+      return true;
+    }
+    if (!_sameDetailList(
+      normalizeLinkList(draft.linkControllers.map((c) => c.text)),
+      item.links,
+    )) {
+      return true;
+    }
+    if (draft.selectedDate != item.dueDate) return true;
+    if (draft.selectedTaskTag != item.taskTag) return true;
+    if (draft.selectedTaskPriority != item.priority) return true;
+    if (!_sameDetailRecurrence(draft.selectedRecurrence, item.recurrence)) {
+      return true;
+    }
+    if (!_sameDetailList(
+      draft.selectedImageBase64List,
+      item.imageBase64List,
+    )) {
+      return true;
+    }
+    return !_sameDetailList(
+      draft.selectedNotificationOffsets,
+      item.notificationOffsets ?? _defaultNotificationOffsets(),
+    );
+  }
+
+  bool _sameDetailList<T>(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  bool _sameDetailRecurrence(Recurrence? a, Recurrence? b) {
+    if (a == null || b == null) return a == null && b == null;
+    return a.hasSameConfig(b) && a.doneCount == b.doneCount;
   }
 
   Widget _buildDetailPane() {

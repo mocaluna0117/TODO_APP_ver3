@@ -44,8 +44,9 @@ class _TodoHomePageState extends State<TodoHomePage>
   // 2ペイン（広い画面）用: 詳細ペインで選択中のタスクとその編集ドラフト。
   // 選択はタブごとに覚えて、タブを戻したときにそのタブで見ていた詳細へ戻す。
   final Map<String, int> _selectedDetailItemIds = {};
-  // 選択中のカードへスクロールするためのキー（タブごと）
-  final Map<String, GlobalKey> _selectedCardKeys = {};
+  // カードの位置を測るためのキー（タブごと・タスクIDごと）。
+  // 選択カードへのスクロールと、スクロール追従の可視判定に使う。
+  final Map<String, Map<int, GlobalKey>> _cardKeys = {};
   // タブ切り替えの検知用（直前のタブ位置と、位置合わせ待ちかどうか）
   int _lastTabIndex = 0;
   bool _pendingScrollToSelectedCard = false;

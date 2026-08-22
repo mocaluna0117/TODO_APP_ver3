@@ -5,9 +5,10 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
     // 2ペイン表示中は、選択中のタスクを枠線でハイライトする
     final isSelected =
         _isWideLayout && item.id == _selectedDetailItemIds[category];
-    // 選択中のカードには、あとでスクロールして見せるためのキーを付ける
-    final selectedCardKey = isSelected
-        ? (_selectedCardKeys[category] ??= GlobalKey())
+    // 2ペイン時は位置を測れるようにキーを付ける
+    // （選択カードへのスクロールと、スクロール追従の可視判定に使う）
+    final cardKey = _isWideLayout
+        ? (_cardKeys[category] ??= {}).putIfAbsent(item.id, () => GlobalKey())
         : null;
 
     return AnimatedOpacity(
@@ -22,8 +23,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
         confirmDismiss: (_) => _handleDelete(item),
         background: _buildTodoCardDeleteBackground(),
         child: Card(
-          // 選択中のカードだけキーを持たせ、タブ復帰時にここへスクロールする
-          key: selectedCardKey,
+          key: cardKey,
           margin: const EdgeInsets.only(bottom: 8),
           elevation: 0,
           shape: RoundedRectangleBorder(
