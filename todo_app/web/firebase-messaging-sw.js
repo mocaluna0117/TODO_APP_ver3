@@ -20,19 +20,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// タブを閉じている間に届いた通知を表示する。
+// サーバーは Web 向けに data だけを送ってくるので、表示はここが唯一の経路。
+// （notification を付けるとSDKの自動表示と重なり、二重に出ることがある）
 messaging.onBackgroundMessage((payload) => {
-  // notification 付きのメッセージは Firebase の SDK が自動で表示するので、
-  // ここで表示すると二重になる。PC(Chrome) は tag が同じ通知をまとめるため
-  // 1件に見えるが、iOS Safari は tag による重複排除が効かず2件出てしまう。
+  // 念のため、notification 付きで届いた場合はSDKの自動表示に任せる
   if (payload.notification) return;
 
-  const title = 'Todo';
-  const body = (payload.data && payload.data.body) || '';
+  const data = payload.data || {};
+  const title = data.title || 'Todo';
+  const body = data.body || '';
   self.registration.showNotification(title, {
     body: body,
     icon: '/icons/Icon-192.png',
     badge: '/icons/Icon-192.png',
-    tag: (payload.data && payload.data.taskId) || undefined,
+    // 同じタスクの通知が続けて届いても積み上がらないようにする
+    tag: data.taskId || undefined,
   });
 });
 

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'app_settings.dart';
@@ -264,30 +265,54 @@ class NotificationService {
     }
   }
 
+  // この端末（インストール）を表す固定ID。
+  // トークンは再登録などで変わるため、同じ端末だと分かる目印を別に持たせ、
+  // 古い登録が残って同じ端末に通知が二重に届くのを防ぐ。
+  Future<String> _installationId() async {
+    final prefs = await SharedPreferences.getInstance();
+    var id = prefs.getString('installationId');
+    if (id != null && id.isNotEmpty) return id;
+    id =
+        '${DateTime.now().microsecondsSinceEpoch}'
+        '-${DateTime.now().hashCode.toUnsigned(16)}';
+    await prefs.setString('installationId', id);
+    return id;
+  }
+
   // 端末のトークンを users/{uid}/devices/{token} に登録する
   Future<void> _saveDeviceToken(String token) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      await FirebaseFirestore.instance
+      final installationId = await _installationId();
+      final devices = FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .collection('devices')
-          .doc(token)
-          .set({
-            'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          .collection('devices');
+      await devices.doc(token).set({
+        'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+        'installationId': installationId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      // 同じ端末の古い登録は消す（通知が重複して届かないようにする）
+      final sameDevice = await devices
+          .where('installationId', isEqualTo: installationId)
+          .get();
+      for (final doc in sameDevice.docs) {
+        if (doc.id != token) await doc.reference.delete();
+      }
     } catch (error) {
       debugPrint('Failed to register device token: $error');
     }
   }
 
   void _showForegroundMessage(RemoteMessage message) {
+    // Web は data だけで届く（表示を Service Worker と二重にしないため）ので、
+    // notification が無い場合は data から組み立てる。
     final notification = message.notification;
-    if (notification == null) return;
-    final title = notification.title ?? '通知';
-    final body = notification.body ?? '';
+    final title = notification?.title ?? message.data['title']?.toString();
+    final body = notification?.body ?? message.data['body']?.toString() ?? '';
+    if (title == null || title.isEmpty) return;
 
     if (kIsWeb) {
       showBrowserNotification(title, body);

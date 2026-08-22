@@ -80,33 +80,62 @@ exports.sendDueNotifications = onSchedule(
 
 async function loadDeviceTokens(uid) {
   const snapshot = await db.collection(`users/${uid}/devices`).get();
-  return snapshot.docs.map((doc) => doc.id).filter(Boolean);
+  return snapshot.docs
+    .filter((doc) => doc.id)
+    .map((doc) => ({ token: doc.id, platform: (doc.data() || {}).platform }));
 }
 
-async function sendToDevices(uid, tokens, payload) {
-  if (tokens.length === 0) return;
+async function sendToDevices(uid, devices, payload) {
+  if (devices.length === 0) return;
 
-  const response = await getMessaging().sendEachForMulticast({
-    tokens,
-    notification: { title: payload.title, body: payload.body },
-    data: { taskId: payload.taskId },
-    webpush: {
-      notification: {
+  // Web とネイティブで送り方を変える。
+  // ・Web: data のみで送り、Service Worker が1回だけ表示する。
+  //   notification を付けるとSDKの自動表示と重なり、二重に出ることがある。
+  // ・ネイティブ: notification を付けて、アプリを開いていなくてもOSが表示する。
+  const webTokens = devices
+    .filter((device) => device.platform === 'web')
+    .map((device) => device.token);
+  const nativeTokens = devices
+    .filter((device) => device.platform !== 'web')
+    .map((device) => device.token);
+
+  const stale = [];
+
+  if (webTokens.length > 0) {
+    const response = await getMessaging().sendEachForMulticast({
+      tokens: webTokens,
+      data: {
         title: payload.title,
         body: payload.body,
-        icon: '/icons/Icon-192.png',
-        tag: payload.taskId,
+        taskId: payload.taskId,
       },
-    },
-    android: { priority: 'high' },
-    apns: {
-      payload: { aps: { sound: 'default' } },
-    },
-  });
+      // ブラウザを閉じていた間の分も、起動後に届くようにする（1日保持）
+      webpush: { headers: { Urgency: 'high', TTL: '86400' } },
+    });
+    collectStaleTokens(response, webTokens, stale);
+  }
+
+  if (nativeTokens.length > 0) {
+    const response = await getMessaging().sendEachForMulticast({
+      tokens: nativeTokens,
+      notification: { title: payload.title, body: payload.body },
+      data: { taskId: payload.taskId },
+      android: { priority: 'high' },
+      apns: { payload: { aps: { sound: 'default' } } },
+    });
+    collectStaleTokens(response, nativeTokens, stale);
+  }
 
   // 無効になったトークン（アプリ削除・再インストール等）は消しておく。
   // 残しておくと毎回失敗して無駄になるため。
-  const stale = [];
+  await Promise.all(
+    stale.map((token) =>
+      db.doc(`users/${uid}/devices/${token}`).delete().catch(() => {}),
+    ),
+  );
+}
+
+function collectStaleTokens(response, tokens, stale) {
   response.responses.forEach((result, index) => {
     if (result.success) return;
     const code = result.error && result.error.code;
@@ -118,9 +147,4 @@ async function sendToDevices(uid, tokens, payload) {
       stale.push(tokens[index]);
     }
   });
-  await Promise.all(
-    stale.map((token) =>
-      db.doc(`users/${uid}/devices/${token}`).delete().catch(() => {}),
-    ),
-  );
 }
