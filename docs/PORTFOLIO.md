@@ -44,7 +44,9 @@
 ### 期限・通知
 
 - 日付＋時刻で期限を設定
-- ローカル通知でリマインド（**期限の時間 / 10 分前 / 1 時間前 / 1 日前 / 通知しない**）
+- 期限が近づくとリマインド（**期限の時間 / 10 分前 / 1 時間前 / 1 日前 / 通知しない**、タスクごとに複数設定可）
+- **端末をまたいだプッシュ通知**：送信予定を Firestore に持たせ、毎分実行の Cloud Function がアカウントの全端末へ送る。
+  プッシュを使えない端末はローカル通知に自動フォールバックさせ、二重通知を避けている
 - 通知タイミングを変更すると、登録済みの全タスクを自動で再スケジュール
 - タイムゾーン（Asia/Tokyo）を考慮した正確なスケジューリング
 
@@ -90,7 +92,8 @@
 | フレームワーク | Flutter（Dart SDK ^3.11） |
 | UI | Material Design / Cupertino Icons |
 | ローカル保存 | `shared_preferences`（JSON シリアライズ） |
-| 通知 | `flutter_local_notifications` / `timezone` |
+| 通知 | `firebase_messaging` / `flutter_local_notifications` / `timezone` |
+| サーバー処理 | Cloud Functions（Node.js 22・スケジュール実行） |
 | 画像 | `image_picker` |
 | 共有・ファイル | `share_plus` / `file_picker` |
 | 圧縮 | `archive`（ZIP の生成・展開） |
@@ -110,7 +113,7 @@ lib/
 ├── main.dart                 # エントリポイント / part の集約
 ├── app/my_app.dart           # テーマ・ローカライズ設定
 ├── app_settings.dart         # アプリ設定モデル（永続化込み）
-├── notification_service.dart # ローカル通知サービス（シングルトン）
+├── notification_service.dart # 通知サービス（プッシュ登録＋ローカル通知）
 ├── models/todo_item.dart     # タスクのデータモデル
 ├── pages/todo_home/          # ホーム画面（機能別に細分化）
 │   ├── core/                 # 画面本体・状態・データ入出力・クエリ
