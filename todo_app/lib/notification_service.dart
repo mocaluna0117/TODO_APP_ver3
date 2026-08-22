@@ -213,6 +213,33 @@ class NotificationService {
     }
   }
 
+  // ログイン中のユーザーへ、この端末のトークンを登録し直す。
+  // アカウントを切り替えたときに新しいユーザー側へ登録するため、
+  // ログイン後の画面から毎回呼ぶ。
+  Future<void> registerCurrentDevice() async {
+    final token = _pushToken;
+    if (token == null) return;
+    await _saveDeviceToken(token);
+  }
+
+  // ログアウト時に、この端末のトークンを今のユーザーから外す。
+  // 残したままだと、別のアカウントで使っても前のユーザー宛の通知が届いてしまう。
+  Future<void> unregisterDevice() async {
+    final token = _pushToken;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (token == null || uid == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('devices')
+          .doc(token)
+          .delete();
+    } catch (error) {
+      debugPrint('Failed to unregister device token: $error');
+    }
+  }
+
   // 端末のトークンを users/{uid}/devices/{token} に登録する
   Future<void> _saveDeviceToken(String token) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;

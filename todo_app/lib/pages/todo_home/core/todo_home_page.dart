@@ -79,6 +79,11 @@ class _TodoHomePageState extends State<TodoHomePage>
   void initState() {
     super.initState();
     _rebuildTabController();
+    // プッシュ通知の初期化と端末トークンの登録。
+    // ログイン後にしか行えないので、ここで呼ぶ（Webでも必要）。
+    NotificationService().init().then(
+      (_) => NotificationService().registerCurrentDevice(),
+    );
     _loadData();
     _startSettingsSync();
     _loadListPaneWidth();

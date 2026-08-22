@@ -45,7 +45,11 @@ class _AuthGateState extends State<AuthGate> {
           settings: widget.settings,
           onSettingsChanged: widget.onSettingsChanged,
           userEmail: user.email,
-          onSignOut: () => FirebaseAuth.instance.signOut(),
+          onSignOut: () async {
+            // この端末を通知の宛先から外してからログアウトする
+            await NotificationService().unregisterDevice();
+            await FirebaseAuth.instance.signOut();
+          },
         );
       },
     );
