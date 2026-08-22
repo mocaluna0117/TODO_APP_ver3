@@ -52,7 +52,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
   ) async {
     final granted = await enable();
     if (!mounted) return;
-    setState(() {});
+    rebuild();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

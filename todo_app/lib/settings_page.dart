@@ -60,6 +60,9 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   AppSettings get s => widget.settings;
 
+  // extension からは setState を直接呼べないため、ここで包んで公開する
+  void rebuild() => setState(() {});
+
   void _notify() {
     widget.settings.saveToPrefs();
     widget.onSettingsChanged();
