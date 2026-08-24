@@ -29,7 +29,7 @@ extension _TodoHomeSettings on _TodoHomePageState {
           onOpenTrash: _openTrash,
           onOpenInquiryForm: _openInquiryForm,
           // 閲覧できないアカウントには項目自体を出さない
-          onOpenInquiryList: _canViewInquiries ? _openInquiryList : null,
+          onOpenInquiryList: _isInquiryAdmin ? _openInquiryList : null,
           trashCount: () => _trashedItems.length,
           userEmail: widget.userEmail,
           onSignOut: widget.onSignOut,
