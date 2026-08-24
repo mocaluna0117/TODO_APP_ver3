@@ -63,17 +63,47 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
     );
   }
 
-  // 現在のタブで選択中のタスク。
-  // 左の一覧（タブ＋タグ絞り込み後）に居ないタスクは詳細も出さない。
-  // 削除・完了・タグ絞り込み・カテゴリ移動で一覧から消えたときに、
-  // 右だけ古いタスクを表示し続けるのを防ぐ。
+  // 実際に詳細ペインへ出すタスクのID。
+  // まだ何も選んでいないときは一覧の先頭を出す（右側が空のままにならないように）。
+  // 左の一覧（タブ＋タグ絞り込み後）に居ないタスクは対象にしない。削除・完了・
+  // タグ絞り込み・カテゴリ移動で一覧から消えたときに、右だけ古いタスクを
+  // 表示し続けるのを防ぐ。
+  int? _effectiveSelectedDetailId(String tabKey) {
+    final items = _itemsByCategory(tabKey);
+    if (items.isEmpty) return null;
+    final id = _selectedDetailItemIds[tabKey];
+    if (id != null && items.any((item) => item.id == id)) return id;
+    // 完了済みタブはカードをタップできない仕様なので、自動では選ばない
+    if (tabKey == 'done') return null;
+    return items.first.id;
+  }
+
+  // 現在のタブで詳細に出すタスク
   TodoItem? get _selectedDetailItem {
-    final id = _selectedDetailItemIds[_currentTabKey];
+    final id = _effectiveSelectedDetailId(_currentTabKey);
     if (id == null) return null;
     for (final item in _itemsByCategory(_currentTabKey)) {
       if (item.id == id) return item;
     }
     return null;
+  }
+
+  // まだ何も選んでいないタブでは、一覧の先頭を選んで詳細を表示する。
+  // ビルド中に状態を変えないよう、次のフレームで反映する。
+  void _selectFirstItemIfNeeded() {
+    if (!_isWideLayout) return;
+    final tabKey = _currentTabKey;
+    if (_selectedDetailItemIds.containsKey(tabKey)) return;
+    final items = _itemsByCategory(tabKey);
+    if (items.isEmpty) return;
+    final id = items.first.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // フレームの間に選択や表示タブが変わっていたら何もしない
+      if (_currentTabKey != tabKey) return;
+      if (_selectedDetailItemIds.containsKey(tabKey)) return;
+      _updateState(() => _selectedDetailItemIds[tabKey] = id);
+    });
   }
 
   // 選択中のカードが左ペインで見えるようにスクロールする。
@@ -84,7 +114,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
       if (!mounted) return;
       // まだ組み立てられていない（画面外の遠く）場合は何もしない。
       // その場合もリストの位置自体は PageStorage で復元されている。
-      final id = _selectedDetailItemIds[_currentTabKey];
+      final id = _effectiveSelectedDetailId(_currentTabKey);
       final cardContext = id == null
           ? null
           : _cardKeys[_currentTabKey]?[id]?.currentContext;
@@ -120,7 +150,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
     // タブ復帰時の自動スクロールによる通知は追従の対象外
     if (_ignoreNextScrollEnd) return;
     // まだ何も選んでいないときは、スクロールだけで詳細を開かない
-    final selectedId = _selectedDetailItemIds[category];
+    final selectedId = _effectiveSelectedDetailId(category);
     if (selectedId == null) return;
     // 未保存の入力があるときは切り替えない（入力を捨てないため）
     if (_hasUnsavedDetailChanges()) return;
@@ -255,6 +285,8 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
   }
 
   Widget _buildDetailPane() {
+    // 未選択のままだと右側が空になってしまうので、そのタブの先頭を選んでおく
+    _selectFirstItemIfNeeded();
     final item = _selectedDetailItem;
     if (item == null) {
       // 未選択（または選択中のタスクが削除された）
@@ -365,19 +397,6 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
                   ],
                 ),
                 // 選択を解除して詳細を閉じる
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey.shade500),
-                    tooltip: '閉じる',
-                    onPressed: () => _updateState(() {
-                      _selectedDetailItemIds.remove(_currentTabKey);
-                      _detailDraft = null;
-                      _detailDraftItemId = null;
-                    }),
-                  ),
-                ),
               ],
             ),
           ),

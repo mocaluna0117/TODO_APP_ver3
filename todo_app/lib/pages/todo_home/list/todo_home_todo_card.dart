@@ -4,7 +4,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
   Widget _buildTodoCard(TodoItem item, String category) {
     // 2ペイン表示中は、選択中のタスクを枠線でハイライトする
     final isSelected =
-        _isWideLayout && item.id == _selectedDetailItemIds[category];
+        _isWideLayout && item.id == _effectiveSelectedDetailId(category);
     // 2ペイン時は位置を測れるようにキーを付ける
     // （選択カードへのスクロールと、スクロール追従の可視判定に使う）
     final cardKey = _isWideLayout

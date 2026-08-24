@@ -28,6 +28,7 @@ import 'firebase_options.dart';
 
 part 'models/recurrence.dart';
 part 'models/todo_item.dart';
+part 'models/inquiry.dart';
 part 'app/my_app.dart';
 part 'app/auth_gate.dart';
 part 'pages/sign_in/sign_in_page.dart';
@@ -52,6 +53,8 @@ part 'pages/todo_home/dialogs/task_tag/todo_home_task_tag_dialogs.dart';
 part 'pages/todo_home/dialogs/task_tag/todo_home_add_task_tag_dialog.dart';
 part 'pages/todo_home/dialogs/todo_home_delete_dialogs.dart';
 part 'pages/todo_home/dialogs/todo_home_trash_page.dart';
+part 'pages/todo_home/inquiry/todo_home_inquiry_form.dart';
+part 'pages/todo_home/inquiry/todo_home_inquiry_list.dart';
 part 'pages/todo_home/dialogs/todo_home_bulk_delete_dialog.dart';
 part 'pages/todo_home/dialogs/edit/todo_home_edit_dialog.dart';
 part 'pages/todo_home/dialogs/edit/todo_home_edit_dialog_draft.dart';

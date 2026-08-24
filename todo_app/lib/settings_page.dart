@@ -10,6 +10,7 @@ part 'settings/sections/settings_app_title_section.dart';
 part 'settings/sections/settings_tag_section.dart';
 part 'settings/sections/settings_backup_section.dart';
 part 'settings/sections/settings_data_section.dart';
+part 'settings/sections/settings_inquiry_section.dart';
 part 'settings/sections/settings_account_section.dart';
 part 'settings/sections/settings_behavior_section.dart';
 part 'settings/sections/settings_notification_section.dart';
@@ -31,6 +32,9 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onDeleteAllTasks;
   // ゴミ箱を開く／中の件数（削除したタスクの復元用）
   final VoidCallback? onOpenTrash;
+  // 問い合わせの送信画面／届いた一覧（一覧は閲覧できるアカウントのみ）
+  final VoidCallback? onOpenInquiryForm;
+  final VoidCallback? onOpenInquiryList;
   final int Function()? trashCount;
   final String? userEmail;
   // ログアウト完了を待ってから設定ページを閉じたいので Future を返す
@@ -50,6 +54,8 @@ class SettingsPage extends StatefulWidget {
     this.onImportTasks,
     this.onDeleteAllTasks,
     this.onOpenTrash,
+    this.onOpenInquiryForm,
+    this.onOpenInquiryList,
     this.trashCount,
     this.userEmail,
     this.onSignOut,
