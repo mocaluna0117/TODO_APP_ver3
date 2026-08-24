@@ -3,10 +3,12 @@ part of '../../../../main.dart';
 extension _TodoHomeEditDialogFields on _TodoHomePageState {
   Widget _buildEditDialogFields({
     required TodoItem item,
-    required bool isFromTodayTab,
+    required String tabKey,
     required _EditTodoDraft draft,
     required StateSetter setSheetState,
   }) {
+    // 日付が決まっているタブ（今日/明日やること）では時刻だけ選ばせる
+    final fixedDay = _fixedDayForTab(tabKey);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,8 +48,9 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
           ),
         ],
         const SizedBox(height: 12),
-        if (isFromTodayTab)
+        if (fixedDay != null)
           _buildTimeOnlyPickerRow(
+            day: fixedDay,
             selectedDate: draft.selectedDate,
             onTimeSelected: (date) =>
                 setSheetState(() => draft.selectedDate = date),

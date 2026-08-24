@@ -3,7 +3,7 @@ part of '../../../../main.dart';
 extension _TodoHomeAddDialogContent on _TodoHomePageState {
   Widget _buildAddDialogContent({
     required String category,
-    required bool isFromTodayTab,
+    required String tabKey,
     required _AddTodoDraft draft,
     required double maxModalHeight,
     required EdgeInsets padding,
@@ -50,7 +50,7 @@ extension _TodoHomeAddDialogContent on _TodoHomePageState {
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         child: _buildAddDialogFields(
                           category: category,
-                          isFromTodayTab: isFromTodayTab,
+                          tabKey: tabKey,
                           draft: draft,
                           setSheetState: setSheetState,
                           submit: submit,

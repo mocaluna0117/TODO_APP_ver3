@@ -343,7 +343,7 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         child: _buildEditDialogFields(
                           item: item,
-                          isFromTodayTab: _currentTabKey == 'today',
+                          tabKey: _currentTabKey,
                           draft: draft,
                           setSheetState: _updateState,
                         ),

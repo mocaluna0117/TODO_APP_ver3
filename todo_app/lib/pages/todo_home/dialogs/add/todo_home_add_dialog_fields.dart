@@ -3,18 +3,20 @@ part of '../../../../main.dart';
 extension _TodoHomeAddDialogFields on _TodoHomePageState {
   Widget _buildAddDialogFields({
     required String category,
-    required bool isFromTodayTab,
+    required String tabKey,
     required _AddTodoDraft draft,
     required StateSetter setSheetState,
     required VoidCallback submit,
   }) {
+    // 日付が決まっているタブ（今日/明日やること）では時刻だけ選ばせる
+    final fixedDay = _fixedDayForTab(tabKey);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           // 今日やることタブから追加する場合はそのタブ名をタイトルに反映する
-          '${_tabName(isFromTodayTab ? 'today' : category)}を追加',
+          '${_tabName(fixedDay != null ? tabKey : category)}を追加',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -49,8 +51,9 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
           ),
         ],
         const SizedBox(height: 12),
-        if (isFromTodayTab)
+        if (fixedDay != null)
           _buildTimeOnlyPickerRow(
+            day: fixedDay,
             selectedDate: draft.selectedDate,
             onTimeSelected: (date) =>
                 setSheetState(() => draft.selectedDate = date),
@@ -63,7 +66,7 @@ extension _TodoHomeAddDialogFields on _TodoHomePageState {
                 setSheetState(() => draft.selectedDate = date),
             onDateCleared: () => setSheetState(() => draft.selectedDate = null),
           ),
-        if (!isFromTodayTab) ...[
+        if (fixedDay == null) ...[
           const SizedBox(height: 12),
           _buildRecurrencePicker(
             selectedRecurrence: draft.selectedRecurrence,

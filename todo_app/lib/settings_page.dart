@@ -7,7 +7,6 @@ part 'settings/actions/settings_tag_actions.dart';
 part 'settings/actions/settings_text_edit_dialog.dart';
 part 'settings/sections/settings_sections.dart';
 part 'settings/sections/settings_app_title_section.dart';
-part 'settings/sections/settings_tab_section.dart';
 part 'settings/sections/settings_tag_section.dart';
 part 'settings/sections/settings_backup_section.dart';
 part 'settings/sections/settings_data_section.dart';

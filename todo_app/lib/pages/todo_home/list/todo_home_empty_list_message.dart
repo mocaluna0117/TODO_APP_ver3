@@ -18,6 +18,8 @@ extension _TodoHomeEmptyListMessage on _TodoHomePageState {
                 ? Icons.lightbulb_outline
                 : category == 'today'
                 ? Icons.today_outlined
+                : category == 'tomorrow'
+                ? Icons.event_outlined
                 : Icons.inbox_outlined,
             size: 64,
             color: s.outlineColor,
@@ -26,10 +28,11 @@ extension _TodoHomeEmptyListMessage on _TodoHomePageState {
           Text(
             hasTagFilter
                 ? '$tagFilterのタスクはありません'
-                : category == 'done'
-                ? '${s.doneTabName}のタスクはありません'
-                : category == 'today'
-                ? '${s.todayTabName}のタスクはありません'
+                // 期限で自動的に集まるタブは「追加しましょう」ではなく件数の話にする
+                : (category == 'done' ||
+                      category == 'today' ||
+                      category == 'tomorrow')
+                ? '${_tabName(category)}のタスクはありません'
                 : '${_tabName(category)}を追加しましょう',
             style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
           ),

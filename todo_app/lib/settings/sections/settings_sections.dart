@@ -4,7 +4,6 @@ extension _SettingsSections on _SettingsPageState {
   List<Widget> _buildSettingsSections() {
     return [
       ..._buildAppTitleSection(),
-      ..._buildTabSettingsSection(),
       ..._buildTaskTagSection(),
       ..._buildBehaviorSection(),
       ..._buildNotificationSection(),

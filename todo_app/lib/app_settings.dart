@@ -25,17 +25,6 @@ class AppSettings {
   // アプリタイトル
   String appTitle;
 
-  // タブ名
-  String todoTabName;
-  String todayTabName;
-  String doneTabName;
-  String futureTabName;
-
-  // タブ表示ON/OFF（todoは常にtrue）
-  bool showTodayTab;
-  bool showDoneTab;
-  bool showFutureTab;
-
   // 削除確認ダイアログ表示ON/OFF
   bool showDeleteConfirm;
   bool enableSwipeDelete;
@@ -69,13 +58,6 @@ class AppSettings {
 
   AppSettings({
     this.appTitle = 'TODO',
-    this.todoTabName = 'やること',
-    this.todayTabName = '今日やること',
-    this.doneTabName = '完了済み',
-    this.futureTabName = 'やりたいこと',
-    this.showTodayTab = true,
-    this.showDoneTab = true,
-    this.showFutureTab = true,
     this.showDeleteConfirm = true,
     this.enableSwipeDelete = false,
     this.sortOrder = SortOrder.dueDateAsc,
@@ -130,13 +112,6 @@ class AppSettings {
   Future<void> saveToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('appTitle', appTitle);
-    await prefs.setString('todoTabName', todoTabName);
-    await prefs.setString('todayTabName', todayTabName);
-    await prefs.setString('doneTabName', doneTabName);
-    await prefs.setString('futureTabName', futureTabName);
-    await prefs.setBool('showTodayTab', showTodayTab);
-    await prefs.setBool('showDoneTab', showDoneTab);
-    await prefs.setBool('showFutureTab', showFutureTab);
     await prefs.setBool('showDeleteConfirm', showDeleteConfirm);
     await prefs.setBool('enableSwipeDelete', enableSwipeDelete);
     await prefs.setInt('sortOrder', sortOrder.index);
@@ -159,13 +134,6 @@ class AppSettings {
   // Firestore 保存用のマップに変換する。
   Map<String, dynamic> toMap() => {
     'appTitle': appTitle,
-    'todoTabName': todoTabName,
-    'todayTabName': todayTabName,
-    'doneTabName': doneTabName,
-    'futureTabName': futureTabName,
-    'showTodayTab': showTodayTab,
-    'showDoneTab': showDoneTab,
-    'showFutureTab': showFutureTab,
     'showDeleteConfirm': showDeleteConfirm,
     'enableSwipeDelete': enableSwipeDelete,
     'sortOrder': sortOrder.index,
@@ -181,13 +149,6 @@ class AppSettings {
   // Firestore から取得したマップを反映する（クラウド優先で上書き）。
   void applyMap(Map<String, dynamic> data) {
     appTitle = data['appTitle'] as String? ?? appTitle;
-    todoTabName = data['todoTabName'] as String? ?? todoTabName;
-    todayTabName = data['todayTabName'] as String? ?? todayTabName;
-    doneTabName = data['doneTabName'] as String? ?? doneTabName;
-    futureTabName = data['futureTabName'] as String? ?? futureTabName;
-    showTodayTab = data['showTodayTab'] as bool? ?? showTodayTab;
-    showDoneTab = data['showDoneTab'] as bool? ?? showDoneTab;
-    showFutureTab = data['showFutureTab'] as bool? ?? showFutureTab;
     showDeleteConfirm = data['showDeleteConfirm'] as bool? ?? showDeleteConfirm;
     enableSwipeDelete = data['enableSwipeDelete'] as bool? ?? enableSwipeDelete;
 
@@ -235,13 +196,6 @@ class AppSettings {
   Future<void> loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     appTitle = prefs.getString('appTitle') ?? appTitle;
-    todoTabName = prefs.getString('todoTabName') ?? todoTabName;
-    todayTabName = prefs.getString('todayTabName') ?? todayTabName;
-    doneTabName = prefs.getString('doneTabName') ?? doneTabName;
-    futureTabName = prefs.getString('futureTabName') ?? futureTabName;
-    showTodayTab = prefs.getBool('showTodayTab') ?? showTodayTab;
-    showDoneTab = prefs.getBool('showDoneTab') ?? showDoneTab;
-    showFutureTab = prefs.getBool('showFutureTab') ?? showFutureTab;
     showDeleteConfirm = prefs.getBool('showDeleteConfirm') ?? showDeleteConfirm;
     enableSwipeDelete = prefs.getBool('enableSwipeDelete') ?? enableSwipeDelete;
 

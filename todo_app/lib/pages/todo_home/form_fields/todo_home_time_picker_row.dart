@@ -1,15 +1,16 @@
 part of '../../../main.dart';
 
 extension _TodoHomeTimePickerRow on _TodoHomePageState {
+  // [day] の日付は固定し、時刻だけを選ばせる行（今日やること／明日やること用）
   Widget _buildTimeOnlyPickerRow({
+    required DateTime day,
     required DateTime? selectedDate,
     required ValueChanged<DateTime> onTimeSelected,
     required VoidCallback onTimeCleared,
   }) {
     return InkWell(
       onTap: () async {
-        final now = DateTime.now();
-        // 過去の時刻も設定できるようにするため、今日の 0:00〜23:59 を自由に選べる
+        // 過去の時刻も設定できるようにするため、その日の 0:00〜23:59 を自由に選べる
         final pickedTime = await _pickDueTime(
           selectedDate != null
               ? TimeOfDay.fromDateTime(selectedDate)
@@ -18,9 +19,9 @@ extension _TodoHomeTimePickerRow on _TodoHomePageState {
         if (pickedTime != null) {
           onTimeSelected(
             DateTime(
-              now.year,
-              now.month,
-              now.day,
+              day.year,
+              day.month,
+              day.day,
               pickedTime.hour,
               pickedTime.minute,
             ),

@@ -2,12 +2,13 @@ part of '../../../main.dart';
 
 extension _TodoHomeDialogs on _TodoHomePageState {
   void _showAddDialog() {
-    final isFromTodayTab = _currentTabKey == 'today';
-    final category = _currentTabKey == 'done' || isFromTodayTab
-        ? 'todo'
-        : _currentTabKey;
+    final tabKey = _currentTabKey;
+    final fixedDay = _fixedDayForTab(tabKey);
+    // 「今日やること」「明日やること」「完了済み」は期限や状態で自動的に集まる
+    // 表示用のタブなので、保存先のカテゴリは「やること」にする
+    final category = (tabKey == 'done' || fixedDay != null) ? 'todo' : tabKey;
     final draft = _AddTodoDraft(
-      isFromTodayTab: isFromTodayTab,
+      fixedDay: fixedDay,
       defaultNotificationOffsets: _defaultNotificationOffsets(),
     );
 
@@ -45,7 +46,7 @@ extension _TodoHomeDialogs on _TodoHomePageState {
 
             return _buildAddDialogContent(
               category: category,
-              isFromTodayTab: isFromTodayTab,
+              tabKey: tabKey,
               draft: draft,
               maxModalHeight: maxModalHeight,
               padding: EdgeInsets.only(

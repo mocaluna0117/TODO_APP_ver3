@@ -68,14 +68,9 @@ class _TodoHomePageState extends State<TodoHomePage>
 
   AppSettings get s => widget.settings;
 
-  // 有効なタブのカテゴリキーリスト
-  List<String> get _activeTabKeys {
-    final keys = <String>['todo'];
-    if (s.showTodayTab) keys.add('today');
-    if (s.showDoneTab) keys.add('done');
-    if (s.showFutureTab) keys.add('future');
-    return keys;
-  }
+  // タブのカテゴリキー（この順に並ぶ）
+  List<String> get _activeTabKeys =>
+      const ['todo', 'today', 'tomorrow', 'done', 'future'];
 
   @override
   void initState() {

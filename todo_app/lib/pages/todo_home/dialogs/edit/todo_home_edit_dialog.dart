@@ -2,7 +2,6 @@ part of '../../../../main.dart';
 
 extension _TodoHomeEditDialog on _TodoHomePageState {
   void _showEditDialog(TodoItem item, {String tabKey = ''}) {
-    final isFromTodayTab = tabKey == 'today';
     final draft = _EditTodoDraft(
       item,
       defaultNotificationOffsets: _defaultNotificationOffsets(),
@@ -42,7 +41,7 @@ extension _TodoHomeEditDialog on _TodoHomePageState {
 
             return _buildEditDialogContent(
               item: item,
-              isFromTodayTab: isFromTodayTab,
+              tabKey: tabKey,
               draft: draft,
               maxModalHeight: maxModalHeight,
               padding: EdgeInsets.only(

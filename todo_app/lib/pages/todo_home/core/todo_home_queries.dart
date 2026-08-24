@@ -17,15 +17,32 @@ extension _TodoHomeQueries on _TodoHomePageState {
   String _tabName(String key) {
     switch (key) {
       case 'todo':
-        return s.todoTabName;
+        return 'やること';
       case 'today':
-        return s.todayTabName;
+        return '今日やること';
+      case 'tomorrow':
+        return '明日やること';
       case 'done':
-        return s.doneTabName;
+        return '完了済み';
       case 'future':
-        return s.futureTabName;
+        return 'やりたいこと';
       default:
         return key;
+    }
+  }
+
+  // 「今日やること」「明日やること」タブから追加・編集するときに、日付を固定する
+  // 対象日。これらのタブは日付が決まっているので時刻だけ選ばせる。
+  // それ以外のタブでは null（日付も自由に選べる）。
+  DateTime? _fixedDayForTab(String tabKey) {
+    final now = DateTime.now();
+    switch (tabKey) {
+      case 'today':
+        return DateTime(now.year, now.month, now.day);
+      case 'tomorrow':
+        return DateTime(now.year, now.month, now.day + 1);
+      default:
+        return null;
     }
   }
 
@@ -35,6 +52,10 @@ extension _TodoHomeQueries on _TodoHomePageState {
       'today' =>
         _allItems
             .where((item) => !item.isDone && _isDueTodayOrOverdue(item))
+            .toList(),
+      'tomorrow' =>
+        _allItems
+            .where((item) => !item.isDone && _isDueTomorrow(item))
             .toList(),
       _ =>
         _allItems
@@ -72,6 +93,25 @@ extension _TodoHomeQueries on _TodoHomePageState {
     final now = DateTime.now();
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
     return !dueDate.isAfter(endOfToday);
+  }
+
+  // 明日が期限のタスク。今日ぶんと期限切れは「今日やること」側に出る。
+  bool _isDueTomorrow(TodoItem item) {
+    final dueDate = item.dueDate;
+    if (dueDate == null) return false;
+    final now = DateTime.now();
+    final startOfTomorrow = DateTime(now.year, now.month, now.day + 1);
+    final endOfTomorrow = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+      23,
+      59,
+      59,
+      999,
+    );
+    return !dueDate.isBefore(startOfTomorrow) &&
+        !dueDate.isAfter(endOfTomorrow);
   }
 
   String _formatTodoCardDueDate(DateTime dueDate) {
