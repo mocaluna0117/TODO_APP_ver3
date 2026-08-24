@@ -3,7 +3,7 @@ part of '../../settings_page.dart';
 extension _SettingsTagSection on _SettingsPageState {
   List<Widget> _buildTaskTagSection() {
     return [
-      _buildSectionHeader('タグ（やること・今日やること用）'),
+      _buildSectionHeader('タグ（やること・今日やること・明日やること用）'),
       _buildTagGroupCard(s.taskTags, isFuture: false),
       _buildSectionHeader('タグ（やりたいこと用）'),
       _buildTagGroupCard(s.futureTaskTags, isFuture: true),
