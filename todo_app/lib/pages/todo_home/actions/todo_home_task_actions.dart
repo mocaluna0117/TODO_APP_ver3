@@ -89,34 +89,94 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
 
   // タスクを複製する。
   // 完了状態と繰り返しの進捗はリセットし、すぐ取り組める状態で作る。
-  // 画像とPDFは引き継がない。URLをそのままコピーすると Storage 上の実体を
-  // 2つのタスクで共有してしまい、片方を削除・編集したときにもう片方の
-  // 画像が消えるため。
+  // 画像とPDFは、実体を読み込み直して複製側のフォルダへ入れ直す（後述）。
   void _duplicateItem(TodoItem item) {
     final recurrence = item.recurrence;
     final offsets = item.notificationOffsets;
-    _addItem(
-      '${item.title}のコピー',
-      item.category,
+    final duplicate = TodoItem(
+      title: '${item.title}のコピー',
       description: item.description,
-      links: item.links,
-      taskTag: item.taskTag,
+      links: [...item.links],
+      category: item.category,
+      taskTag: _normalizeKnownTaskTag(item.taskTag, item.category),
       dueDate: item.dueDate,
       // 繰り返し回数の進捗は引き継がない（複製は1回目から数える）
       recurrence: recurrence?.copyWith(doneCount: 0),
       priority: item.priority,
       notificationOffsets: offsets == null ? null : [...offsets],
     );
+    _updateState(() => _allItems.add(duplicate));
+    _saveData();
+    NotificationService().scheduleNotification(duplicate, s.notificationTiming);
+
     final hasAttachments =
         item.imageBase64List.isNotEmpty || item.attachments.isNotEmpty;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          hasAttachments ? '複製しました（画像とPDFは引き継いでいません）' : '複製しました',
-        ),
+        content: Text(hasAttachments ? '複製しました（画像とPDFを引き継ぎ中）' : '複製しました'),
         duration: const Duration(seconds: 3),
       ),
     );
+    if (hasAttachments) {
+      _copyAttachmentsToDuplicate(item, duplicate);
+    }
+  }
+
+  // 複製先へ画像・PDFを引き継ぐ。
+  //
+  // URLをそのままコピーすると Storage 上の実体を2つのタスクで共有してしまい、
+  // 片方を削除・編集したときにもう片方の画像まで消える。そのため実体を
+  // 読み込んで「未アップロードの添付」として渡し、複製側のフォルダへ
+  // アップロードし直す（アップロード自体は保存処理が行う）。
+  Future<void> _copyAttachmentsToDuplicate(
+    TodoItem source,
+    TodoItem duplicate,
+  ) async {
+    if (!mounted) return;
+    // 引き継ぎ中はカードに「アップロード中」を出す
+    _updateState(() => _uploadingImageItemIds.add(duplicate.id));
+    var failed = 0;
+    try {
+      final images = <String>[];
+      for (final entry in source.imageBase64List) {
+        if (!_isImageUrl(entry)) {
+          images.add(entry); // まだアップロードされていない画像はそのまま
+          continue;
+        }
+        final bytes = await _downloadStorageFile(entry);
+        if (bytes == null) {
+          failed++;
+        } else {
+          images.add(base64Encode(bytes));
+        }
+      }
+
+      final files = <PendingTaskFile>[];
+      for (final file in source.attachments) {
+        final bytes = await _downloadStorageFile(file.url);
+        if (bytes == null) {
+          failed++;
+        } else {
+          files.add(PendingTaskFile(name: file.name, bytes: bytes));
+        }
+      }
+
+      if (!mounted) return;
+      _updateState(() {
+        duplicate.imageBase64List = images;
+        duplicate.pendingFiles = files;
+      });
+      await _saveData();
+    } finally {
+      if (mounted) {
+        _updateState(() => _uploadingImageItemIds.remove(duplicate.id));
+      }
+    }
+
+    if (!mounted || failed == 0) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$failed件のファイルを引き継げませんでした')));
   }
 
   // やること⇔やりたいことの間でタスクを移動する

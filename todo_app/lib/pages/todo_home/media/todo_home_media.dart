@@ -273,6 +273,19 @@ extension _TodoHomeMedia on _TodoHomePageState {
     );
   }
 
+  // Storage 上のファイルを読み込む（タスク複製で実体をコピーするために使う）。
+  // 失敗しても致命的ではないので null を返して呼び出し側に任せる。
+  Future<Uint8List?> _downloadStorageFile(String url) async {
+    try {
+      return await FirebaseStorage.instance
+          .refFromURL(url)
+          .getData(kMaxAttachmentBytes);
+    } catch (error) {
+      debugPrint('Failed to read attachment for copy: $error');
+      return null;
+    }
+  }
+
   // タスクの添付（画像・PDF）を Storage からすべて削除する（フォルダごと）。
   // 失敗しても致命的ではない（孤立ファイルが残るだけ）ので握りつぶす。
   Future<void> _deleteTaskImages(int itemId) async {
