@@ -7,14 +7,14 @@ extension _SettingsBehaviorSection on _SettingsPageState {
       _buildCard(
         children: [
           SwitchListTile(
-            secondary: Icon(Icons.warning_amber_rounded, color: s.primaryColor),
+            secondary: Icon(Icons.warning_amber_rounded, color: s.accentOnSurface),
             title: const Text('削除時の確認ダイアログ'),
             subtitle: const Text(
               '削除前に確認を表示',
               style: TextStyle(fontSize: 12),
             ),
             value: s.showDeleteConfirm,
-            activeThumbColor: s.primaryColor,
+            activeThumbColor: s.accentOnSurface,
             onChanged: (v) {
               s.showDeleteConfirm = v;
               _notify();
@@ -22,7 +22,7 @@ extension _SettingsBehaviorSection on _SettingsPageState {
           ),
           _divider(),
           SwitchListTile(
-            secondary: Icon(Icons.swipe_left_alt, color: s.primaryColor),
+            secondary: Icon(Icons.swipe_left_alt, color: s.accentOnSurface),
             title: const Text('スワイプで削除'),
             subtitle: const Text(
               'タスクを左にスワイプして削除',
@@ -31,7 +31,7 @@ extension _SettingsBehaviorSection on _SettingsPageState {
               style: TextStyle(fontSize: 12),
             ),
             value: s.enableSwipeDelete,
-            activeThumbColor: s.primaryColor,
+            activeThumbColor: s.accentOnSurface,
             onChanged: (v) {
               s.enableSwipeDelete = v;
               _notify();
@@ -39,7 +39,7 @@ extension _SettingsBehaviorSection on _SettingsPageState {
           ),
           _divider(),
           ListTile(
-            leading: Icon(Icons.notifications_active, color: s.primaryColor),
+            leading: Icon(Icons.notifications_active, color: s.accentOnSurface),
             title: const Text('既定の通知タイミング'),
             subtitle: const Text(
               '新規タスクの初期値（タスクごとに変更可）',
@@ -74,7 +74,7 @@ extension _SettingsBehaviorSection on _SettingsPageState {
                         s.notificationTiming.label,
                         maxLines: 1,
                         softWrap: false,
-                        style: TextStyle(fontSize: 13, color: s.primaryColor),
+                        style: TextStyle(fontSize: 13, color: s.accentOnSurface),
                       ),
                     ),
                   ),

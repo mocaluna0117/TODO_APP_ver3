@@ -158,7 +158,7 @@ extension _TodoHomeTrashPage on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           '完全に削除',
-          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.accentOnSurface),
         ),
         content: Text(
           '「${item.title}」を完全に削除しますか？\n添付した画像・PDFも削除され、元に戻せません。',
@@ -193,7 +193,7 @@ extension _TodoHomeTrashPage on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'ゴミ箱を空にする',
-          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.accentOnSurface),
         ),
         content: Text(
           '$count件のタスクを完全に削除しますか？\n添付した画像・PDFも削除され、元に戻せません。',

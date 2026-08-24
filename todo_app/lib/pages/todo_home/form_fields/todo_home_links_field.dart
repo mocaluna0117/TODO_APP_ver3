@@ -23,7 +23,7 @@ extension _TodoHomeLinksField on _TodoHomePageState {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
                 children: [
-                  Icon(Icons.link, size: 18, color: s.primaryColor),
+                  Icon(Icons.link, size: 18, color: s.accentOnSurface),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -54,13 +54,13 @@ extension _TodoHomeLinksField on _TodoHomePageState {
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
               child: Row(
                 children: [
-                  Icon(Icons.add, size: 20, color: s.primaryColor),
+                  Icon(Icons.add, size: 20, color: s.accentOnSurface),
                   const SizedBox(width: 8),
                   Text(
                     controllers.isEmpty ? 'リンクを添付（任意）' : 'リンクを追加',
                     style: TextStyle(
                       fontSize: 15,
-                      color: controllers.isEmpty ? Colors.grey : s.primaryColor,
+                      color: controllers.isEmpty ? Colors.grey : s.accentOnSurface,
                     ),
                   ),
                 ],

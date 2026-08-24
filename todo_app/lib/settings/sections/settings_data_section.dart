@@ -8,7 +8,7 @@ extension _SettingsDataSection on _SettingsPageState {
         children: [
           if (widget.onOpenTrash != null) ...[
             ListTile(
-              leading: Icon(Icons.delete_outline, color: s.primaryColor),
+              leading: Icon(Icons.delete_outline, color: s.accentOnSurface),
               title: const Text('ゴミ箱'),
               subtitle: Text(
                 '削除したタスクを元に戻せます\n（${kTrashRetention.inDays}日を過ぎると自動で完全に削除）',

@@ -22,7 +22,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
       isExpanded: true,
       decoration: InputDecoration(
         labelText: 'タグ',
-        prefixIcon: Icon(Icons.label_outline, color: s.primaryColor),
+        prefixIcon: Icon(Icons.label_outline, color: s.accentOnSurface),
         filled: true,
         fillColor: s.fieldColor,
         border: OutlineInputBorder(
@@ -74,7 +74,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
             context,
             initial: selected,
             dueDate: dueDate,
-            accentColor: s.primaryColor,
+            accentColor: s.accentOnSurface,
             settings: s,
           );
           // キャンセル時（null）は今の設定を保つ
@@ -113,7 +113,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
         ),
         child: Row(
           children: [
-            Icon(Icons.repeat, size: 18, color: s.primaryColor),
+            Icon(Icons.repeat, size: 18, color: s.accentOnSurface),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -145,7 +145,7 @@ extension _TodoHomeSelectFields on _TodoHomePageState {
           SizedBox(
             width: 24,
             child: isSelected
-                ? Icon(Icons.check, size: 18, color: s.primaryColor)
+                ? Icon(Icons.check, size: 18, color: s.accentOnSurface)
                 : null,
           ),
           Expanded(child: Text(label)),

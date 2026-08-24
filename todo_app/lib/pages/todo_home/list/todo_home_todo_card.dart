@@ -29,7 +29,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: isSelected
-                ? BorderSide(color: s.primaryColor, width: 2)
+                ? BorderSide(color: s.accentOnSurface, width: 2)
                 : BorderSide.none,
           ),
           color: s.surfaceColor,
@@ -79,7 +79,9 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
       value: item.isDone,
       onChanged: (_) => _completeItemWithFade(item),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      activeColor: s.primaryColor,
+      activeColor: s.accentOnSurface,
+      // 暗い配色では塗りを明るくするので、チェックマークは暗い色にする
+      checkColor: s.onAccentColor,
       // タップ領域を縮めてカード左端に寄せる
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

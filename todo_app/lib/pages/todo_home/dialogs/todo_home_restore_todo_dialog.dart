@@ -8,7 +8,7 @@ extension _TodoHomeRestoreTodoDialog on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           '未完了に戻す',
-          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.accentOnSurface),
         ),
         content: Text(
           '「${item.title}」を未完了に戻しますか？',
@@ -25,7 +25,7 @@ extension _TodoHomeRestoreTodoDialog on _TodoHomePageState {
             child: Text(
               '戻す',
               style: TextStyle(
-                color: s.primaryColor,
+                color: s.accentOnSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),

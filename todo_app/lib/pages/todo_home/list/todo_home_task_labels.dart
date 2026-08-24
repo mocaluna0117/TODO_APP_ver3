@@ -44,7 +44,7 @@ extension _TodoHomeTaskLabels on _TodoHomePageState {
       child: Text(
         item.taskTag!,
         style: TextStyle(
-          color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+          color: item.isDone ? Colors.grey.shade500 : s.accentOnSurface,
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
@@ -65,13 +65,13 @@ extension _TodoHomeTaskLabels on _TodoHomePageState {
           Icon(
             Icons.repeat,
             size: 11,
-            color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+            color: item.isDone ? Colors.grey.shade500 : s.accentOnSurface,
           ),
           const SizedBox(width: 3),
           Text(
             recurrenceLabel(item.recurrence!, item.dueDate),
             style: TextStyle(
-              color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+              color: item.isDone ? Colors.grey.shade500 : s.accentOnSurface,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),

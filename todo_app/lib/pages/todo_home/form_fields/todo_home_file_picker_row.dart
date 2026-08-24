@@ -57,7 +57,7 @@ extension _TodoHomeFilePickerRow on _TodoHomePageState {
                   Icon(
                     Icons.picture_as_pdf_outlined,
                     size: 20,
-                    color: s.primaryColor,
+                    color: s.accentOnSurface,
                   ),
                   const SizedBox(width: 10),
                   Flexible(
@@ -92,7 +92,7 @@ extension _TodoHomeFilePickerRow on _TodoHomePageState {
           Icon(
             Icons.picture_as_pdf,
             size: 18,
-            color: onOpen == null ? Colors.grey : s.primaryColor,
+            color: onOpen == null ? Colors.grey : s.accentOnSurface,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -108,11 +108,11 @@ extension _TodoHomeFilePickerRow on _TodoHomePageState {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      color: onOpen == null ? Colors.grey : s.primaryColor,
+                      color: onOpen == null ? Colors.grey : s.accentOnSurface,
                       decoration: onOpen == null
                           ? null
                           : TextDecoration.underline,
-                      decorationColor: s.primaryColor,
+                      decorationColor: s.accentOnSurface,
                     ),
                   ),
                   if (pendingLabel != null)

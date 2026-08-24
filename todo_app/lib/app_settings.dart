@@ -109,6 +109,22 @@ class AppSettings {
   Color get outlineColor =>
       isDarkMode ? const Color(0xFF3D3D49) : Colors.grey.shade300;
 
+  // 面（カード・入力欄）の上に置くアイコンや文字に使うアクセント色。
+  // primaryColor は既定が濃い紺で、暗い配色では面に沈んで見えなくなるため、
+  // 暗いときだけ明度を持ち上げる。背景として使う場所は primaryColor のまま。
+  Color get accentOnSurface =>
+      isDarkMode ? _liftForDarkSurface(primaryColor) : primaryColor;
+
+  // チェックボックスの中のチェックマークなど、アクセント色の上に載る色
+  Color get onAccentColor => isDarkMode ? darkSurface : Colors.white;
+
+  static Color _liftForDarkSurface(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    // 暗い面の上で読める明るさまで持ち上げる（元が明るい色はそのまま）
+    if (hsl.lightness >= 0.7) return color;
+    return hsl.withLightness(0.7).toColor();
+  }
+
   // カテゴリに対応するタグリストを返す（future かそれ以外かでグループが分かれる）
   List<String> tagsForCategory(String category) =>
       category == 'future' ? futureTaskTags : taskTags;

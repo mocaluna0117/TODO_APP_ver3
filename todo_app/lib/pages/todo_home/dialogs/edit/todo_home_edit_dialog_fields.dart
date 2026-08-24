@@ -18,7 +18,7 @@ extension _TodoHomeEditDialogFields on _TodoHomePageState {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: s.primaryColor,
+            color: s.accentOnSurface,
           ),
         ),
         const SizedBox(height: 16),

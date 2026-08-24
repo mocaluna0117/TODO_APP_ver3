@@ -7,7 +7,7 @@ extension _SettingsBackupSection on _SettingsPageState {
       _buildCard(
         children: [
           ListTile(
-            leading: Icon(Icons.ios_share, color: s.primaryColor),
+            leading: Icon(Icons.ios_share, color: s.accentOnSurface),
             title: const Text('タスクを保存する'),
             subtitle: const Text(
               'タスクの内容とバックアップ用のJSONファイルをZIPで保存',
@@ -18,7 +18,7 @@ extension _SettingsBackupSection on _SettingsPageState {
           ),
           _divider(),
           ListTile(
-            leading: Icon(Icons.file_download_outlined, color: s.primaryColor),
+            leading: Icon(Icons.file_download_outlined, color: s.accentOnSurface),
             title: const Text('タスクを復元する'),
             subtitle: const Text(
               'JSONファイルからタスクを取り込む',
@@ -50,12 +50,12 @@ extension _SettingsBackupSection on _SettingsPageState {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.list_alt, color: s.primaryColor),
+              leading: Icon(Icons.list_alt, color: s.accentOnSurface),
               title: const Text('全てのタスク'),
               onTap: () => Navigator.pop(sheetContext, false),
             ),
             ListTile(
-              leading: Icon(Icons.check_circle_outline, color: s.primaryColor),
+              leading: Icon(Icons.check_circle_outline, color: s.accentOnSurface),
               title: const Text('完了済みタスクのみ'),
               onTap: () => Navigator.pop(sheetContext, true),
             ),

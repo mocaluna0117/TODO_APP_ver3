@@ -19,7 +19,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
               enabled
                   ? Icons.notifications_active
                   : Icons.notifications_off_outlined,
-              color: enabled ? s.primaryColor : Colors.grey,
+              color: enabled ? s.accentOnSurface : Colors.grey,
             ),
             title: Text(enabled ? '通知を受け取れます' : 'この端末で通知を受け取る'),
             subtitle: Text(
@@ -29,7 +29,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
               style: const TextStyle(fontSize: 12),
             ),
             trailing: enabled
-                ? Icon(Icons.check, color: s.primaryColor)
+                ? Icon(Icons.check, color: s.accentOnSurface)
                 : const Icon(Icons.chevron_right, color: Colors.grey),
             onTap: enabled ? null : () => _enablePushNotifications(enable),
           ),
@@ -75,7 +75,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
             ListTile(
               leading: Icon(
                 Icons.notifications_off_outlined,
-                color: s.primaryColor,
+                color: s.accentOnSurface,
               ),
               title: const Text('プリセットはありません'),
               subtitle: const Text(
@@ -91,7 +91,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
               ),
           _divider(),
           ListTile(
-            leading: Icon(Icons.add, color: s.primaryColor),
+            leading: Icon(Icons.add, color: s.accentOnSurface),
             title: const Text('プリセットを追加'),
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
             onTap: _addNotificationPreset,
@@ -106,7 +106,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
       mainAxisSize: MainAxisSize.min,
       children: [
         ListTile(
-          leading: Icon(Icons.notifications_active, color: s.primaryColor),
+          leading: Icon(Icons.notifications_active, color: s.accentOnSurface),
           title: Text(notificationOffsetLabel(minutes)),
           trailing: IconButton(
             icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
@@ -125,7 +125,7 @@ extension _SettingsNotificationSection on _SettingsPageState {
   Future<void> _addNotificationPreset() async {
     final minutes = await showCustomNotificationOffsetSheet(
       context,
-      accentColor: s.primaryColor,
+      accentColor: s.accentOnSurface,
     );
     if (!mounted || minutes == null || minutes < 1) return;
     if (!s.notificationPresets.contains(minutes)) {

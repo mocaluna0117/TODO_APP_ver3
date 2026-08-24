@@ -9,7 +9,7 @@ extension _TodoHomeAddTaskTagDialog on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'タグを追加',
-          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+          style: TextStyle(color: s.accentOnSurface, fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: controller,
@@ -45,7 +45,7 @@ extension _TodoHomeAddTaskTagDialog on _TodoHomePageState {
             child: Text(
               '追加',
               style: TextStyle(
-                color: s.primaryColor,
+                color: s.accentOnSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),

@@ -41,11 +41,11 @@ extension _SettingsThemeSection on _SettingsPageState {
     };
 
     return ListTile(
-      leading: Icon(icon, color: selected ? s.primaryColor : Colors.grey),
+      leading: Icon(icon, color: selected ? s.accentOnSurface : Colors.grey),
       title: Text(label),
       subtitle: Text(description, style: const TextStyle(fontSize: 12)),
       trailing: selected
-          ? Icon(Icons.check, color: s.primaryColor)
+          ? Icon(Icons.check, color: s.accentOnSurface)
           : null,
       onTap: selected
           ? null

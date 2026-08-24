@@ -54,7 +54,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
               borderRadius: BorderRadius.circular(4),
               child: Row(
                 children: [
-                  Icon(Icons.link, size: 14, color: s.primaryColor),
+                  Icon(Icons.link, size: 14, color: s.accentOnSurface),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -64,9 +64,9 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                       softWrap: false,
                       style: TextStyle(
                         fontSize: 12,
-                        color: s.primaryColor,
+                        color: s.accentOnSurface,
                         decoration: TextDecoration.underline,
-                        decorationColor: s.primaryColor,
+                        decorationColor: s.accentOnSurface,
                       ),
                     ),
                   ),
@@ -85,7 +85,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                   Icon(
                     Icons.picture_as_pdf,
                     size: 14,
-                    color: item.isDone ? Colors.grey.shade500 : s.primaryColor,
+                    color: item.isDone ? Colors.grey.shade500 : s.accentOnSurface,
                   ),
                   const SizedBox(width: 4),
                   Flexible(
@@ -98,9 +98,9 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                         fontSize: 12,
                         color: item.isDone
                             ? Colors.grey.shade500
-                            : s.primaryColor,
+                            : s.accentOnSurface,
                         decoration: TextDecoration.underline,
-                        decorationColor: s.primaryColor,
+                        decorationColor: s.accentOnSurface,
                       ),
                     ),
                   ),

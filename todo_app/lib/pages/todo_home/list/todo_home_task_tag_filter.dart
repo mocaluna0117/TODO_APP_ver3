@@ -12,12 +12,12 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: ActionChip(
-          avatar: Icon(Icons.label_outline, color: s.primaryColor, size: 18),
+          avatar: Icon(Icons.label_outline, color: s.accentOnSurface, size: 18),
           label: const Text('タグを追加'),
           backgroundColor: s.surfaceColor,
           side: BorderSide(color: s.outlineColor),
           labelStyle: TextStyle(
-            color: s.primaryColor,
+            color: s.accentOnSurface,
             fontWeight: FontWeight.bold,
           ),
           onPressed: () => _showAddTaskTagDialog(category),
@@ -104,7 +104,9 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
         color: isSelected ? Colors.white : s.primaryTextColor,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
-      side: BorderSide(color: isSelected ? s.primaryColor : s.outlineColor),
+      side: BorderSide(
+        color: isSelected ? s.accentOnSurface : s.outlineColor,
+      ),
       onSelected: (_) {
         _updateState(() {
           _setSelectedTagFilter(category, tag);
@@ -115,7 +117,7 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
 
   Widget _buildAddTagChip(String category) {
     return ActionChip(
-      label: Icon(Icons.add, color: s.primaryColor, size: 18),
+      label: Icon(Icons.add, color: s.accentOnSurface, size: 18),
       labelPadding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
       backgroundColor: s.surfaceColor,

@@ -27,7 +27,7 @@ extension _SettingsTagSection on _SettingsPageState {
       children: [
         if (tags.isEmpty)
           ListTile(
-            leading: Icon(Icons.label_outline, color: s.primaryColor),
+            leading: Icon(Icons.label_outline, color: s.accentOnSurface),
             title: const Text('タグはまだありません'),
             subtitle: const Text(
               'タグを追加してタスクに付ける',
@@ -53,7 +53,7 @@ extension _SettingsTagSection on _SettingsPageState {
         ],
         if (tags.isNotEmpty) _divider(),
         ListTile(
-          leading: Icon(Icons.add, color: s.primaryColor),
+          leading: Icon(Icons.add, color: s.accentOnSurface),
           title: const Text('タグを追加'),
           trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
           onTap: () => _showTextEditDialog(
@@ -77,7 +77,7 @@ extension _SettingsTagSection on _SettingsPageState {
       mainAxisSize: MainAxisSize.min,
       children: [
         ListTile(
-          leading: Icon(Icons.label_outline, color: s.primaryColor),
+          leading: Icon(Icons.label_outline, color: s.accentOnSurface),
           title: Text(tag, overflow: TextOverflow.ellipsis),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

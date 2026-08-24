@@ -52,7 +52,7 @@ extension _TodoHomeDatePickerRow on _TodoHomePageState {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, size: 18, color: s.primaryColor),
+            Icon(Icons.calendar_today, size: 18, color: s.accentOnSurface),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

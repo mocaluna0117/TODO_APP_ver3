@@ -128,14 +128,14 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: s.primaryColor,
+                    color: s.accentOnSurface,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     '画像を処理中...',
-                    style: TextStyle(fontSize: 15, color: s.primaryColor),
+                    style: TextStyle(fontSize: 15, color: s.accentOnSurface),
                   ),
                 ),
               ] else ...[
@@ -153,7 +153,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                             Icon(
                               Icons.image_outlined,
                               size: 20,
-                              color: s.primaryColor,
+                              color: s.accentOnSurface,
                             ),
                             const SizedBox(width: 10),
                             Flexible(
@@ -201,7 +201,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                             Icon(
                               Icons.content_paste_rounded,
                               size: 15,
-                              color: s.primaryColor,
+                              color: s.accentOnSurface,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -209,7 +209,7 @@ extension _TodoHomeImagePickerRow on _TodoHomePageState {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: s.primaryColor,
+                                color: s.accentOnSurface,
                               ),
                             ),
                           ],

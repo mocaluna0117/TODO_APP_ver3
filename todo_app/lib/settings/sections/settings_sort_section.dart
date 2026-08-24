@@ -17,17 +17,17 @@ extension _SettingsSortSection on _SettingsPageState {
             child: Column(
               children: [
                 RadioListTile<SortOrder>(
-                  secondary: Icon(Icons.arrow_upward, color: s.primaryColor),
+                  secondary: Icon(Icons.arrow_upward, color: s.accentOnSurface),
                   title: const Text('期限が近い順（昇順）'),
                   value: SortOrder.dueDateAsc,
-                  activeColor: s.primaryColor,
+                  activeColor: s.accentOnSurface,
                 ),
                 _divider(),
                 RadioListTile<SortOrder>(
-                  secondary: Icon(Icons.arrow_downward, color: s.primaryColor),
+                  secondary: Icon(Icons.arrow_downward, color: s.accentOnSurface),
                   title: const Text('期限が遠い順（降順）'),
                   value: SortOrder.dueDateDesc,
-                  activeColor: s.primaryColor,
+                  activeColor: s.accentOnSurface,
                 ),
               ],
             ),

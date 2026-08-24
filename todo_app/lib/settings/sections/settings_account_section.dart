@@ -10,7 +10,7 @@ extension _SettingsAccountSection on _SettingsPageState {
       _buildCard(
         children: [
           ListTile(
-            leading: Icon(Icons.account_circle, color: s.primaryColor),
+            leading: Icon(Icons.account_circle, color: s.accentOnSurface),
             title: const Text('ログイン中'),
             subtitle: Text(
               widget.userEmail ?? '(メールアドレス不明)',

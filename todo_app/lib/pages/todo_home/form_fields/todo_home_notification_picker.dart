@@ -121,7 +121,7 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
         if (value == _customNotificationAction) {
           final minutes = await showCustomNotificationOffsetSheet(
             context,
-            accentColor: s.primaryColor,
+            accentColor: s.accentOnSurface,
             maxOffsetMinutes: maxOffsetMinutes,
           );
           if (minutes != null) onSelected(minutes);
@@ -141,7 +141,7 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
                 SizedBox(
                   width: 24,
                   child: isSelected
-                      ? Icon(Icons.check, size: 18, color: s.primaryColor)
+                      ? Icon(Icons.check, size: 18, color: s.accentOnSurface)
                       : null,
                 ),
                 Text(notificationOffsetLabel(minutes)),
@@ -174,7 +174,7 @@ extension _TodoHomeNotificationPicker on _TodoHomePageState {
             SizedBox(
               width: 34,
               child: showLeadingIcon
-                  ? Icon(Icons.notifications_active, color: s.primaryColor)
+                  ? Icon(Icons.notifications_active, color: s.accentOnSurface)
                   : null,
             ),
             Expanded(

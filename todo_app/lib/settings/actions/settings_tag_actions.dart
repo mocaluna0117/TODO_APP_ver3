@@ -55,7 +55,7 @@ extension _SettingsTagActions on _SettingsPageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'タグを削除',
-          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+          style: TextStyle(color: s.accentOnSurface, fontWeight: FontWeight.bold),
         ),
         content: Text('「$tag」を削除しますか？\nこのタグが付いたタスクはタグなしになります。'),
         actions: [

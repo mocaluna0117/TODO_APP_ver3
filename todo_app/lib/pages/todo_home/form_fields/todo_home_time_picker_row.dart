@@ -37,7 +37,7 @@ extension _TodoHomeTimePickerRow on _TodoHomePageState {
         ),
         child: Row(
           children: [
-            Icon(Icons.access_time, size: 18, color: s.primaryColor),
+            Icon(Icons.access_time, size: 18, color: s.accentOnSurface),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

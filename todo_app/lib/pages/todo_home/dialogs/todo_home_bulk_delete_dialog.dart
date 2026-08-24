@@ -11,7 +11,7 @@ extension _TodoHomeBulkDeleteDialog on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           '完了済みを全削除',
-          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.accentOnSurface),
         ),
         content: Text(
           '完了済みタスク ${items.length}件をすべて削除しますか？\nこの操作は取り消せません。',

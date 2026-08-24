@@ -34,7 +34,7 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
                     Text(
                       '時刻を選択',
                       style: TextStyle(
-                        color: s.primaryColor,
+                        color: s.accentOnSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -59,7 +59,7 @@ extension _TodoHomeDueTimePicker on _TodoHomePageState {
                           child: Text(
                             '決定',
                             style: TextStyle(
-                              color: s.primaryColor,
+                              color: s.accentOnSurface,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

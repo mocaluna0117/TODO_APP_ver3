@@ -79,7 +79,7 @@ extension _TodoHomeImport on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'タスクを復元',
-          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.accentOnSurface),
         ),
         content: Text(
           '${newItems.length}件のタスクを復元します。'
@@ -97,7 +97,7 @@ extension _TodoHomeImport on _TodoHomePageState {
           TextButton(
             autofocus: true,
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: s.primaryColor),
+            style: TextButton.styleFrom(foregroundColor: s.accentOnSurface),
             child: const Text(
               '復元',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),

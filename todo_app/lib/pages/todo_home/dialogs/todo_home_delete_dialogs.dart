@@ -16,7 +16,7 @@ extension _TodoHomeDeleteDialogs on _TodoHomePageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'タスクを削除',
-          style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
+          style: TextStyle(fontWeight: FontWeight.bold, color: s.accentOnSurface),
         ),
         content: Text(
           '「${item.title}」をゴミ箱に移動しますか？\n'

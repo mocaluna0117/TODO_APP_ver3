@@ -7,7 +7,7 @@ extension _SettingsAppTitleSection on _SettingsPageState {
       _buildCard(
         children: [
           ListTile(
-            leading: Icon(Icons.title, color: s.primaryColor),
+            leading: Icon(Icons.title, color: s.accentOnSurface),
             title: const Text('アプリタイトル'),
             subtitle: Text(s.appTitle, style: const TextStyle(fontSize: 12)),
             trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),

@@ -30,7 +30,7 @@ extension _TodoHomeEditDialogTextFields on _TodoHomePageState {
   Widget _descriptionCopyButton(TextEditingController controller) {
     return IconButton(
       icon: const Icon(Icons.copy_rounded, size: 18),
-      color: s.primaryColor,
+      color: s.accentOnSurface,
       tooltip: '概要をコピー',
       visualDensity: VisualDensity.compact,
       onPressed: () => _copyToClipboard(controller.text, '概要'),

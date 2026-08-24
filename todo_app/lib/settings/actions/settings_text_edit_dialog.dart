@@ -13,7 +13,7 @@ extension _SettingsTextEditDialog on _SettingsPageState {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           title,
-          style: TextStyle(color: s.primaryColor, fontWeight: FontWeight.bold),
+          style: TextStyle(color: s.accentOnSurface, fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: controller,
@@ -49,7 +49,7 @@ extension _SettingsTextEditDialog on _SettingsPageState {
             child: Text(
               '保存',
               style: TextStyle(
-                color: s.primaryColor,
+                color: s.accentOnSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
