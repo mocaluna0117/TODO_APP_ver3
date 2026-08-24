@@ -1,18 +1,21 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // タスク・設定・端末トークン・通知予定。本人だけが読み書きできる。
+    // 自分のデータ（タスク・設定・端末トークン・通知予定）は本人のみ
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 問い合わせ。送信は本人として作成するときだけ許可し、あとから
-    // 書き換えられないようにする（更新は不可）。
-    // 閲覧と削除は運営アカウントに限る。
+    // 問い合わせ
+    // 送信はログインしていれば誰でも。ただし自分の uid と自分のメールアドレスで
+    // 出すことを強制し、他人になりすませないようにする。
+    // 閲覧・変更・削除は決まったアカウントのみ。
     match /inquiries/{inquiryId} {
       allow create: if request.auth != null
-        && request.resource.data.uid == request.auth.uid;
-      allow read, delete: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      allow read, update, delete: if request.auth != null
         && request.auth.token.email in [
           'daibon20020117@gmail.com',
           'daibon0117.bin@gmail.com'

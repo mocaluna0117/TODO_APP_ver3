@@ -11,7 +11,6 @@ part 'settings/sections/settings_tag_section.dart';
 part 'settings/sections/settings_backup_section.dart';
 part 'settings/sections/settings_data_section.dart';
 part 'settings/sections/settings_inquiry_section.dart';
-part 'settings/sections/settings_inquiry_section.dart';
 part 'settings/sections/settings_account_section.dart';
 part 'settings/sections/settings_behavior_section.dart';
 part 'settings/sections/settings_notification_section.dart';
@@ -37,9 +36,6 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onOpenInquiryForm;
   final VoidCallback? onOpenInquiryList;
   final int Function()? trashCount;
-  // 問い合わせの送信。受信一覧は閲覧できるアカウントのときだけ渡される。
-  final VoidCallback? onOpenInquiryForm;
-  final VoidCallback? onOpenInquiryList;
   final String? userEmail;
   // ログアウト完了を待ってから設定ページを閉じたいので Future を返す
   final Future<void> Function()? onSignOut;
@@ -61,8 +57,6 @@ class SettingsPage extends StatefulWidget {
     this.onOpenInquiryForm,
     this.onOpenInquiryList,
     this.trashCount,
-    this.onOpenInquiryForm,
-    this.onOpenInquiryList,
     this.userEmail,
     this.onSignOut,
     this.onEnablePushNotifications,

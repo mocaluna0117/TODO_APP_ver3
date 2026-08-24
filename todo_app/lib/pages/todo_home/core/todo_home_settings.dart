@@ -31,9 +31,6 @@ extension _TodoHomeSettings on _TodoHomePageState {
           // 閲覧できないアカウントには項目自体を出さない
           onOpenInquiryList: _canViewInquiries ? _openInquiryList : null,
           trashCount: () => _trashedItems.length,
-          onOpenInquiryForm: _openInquiryForm,
-          // 運営アカウント以外には受信一覧を出さない
-          onOpenInquiryList: _isInquiryAdmin ? _openInquiryList : null,
           userEmail: widget.userEmail,
           onSignOut: widget.onSignOut,
           onEnablePushNotifications: () async {
