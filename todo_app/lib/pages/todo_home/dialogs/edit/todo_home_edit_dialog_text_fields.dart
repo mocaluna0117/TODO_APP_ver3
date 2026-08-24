@@ -17,7 +17,8 @@ extension _TodoHomeEditDialogTextFields on _TodoHomePageState {
       // 改行キーは改行の挿入にする（submitしてモーダルを閉じない）
       textInputAction: TextInputAction.newline,
       minLines: 1,
-      maxLines: 4,
+      // 内部でスクロールさせず、行数に合わせて伸ばして全文を見せる
+      maxLines: null,
       decoration: _editDialogTextFieldDecoration(
         '概要を入力（任意）',
         contentPadding: const EdgeInsets.all(16),

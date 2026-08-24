@@ -29,17 +29,7 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
                   item.dueDate != null ||
                   images.isNotEmpty))
             const SizedBox(height: 8),
-          if (description != null)
-            Text(
-              description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.4,
-                color: item.isDone ? Colors.grey.shade500 : s.secondaryTextColor,
-              ),
-            ),
+          if (description != null) _buildCardDescription(item, description),
           if (description != null &&
               (item.dueDate != null || images.isNotEmpty))
             const SizedBox(height: 8),
@@ -178,6 +168,40 @@ extension _TodoHomeTodoSubtitle on _TodoHomePageState {
           ],
         ],
       ),
+    );
+  }
+
+  // カードの概要は2行までなので、収まらない場合はホバー（長押し）で全文を出す。
+  Widget _buildCardDescription(TodoItem item, String description) {
+    final style = TextStyle(
+      fontSize: 13,
+      height: 1.4,
+      color: item.isDone ? Colors.grey.shade500 : s.secondaryTextColor,
+    );
+    final text = Text(
+      description,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 2行に収まっているならツールチップは出さない（同じ内容の重複を避ける）
+        final painter = TextPainter(
+          text: TextSpan(text: description, style: style),
+          maxLines: 2,
+          textDirection: Directionality.of(context),
+        )..layout(maxWidth: constraints.maxWidth);
+        final isTruncated = painter.didExceedMaxLines;
+        painter.dispose();
+        if (!isTruncated) return text;
+        return Tooltip(
+          message: description,
+          waitDuration: const Duration(milliseconds: 300),
+          child: text,
+        );
+      },
     );
   }
 
