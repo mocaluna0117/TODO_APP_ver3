@@ -88,24 +88,6 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
     return null;
   }
 
-  // まだ何も選んでいないタブでは、一覧の先頭を選んで詳細を表示する。
-  // ビルド中に状態を変えないよう、次のフレームで反映する。
-  void _selectFirstItemIfNeeded() {
-    if (!_isWideLayout) return;
-    final tabKey = _currentTabKey;
-    if (_selectedDetailItemIds.containsKey(tabKey)) return;
-    final items = _itemsByCategory(tabKey);
-    if (items.isEmpty) return;
-    final id = items.first.id;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // フレームの間に選択や表示タブが変わっていたら何もしない
-      if (_currentTabKey != tabKey) return;
-      if (_selectedDetailItemIds.containsKey(tabKey)) return;
-      _updateState(() => _selectedDetailItemIds[tabKey] = id);
-    });
-  }
-
   // 選択中のカードが左ペインで見えるようにスクロールする。
   // タブを戻したときに、右の詳細と左で見えているものを一致させるため。
   void _scrollToSelectedCardAfterBuild() {
@@ -285,8 +267,6 @@ extension _TodoHomeDetailPane on _TodoHomePageState {
   }
 
   Widget _buildDetailPane() {
-    // 未選択のままだと右側が空になってしまうので、そのタブの先頭を選んでおく
-    _selectFirstItemIfNeeded();
     final item = _selectedDetailItem;
     if (item == null) {
       // 未選択（または選択中のタスクが削除された）

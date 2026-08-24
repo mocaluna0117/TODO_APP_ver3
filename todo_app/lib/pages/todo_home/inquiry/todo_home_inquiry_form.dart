@@ -19,20 +19,23 @@ extension _TodoHomeInquiryForm on _TodoHomePageState {
 
             Future<void> send() async {
               refresh(() => isSending = true);
+              // 送信の待ち時間をまたぐので、必要なものは先に取っておく
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               final sent = await _sendInquiry(
                 message: controller.text.trim(),
                 files: files,
               );
-              if (!mounted) return;
+              if (!context.mounted) return;
               if (sent) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+                navigator.pop();
+                messenger.showSnackBar(
                   const SnackBar(content: Text('問い合わせを送信しました')),
                 );
                 return;
               }
               refresh(() => isSending = false);
-              ScaffoldMessenger.of(context).showSnackBar(
+              messenger.showSnackBar(
                 const SnackBar(content: Text('送信できませんでした。通信状況を確認してください')),
               );
             }

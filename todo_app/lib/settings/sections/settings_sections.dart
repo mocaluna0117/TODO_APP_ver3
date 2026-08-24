@@ -12,6 +12,7 @@ extension _SettingsSections on _SettingsPageState {
       ..._buildBackupSection(),
       ..._buildDataSection(),
       ..._buildInquirySection(),
+      ..._buildInquirySection(),
       ..._buildAccountSection(),
       const SizedBox(height: 32),
     ];

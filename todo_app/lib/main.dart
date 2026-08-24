@@ -53,6 +53,7 @@ part 'pages/todo_home/dialogs/task_tag/todo_home_task_tag_dialogs.dart';
 part 'pages/todo_home/dialogs/task_tag/todo_home_add_task_tag_dialog.dart';
 part 'pages/todo_home/dialogs/todo_home_delete_dialogs.dart';
 part 'pages/todo_home/dialogs/todo_home_trash_page.dart';
+part 'pages/todo_home/dialogs/todo_home_inquiry.dart';
 part 'pages/todo_home/inquiry/todo_home_inquiry_form.dart';
 part 'pages/todo_home/inquiry/todo_home_inquiry_list.dart';
 part 'pages/todo_home/dialogs/todo_home_bulk_delete_dialog.dart';
