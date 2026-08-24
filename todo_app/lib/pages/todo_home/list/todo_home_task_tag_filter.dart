@@ -6,8 +6,14 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
     final selectedFilter = _selectedTagFilterFor(category);
     // 文字拡大に合わせて高さも伸ばし、チップ内テキストの重なりを防ぐ
     final filterHeight = 52 * MediaQuery.textScalerOf(context).scale(1);
+    // Webでは日本語フォントが遅れて読み込まれる。読み込み前に測った文字幅の
+    // ままだと文字が途切れるので、読み込み完了（_fontGeneration の更新）で
+    // 行ごと作り直して測り直させる。
+    final rowKey = ValueKey('tag-filter-row-$category-$_fontGeneration');
+
     if (groupTags.isEmpty) {
       return Container(
+        key: rowKey,
         height: filterHeight,
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -26,6 +32,7 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
     }
 
     return Container(
+      key: rowKey,
       height: filterHeight,
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -43,9 +50,7 @@ extension _TodoHomeTaskTagFilter on _TodoHomePageState {
           const SizedBox(width: 8),
           Expanded(
             child: ReorderableListView.builder(
-              // フォントの遅延読み込み後にチップを作り直し、文字幅を再計測させる
-              // （Webで日本語フォント読み込み前の幅のまま文字が途切れるのを防ぐ）
-              key: ValueKey('tag-filter-$category-$_fontGeneration'),
+              key: ValueKey('tag-filter-$category'),
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(right: 16),
               itemCount: groupTags.length,
