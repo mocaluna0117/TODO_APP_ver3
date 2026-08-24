@@ -33,22 +33,37 @@ extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
     }
   }
 
+  // 完了済みの一括削除もゴミ箱へ移す（誤操作から戻せるようにする）
   void _deleteCompletedItems(List<TodoItem> items) {
     if (items.isEmpty) return;
 
-    final itemIds = items.map((item) => item.id).toSet();
+    final deletedAt = DateTime.now();
     _updateState(() {
-      _allItems.removeWhere((item) => itemIds.contains(item.id));
+      for (final item in items) {
+        item.deletedAt = deletedAt;
+      }
     });
     _saveData();
 
-    for (final item in items.where(
-      (item) => item.imageBase64List.any(_isImageUrl),
-    )) {
-      _deleteTaskImages(item.id);
-    }
-    for (final item in items.where((item) => !item.isDone)) {
+    for (final item in items) {
       NotificationService().cancelNotification(item.id);
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${items.length}件をゴミ箱に移動しました'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '元に戻す',
+          onPressed: () {
+            _updateState(() {
+              for (final item in items) {
+                item.deletedAt = null;
+              }
+            });
+            _saveData();
+          },
+        ),
+      ),
+    );
   }
 }

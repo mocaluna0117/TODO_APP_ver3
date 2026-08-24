@@ -109,13 +109,15 @@ extension _TodoHomeData on _TodoHomePageState {
       });
       // 同期で受け取ったタスク（Web等の別端末で作成・編集された分を含む）の
       // 通知をこの端末で予約し直す（Webでは NotificationService 側で無視される）
-      NotificationService().rescheduleAll(_allItems, s.notificationTiming);
+      NotificationService().rescheduleAll(_liveItems, s.notificationTiming);
 
       // 送信予定はタスクの内容が変わったときに書き出す作りなので、この機能より
       // 前から在るタスクには予定が無い。起動後の最初の同期で一度だけ作る。
       if (!_didInitialNotificationSync) {
         _didInitialNotificationSync = true;
         _resyncAllNotifications();
+        // 保持期間を過ぎたゴミ箱のタスクを片付ける
+        _purgeExpiredTrash();
       }
     });
   }
@@ -248,7 +250,8 @@ extension _TodoHomeData on _TodoHomePageState {
   // 送信時刻の早い順に並べた通知予定（すでに過ぎた分は含めない）
   List<Map<String, dynamic>> _pendingNotificationEntries(TodoItem item) {
     final dueDate = item.dueDate;
-    if (item.isDone || dueDate == null) return const [];
+    // ゴミ箱のタスクは通知しない
+    if (item.isDone || item.isDeleted || dueDate == null) return const [];
     final now = DateTime.now();
     final service = NotificationService();
     final offsets = service.resolveOffsets(item, s.notificationTiming).toList()

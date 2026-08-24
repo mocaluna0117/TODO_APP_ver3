@@ -6,6 +6,35 @@ extension _SettingsDataSection on _SettingsPageState {
       _buildSectionHeader('データ管理'),
       _buildCard(
         children: [
+          if (widget.onOpenTrash != null) ...[
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: s.primaryColor),
+              title: const Text('ゴミ箱'),
+              subtitle: Text(
+                '削除したタスクを元に戻せます\n（${kTrashRetention.inDays}日を過ぎると自動で完全に削除）',
+                style: const TextStyle(fontSize: 12),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if ((widget.trashCount?.call() ?? 0) > 0)
+                    Text(
+                      '${widget.trashCount!.call()}件',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: s.secondaryTextColor,
+                      ),
+                    ),
+                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                ],
+              ),
+              onTap: () {
+                widget.onOpenTrash!.call();
+                rebuild();
+              },
+            ),
+            _divider(),
+          ],
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text(

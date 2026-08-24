@@ -26,6 +26,8 @@ extension _TodoHomeSettings on _TodoHomePageState {
           onExportTasks: _exportTasks,
           onImportTasks: _importTasks,
           onDeleteAllTasks: _deleteAllTasks,
+          onOpenTrash: _openTrash,
+          trashCount: () => _trashedItems.length,
           userEmail: widget.userEmail,
           onSignOut: widget.onSignOut,
           onEnablePushNotifications: () async {
@@ -47,7 +49,7 @@ extension _TodoHomeSettings on _TodoHomePageState {
     }
     // 通知タイミングが変わっていたら全ての通知を再スケジュール
     if (timingBefore != s.notificationTiming) {
-      NotificationService().rescheduleAll(_allItems, s.notificationTiming);
+      NotificationService().rescheduleAll(_liveItems, s.notificationTiming);
       // サーバーから送る分の予定も作り直す
       _resyncAllNotifications();
     }

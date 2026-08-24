@@ -29,6 +29,9 @@ class SettingsPage extends StatefulWidget {
   final Future<void> Function({required bool completedOnly})? onExportTasks;
   final Future<void> Function()? onImportTasks;
   final VoidCallback? onDeleteAllTasks;
+  // ゴミ箱を開く／中の件数（削除したタスクの復元用）
+  final VoidCallback? onOpenTrash;
+  final int Function()? trashCount;
   final String? userEmail;
   // ログアウト完了を待ってから設定ページを閉じたいので Future を返す
   final Future<void> Function()? onSignOut;
@@ -46,6 +49,8 @@ class SettingsPage extends StatefulWidget {
     this.onExportTasks,
     this.onImportTasks,
     this.onDeleteAllTasks,
+    this.onOpenTrash,
+    this.trashCount,
     this.userEmail,
     this.onSignOut,
     this.onEnablePushNotifications,

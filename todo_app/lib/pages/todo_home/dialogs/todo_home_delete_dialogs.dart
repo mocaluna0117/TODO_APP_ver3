@@ -19,7 +19,8 @@ extension _TodoHomeDeleteDialogs on _TodoHomePageState {
           style: TextStyle(fontWeight: FontWeight.bold, color: s.primaryColor),
         ),
         content: Text(
-          '「${item.title}」を削除しますか？\nこの操作は取り消せません。',
+          '「${item.title}」をゴミ箱に移動しますか？\n'
+          'ゴミ箱から元に戻せます（${kTrashRetention.inDays}日後に自動で完全削除）。',
           style: const TextStyle(fontSize: 15, height: 1.5),
         ),
         actions: [

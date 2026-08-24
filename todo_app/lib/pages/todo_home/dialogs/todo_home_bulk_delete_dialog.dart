@@ -2,7 +2,7 @@ part of '../../../main.dart';
 
 extension _TodoHomeBulkDeleteDialog on _TodoHomePageState {
   Future<void> _confirmDeleteCompletedItems() async {
-    final items = _allItems.where((item) => item.isDone).toList();
+    final items = _liveItems.where((item) => item.isDone).toList();
     if (items.isEmpty) return;
 
     final result = await showDialog<bool>(

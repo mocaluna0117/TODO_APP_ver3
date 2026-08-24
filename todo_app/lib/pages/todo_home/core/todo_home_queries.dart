@@ -46,19 +46,21 @@ extension _TodoHomeQueries on _TodoHomePageState {
     }
   }
 
+  // ゴミ箱に入っていないタスク（通知やバックアップの対象）
+  List<TodoItem> get _liveItems =>
+      _allItems.where((item) => !item.isDeleted).toList();
+
   List<TodoItem> _itemsByCategory(String category) {
+    // ゴミ箱に入っているタスクはどのタブにも出さない
+    final live = _allItems.where((item) => !item.isDeleted);
     final items = switch (category) {
-      'done' => _allItems.where((item) => item.isDone).toList(),
+      'done' => live.where((item) => item.isDone).toList(),
       'today' =>
-        _allItems
-            .where((item) => !item.isDone && _isDueTodayOrOverdue(item))
-            .toList(),
+        live.where((item) => !item.isDone && _isDueTodayOrOverdue(item)).toList(),
       'tomorrow' =>
-        _allItems
-            .where((item) => !item.isDone && _isDueTomorrow(item))
-            .toList(),
+        live.where((item) => !item.isDone && _isDueTomorrow(item)).toList(),
       _ =>
-        _allItems
+        live
             .where((item) => item.category == category && !item.isDone)
             .toList(),
     };

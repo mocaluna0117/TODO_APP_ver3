@@ -3,8 +3,8 @@ part of '../../../main.dart';
 extension _TodoHomeExport on _TodoHomePageState {
   Future<void> _exportTasks({required bool completedOnly}) async {
     final items = completedOnly
-        ? _allItems.where((item) => item.isDone).toList()
-        : List<TodoItem>.from(_allItems);
+        ? _liveItems.where((item) => item.isDone).toList()
+        : _liveItems;
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(completedOnly ? '完了済みタスクがありません' : 'タスクがありません')),

@@ -232,6 +232,9 @@ class TodoItem {
   List<PendingTaskFile> pendingFiles;
   TaskPriority priority;
   DateTime? completedAt;
+  // ゴミ箱に入れた日時。null は通常のタスク。
+  // 一定期間（kTrashRetention）を過ぎたものは自動で完全削除される。
+  DateTime? deletedAt;
   // タスクごとの通知タイミング（期限までの分数のリスト）。
   // null は未設定（全体のデフォルトに従う）、空リストは「通知しない」、
   // 複数要素は複数件の通知を表す。0 = 期限の時間、任意の値でカスタム設定可。
@@ -252,6 +255,7 @@ class TodoItem {
     List<PendingTaskFile>? pendingFiles,
     this.priority = TaskPriority.none,
     this.completedAt,
+    this.deletedAt,
     this.notificationOffsets,
   }) : imageBase64List = imageBase64List ?? [],
        attachments = attachments ?? [],
@@ -260,6 +264,9 @@ class TodoItem {
        id = id ?? (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
 
   bool get isRecurring => recurrence != null;
+
+  // ゴミ箱に入っているか
+  bool get isDeleted => deletedAt != null;
 
   bool get isOverdue =>
       dueDate != null &&
@@ -280,6 +287,7 @@ class TodoItem {
     'attachments': attachments.map((file) => file.toJson()).toList(),
     'priority': priority.name,
     'completedAt': completedAt?.toIso8601String(),
+    'deletedAt': deletedAt?.toIso8601String(),
     'notificationOffsets': notificationOffsets,
   };
 
@@ -301,6 +309,9 @@ class TodoItem {
     priority: normalizeTaskPriority(json['priority']),
     completedAt: json['completedAt'] != null
         ? DateTime.parse(json['completedAt'])
+        : null,
+    deletedAt: json['deletedAt'] != null
+        ? DateTime.parse(json['deletedAt'])
         : null,
     notificationOffsets: normalizeNotificationOffsets(json),
   );

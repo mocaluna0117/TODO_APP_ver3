@@ -18,6 +18,10 @@ enum SortOrder { dueDateAsc, dueDateDesc }
 // 「期限の時間」(0) はピッカーで常に表示するためプリセットには含めない。
 const List<int> defaultNotificationPresets = [10, 60, 1440];
 
+// ゴミ箱に入れたタスクを保持する期間。これを過ぎたら完全に削除する。
+// 設定画面（別ライブラリ）からも参照するため、ここに置く。
+const Duration kTrashRetention = Duration(days: 7);
+
 // ─────────────────────────────────────────────
 // アプリ設定モデル
 // ─────────────────────────────────────────────

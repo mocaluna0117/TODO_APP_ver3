@@ -196,13 +196,91 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     );
   }
 
+  // 削除はゴミ箱への移動にする。実体（画像・PDF）も復元できるよう残しておき、
+  // 完全削除のときにまとめて消す。
   void _deleteItem(TodoItem item) {
+    _updateState(() {
+      item.deletedAt = DateTime.now();
+    });
+    _saveData();
+    NotificationService().cancelNotification(item.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「${item.title}」をゴミ箱に移動しました'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '元に戻す',
+          onPressed: () => _restoreFromTrash(item),
+        ),
+      ),
+    );
+  }
+
+  // ゴミ箱に入っているタスク（新しく捨てたものが先）
+  List<TodoItem> get _trashedItems {
+    final items = _allItems.where((item) => item.isDeleted).toList();
+    items.sort((a, b) => b.deletedAt!.compareTo(a.deletedAt!));
+    return items;
+  }
+
+  // ゴミ箱から元に戻す
+  void _restoreFromTrash(TodoItem item) {
+    _updateState(() {
+      item.deletedAt = null;
+    });
+    _saveData();
+    NotificationService().scheduleNotification(item, s.notificationTiming);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「${item.title}」を元に戻しました'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // ゴミ箱から完全に削除する（添付ファイルも消す）
+  void _deleteItemPermanently(TodoItem item) {
     _updateState(() {
       _allItems.remove(item);
     });
     _saveData();
     _deleteTaskImages(item.id);
     NotificationService().cancelNotification(item.id);
+  }
+
+  // ゴミ箱を空にする
+  void _emptyTrash() {
+    final items = _trashedItems;
+    if (items.isEmpty) return;
+    final ids = items.map((item) => item.id).toList();
+    _updateState(() {
+      _allItems.removeWhere((item) => item.isDeleted);
+    });
+    _saveData();
+    for (final id in ids) {
+      _deleteTaskImages(id);
+      NotificationService().cancelNotification(id);
+    }
+  }
+
+  // 保持期間を過ぎたゴミ箱のタスクを完全に削除する。
+  // アプリを開いたときに実行するので、開かない間は残ったままになる。
+  void _purgeExpiredTrash() {
+    final limit = DateTime.now().subtract(kTrashRetention);
+    final expired = _allItems
+        .where(
+          (item) => item.deletedAt != null && item.deletedAt!.isBefore(limit),
+        )
+        .toList();
+    if (expired.isEmpty) return;
+    final ids = expired.map((item) => item.id).toSet();
+    _updateState(() {
+      _allItems.removeWhere((item) => ids.contains(item.id));
+    });
+    _saveData();
+    for (final id in ids) {
+      _deleteTaskImages(id);
+    }
   }
 
   void _completeItemWithFade(TodoItem item) {
