@@ -87,6 +87,38 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     }
   }
 
+  // タスクを複製する。
+  // 完了状態と繰り返しの進捗はリセットし、すぐ取り組める状態で作る。
+  // 画像とPDFは引き継がない。URLをそのままコピーすると Storage 上の実体を
+  // 2つのタスクで共有してしまい、片方を削除・編集したときにもう片方の
+  // 画像が消えるため。
+  void _duplicateItem(TodoItem item) {
+    final recurrence = item.recurrence;
+    final offsets = item.notificationOffsets;
+    _addItem(
+      '${item.title}のコピー',
+      item.category,
+      description: item.description,
+      links: item.links,
+      taskTag: item.taskTag,
+      dueDate: item.dueDate,
+      // 繰り返し回数の進捗は引き継がない（複製は1回目から数える）
+      recurrence: recurrence?.copyWith(doneCount: 0),
+      priority: item.priority,
+      notificationOffsets: offsets == null ? null : [...offsets],
+    );
+    final hasAttachments =
+        item.imageBase64List.isNotEmpty || item.attachments.isNotEmpty;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          hasAttachments ? '複製しました（画像とPDFは引き継いでいません）' : '複製しました',
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   // やること⇔やりたいことの間でタスクを移動する
   void _moveItemToOppositeCategory(TodoItem item) {
     final toCategory = item.category == 'future' ? 'todo' : 'future';

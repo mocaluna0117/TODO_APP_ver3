@@ -27,6 +27,15 @@ extension _TodoHomeTodoCardActions on _TodoHomePageState {
           ),
         _compactTodoCardIconButton(
           icon: Icon(
+            Icons.content_copy_outlined,
+            color: Colors.grey.shade500,
+            size: 18,
+          ),
+          onPressed: () => _duplicateItem(item),
+          tooltip: '複製',
+        ),
+        _compactTodoCardIconButton(
+          icon: Icon(
             Icons.delete_outline,
             color: Colors.red.shade300,
             size: 20,
