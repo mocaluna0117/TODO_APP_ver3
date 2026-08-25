@@ -317,6 +317,36 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     draft.pendingFiles = [...item.pendingFiles];
   }
 
+  // 次に進む期限。繰り返しが終わる回なら null。
+  // チェック時のメニューに「次回」を出すために使う。
+  DateTime? _nextRecurringDueDateOf(TodoItem item) {
+    final recurrence = item.recurrence;
+    final dueDate = item.dueDate;
+    if (recurrence == null || dueDate == null) return null;
+    final now = DateTime.now();
+    final after = now.isAfter(dueDate) ? now : dueDate;
+    return nextRecurrenceDate(recurrence.resolvedFor(dueDate), dueDate, after);
+  }
+
+  // 繰り返しをやめて、このタスクを完了にする。
+  // 以降くり返さないよう設定自体を外すので、未完了に戻しても再開しない。
+  void _finishRecurringTask(TodoItem item) {
+    _updateState(() {
+      item.recurrence = null;
+      item.isDone = true;
+      item.completedAt = DateTime.now();
+      _syncOpenDetailDraft(item);
+    });
+    _saveData();
+    NotificationService().cancelNotification(item.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「${item.title}」の繰り返しを終了して完了にしました'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   void _toggleItem(TodoItem item) {
     final recurrence = item.recurrence;
     final dueDate = item.dueDate;

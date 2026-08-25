@@ -1,5 +1,8 @@
 part of '../../../main.dart';
 
+// 繰り返しタスクをチェックしたときの選択肢
+enum _RecurringCompleteAction { advance, finish }
+
 extension _TodoHomeTodoCard on _TodoHomePageState {
   Widget _buildTodoCard(TodoItem item, String category) {
     // 2ペイン表示中は、選択中のタスクを枠線でハイライトする
@@ -75,7 +78,7 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
   }
 
   Widget _buildTodoCardCheckbox(TodoItem item) {
-    return Checkbox(
+    final checkbox = Checkbox(
       value: item.isDone,
       onChanged: (_) => _completeItemWithFade(item),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
@@ -85,6 +88,78 @@ extension _TodoHomeTodoCard on _TodoHomePageState {
       // タップ領域を縮めてカード左端に寄せる
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
+    // 未完了の繰り返しタスクは、押したときに「次回に進める」か
+    // 「繰り返しを終了して完了」かを選べるようにする。
+    if (item.isDone || !item.isRecurring || item.dueDate == null) {
+      return checkbox;
+    }
+    return _buildRecurringCheckboxMenu(item, checkbox);
+  }
+
+  Widget _buildRecurringCheckboxMenu(TodoItem item, Widget checkbox) {
+    final next = _nextRecurringDueDateOf(item);
+    return PopupMenuButton<_RecurringCompleteAction>(
+      tooltip: '完了のしかたを選ぶ',
+      padding: EdgeInsets.zero,
+      position: PopupMenuPosition.under,
+      onSelected: (action) {
+        switch (action) {
+          case _RecurringCompleteAction.advance:
+            _completeItemWithFade(item);
+          case _RecurringCompleteAction.finish:
+            _finishRecurringTask(item);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _RecurringCompleteAction.advance,
+          child: _buildRecurringMenuRow(
+            icon: Icons.event_repeat,
+            label: '次回に進める',
+            // 次が無い（繰り返しが終わる回）ときは日付を出さない
+            detail: next == null
+                ? null
+                : DateFormat('M/d(E) HH:mm', 'ja').format(next),
+          ),
+        ),
+        PopupMenuItem(
+          value: _RecurringCompleteAction.finish,
+          child: _buildRecurringMenuRow(
+            icon: Icons.check_circle_outline,
+            label: '繰り返しを終了して完了',
+            detail: '以降は繰り返しません',
+          ),
+        ),
+      ],
+      // 見た目はチェックボックスのまま。タップはメニューに渡す。
+      child: IgnorePointer(child: checkbox),
+    );
+  }
+
+  Widget _buildRecurringMenuRow({
+    required IconData icon,
+    required String label,
+    String? detail,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: s.accentOnSurface),
+        const SizedBox(width: 10),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label),
+            if (detail != null)
+              Text(
+                detail,
+                style: TextStyle(fontSize: 11, color: s.secondaryTextColor),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
