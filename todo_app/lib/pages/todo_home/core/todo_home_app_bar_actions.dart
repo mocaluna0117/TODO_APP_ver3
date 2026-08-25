@@ -16,9 +16,11 @@ extension _TodoHomeAppBarActions on _TodoHomePageState {
         tooltip: _isSearching ? '検索をやめる' : 'タスクを検索',
       ),
       IconButton(
-        icon: const Icon(Icons.mail_outline),
-        onPressed: _openInquiryForm,
-        tooltip: 'お問い合わせ',
+        icon: Icon(
+          _inquiryOverlay == null ? Icons.mail_outline : Icons.mail,
+        ),
+        onPressed: _toggleInquiryPanel,
+        tooltip: _inquiryOverlay == null ? 'お問い合わせ' : '問い合わせを閉じる',
       ),
       IconButton(
         icon: const Icon(Icons.settings),

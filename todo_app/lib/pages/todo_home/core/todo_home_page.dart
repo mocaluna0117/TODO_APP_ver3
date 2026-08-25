@@ -35,6 +35,13 @@ class _TodoHomePageState extends State<TodoHomePage>
   bool _isPickingBackup = false;
   // Firestore のリアルタイム同期リスナー
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _todosSub;
+  // 問い合わせのパネル。ダイアログではなくオーバーレイで出すことで、
+  // 開いたままでも裏のタスク一覧をスクロールできるようにする。
+  OverlayEntry? _inquiryOverlay;
+  // パネルを閉じるときに破棄する入力欄
+  TextEditingController? _inquiryControllerToDispose;
+  // 届いた問い合わせのパネル（送信パネルの上に重ねて出す）
+  OverlayEntry? _inquiryListOverlay;
   // 検索。空文字なら絞り込みなし。入力欄はAppBarに出す。
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -134,6 +141,11 @@ class _TodoHomePageState extends State<TodoHomePage>
   @override
   void dispose() {
     PaintingBinding.instance.systemFonts.removeListener(_onSystemFontsChanged);
+    // 開いたままの問い合わせパネルを片付ける
+    _inquiryListOverlay?.remove();
+    _inquiryListOverlay = null;
+    _inquiryOverlay?.remove();
+    _inquiryOverlay = null;
     _searchController.dispose();
     _todosSub?.cancel();
     _settingsSub?.cancel();
