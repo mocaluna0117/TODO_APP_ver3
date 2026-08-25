@@ -67,6 +67,15 @@ extension _TodoHomeInquiry on _TodoHomePageState {
                 centerTitle: true,
                 backgroundColor: s.primaryColor,
                 foregroundColor: Colors.white,
+                actions: [
+                  // 閲覧できるアカウントのときだけ、届いた分を見られるようにする
+                  if (_isInquiryAdmin)
+                    IconButton(
+                      icon: const Icon(Icons.inbox_outlined),
+                      tooltip: '届いた問い合わせ',
+                      onPressed: _openInquiryList,
+                    ),
+                ],
               ),
               body: SafeArea(
                 child: Center(
