@@ -33,7 +33,6 @@ class SettingsPage extends StatefulWidget {
   // ゴミ箱を開く／中の件数（削除したタスクの復元用）
   final VoidCallback? onOpenTrash;
   // 問い合わせの送信画面／届いた一覧（一覧は閲覧できるアカウントのみ）
-  final VoidCallback? onOpenInquiryForm;
   final VoidCallback? onOpenInquiryList;
   final int Function()? trashCount;
   final String? userEmail;
@@ -54,7 +53,6 @@ class SettingsPage extends StatefulWidget {
     this.onImportTasks,
     this.onDeleteAllTasks,
     this.onOpenTrash,
-    this.onOpenInquiryForm,
     this.onOpenInquiryList,
     this.trashCount,
     this.userEmail,
