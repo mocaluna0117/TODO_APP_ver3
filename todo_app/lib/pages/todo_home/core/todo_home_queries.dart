@@ -71,6 +71,11 @@ extension _TodoHomeQueries on _TodoHomePageState {
       items.removeWhere((item) => item.taskTag != tagFilter);
     }
 
+    // 検索語での絞り込み（どのタブでも効く）
+    if (_searchQuery.trim().isNotEmpty) {
+      items.removeWhere((item) => !_matchesSearch(item));
+    }
+
     items.sort((a, b) {
       // やりたいことタブは優先度の高い順を最優先（同優先度内は期限順）
       if (category == 'future') {

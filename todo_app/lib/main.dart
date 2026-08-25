@@ -75,6 +75,7 @@ part 'pages/todo_home/form_fields/todo_home_notification_picker.dart';
 part 'pages/todo_home/list/todo_home_list.dart';
 part 'pages/todo_home/list/todo_home_todo_list.dart';
 part 'pages/todo_home/list/todo_home_task_tag_filter.dart';
+part 'pages/todo_home/list/todo_home_search.dart';
 part 'pages/todo_home/list/todo_home_empty_list_message.dart';
 part 'pages/todo_home/list/todo_home_todo_card.dart';
 part 'pages/todo_home/list/todo_home_todo_card_actions.dart';

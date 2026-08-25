@@ -35,6 +35,10 @@ class _TodoHomePageState extends State<TodoHomePage>
   bool _isPickingBackup = false;
   // Firestore のリアルタイム同期リスナー
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _todosSub;
+  // 検索。空文字なら絞り込みなし。入力欄はAppBarに出す。
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _isSearching = false;
   // 起動後に一度だけ、既存タスクぶんの通知予定を作ったかどうか
   bool _didInitialNotificationSync = false;
   // Firestore 上に存在する todo ドキュメントIDの集合（削除同期用）
@@ -130,6 +134,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   @override
   void dispose() {
     PaintingBinding.instance.systemFonts.removeListener(_onSystemFontsChanged);
+    _searchController.dispose();
     _todosSub?.cancel();
     _settingsSub?.cancel();
     _tabController?.dispose();
@@ -192,14 +197,16 @@ class _TodoHomePageState extends State<TodoHomePage>
                     onPressed: _showAddDialog,
                   ),
                 Expanded(
-                  child: Text(
-                    s.appTitle,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
+                  child: _isSearching
+                      ? _buildSearchField()
+                      : Text(
+                          s.appTitle,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                 ),
                 ..._buildAppBarActions(),
               ],

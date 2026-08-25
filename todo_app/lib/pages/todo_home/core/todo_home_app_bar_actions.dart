@@ -11,6 +11,11 @@ extension _TodoHomeAppBarActions on _TodoHomePageState {
           tooltip: '完了済みを全削除',
         ),
       IconButton(
+        icon: Icon(_isSearching ? Icons.close : Icons.search),
+        onPressed: _toggleSearch,
+        tooltip: _isSearching ? '検索をやめる' : 'タスクを検索',
+      ),
+      IconButton(
         icon: const Icon(Icons.settings),
         onPressed: _openSettings,
         tooltip: '設定',
