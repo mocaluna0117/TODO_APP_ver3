@@ -217,7 +217,7 @@ extension _TodoHomeInquiry on _TodoHomePageState {
                               ),
                             ),
                           ),
-                          if (headerAction != null) headerAction,
+                          ?headerAction,
                           IconButton(
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
