@@ -21,134 +21,194 @@ extension _TodoHomeInquiry on _TodoHomePageState {
   // ─────────────────────────────────────────────
   // 送信フォーム
   // ─────────────────────────────────────────────
+  // 問い合わせの送信フォーム。タスクの追加・編集と同じモーダルで出す。
   Future<void> _openInquiryForm() async {
     final controller = TextEditingController();
     final pending = <PendingTaskFile>[];
     var isSending = false;
 
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StatefulBuilder(
-          builder: (context, refresh) {
-            final canSend =
-                !isSending &&
-                (controller.text.trim().isNotEmpty || pending.isNotEmpty);
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) => StatefulBuilder(
+        builder: (context, refresh) {
+          final mediaQuery = MediaQuery.of(context);
+          final keyboardInset = mediaQuery.viewInsets.bottom;
+          final topOffset = mediaQuery.padding.top + 4;
+          final bottomGap = keyboardInset > 0 ? 20.0 : 16.0;
+          final maxModalHeight =
+              (mediaQuery.size.height - topOffset - keyboardInset - bottomGap)
+                  .clamp(240.0, mediaQuery.size.height * 0.8);
+          final canSend =
+              !isSending &&
+              (controller.text.trim().isNotEmpty || pending.isNotEmpty);
 
-            Future<void> send() async {
-              refresh(() => isSending = true);
-              // 送信の待ち時間をまたぐので、必要なものは先に取っておく
-              final messenger = ScaffoldMessenger.of(context);
-              final navigator = Navigator.of(context);
-              final sent = await _submitInquiry(
-                message: controller.text.trim(),
-                files: pending,
-              );
-              if (!context.mounted) return;
-              if (sent) {
-                navigator.pop();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('問い合わせを送信しました')),
-                );
-                return;
-              }
-              refresh(() => isSending = false);
+          Future<void> send() async {
+            refresh(() => isSending = true);
+            // 送信の待ち時間をまたぐので、必要なものは先に取っておく
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(context);
+            final sent = await _submitInquiry(
+              message: controller.text.trim(),
+              files: pending,
+            );
+            if (!context.mounted) return;
+            if (sent) {
+              navigator.pop();
               messenger.showSnackBar(
-                const SnackBar(content: Text('送信できませんでした。通信状況を確認してください')),
+                const SnackBar(content: Text('問い合わせを送信しました')),
               );
+              return;
             }
+            refresh(() => isSending = false);
+            messenger.showSnackBar(
+              const SnackBar(content: Text('送信できませんでした。通信状況を確認してください')),
+            );
+          }
 
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text(
-                  'お問い合わせ',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                centerTitle: true,
-                backgroundColor: s.primaryColor,
-                foregroundColor: Colors.white,
-                actions: [
-                  // 閲覧できるアカウントのときだけ、届いた分を見られるようにする
-                  if (_isInquiryAdmin)
-                    IconButton(
-                      icon: const Icon(Icons.inbox_outlined),
-                      tooltip: '届いた問い合わせ',
-                      onPressed: _openInquiryList,
-                    ),
-                ],
+          return Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: topOffset,
+                left: 16,
+                right: 16,
+                bottom: keyboardInset + bottomGap,
               ),
-              body: SafeArea(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
+              child: Material(
+                color: Colors.transparent,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: maxModalHeight,
+                    maxWidth: 560,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                    decoration: BoxDecoration(
+                      color: s.surfaceColor,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          '不具合の報告や要望をお送りください。'
-                          'スクリーンショット（png / jpg）やPDFを添付できます。',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: s.secondaryTextColor,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: controller,
-                          minLines: 5,
-                          maxLines: null,
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          onChanged: (_) => refresh(() {}),
-                          decoration: InputDecoration(
-                            hintText: '内容を入力（添付だけでも送信できます）',
-                            filled: true,
-                            fillColor: s.fieldColor,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'お問い合わせ',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: s.accentOnSurface,
+                                ),
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.all(16),
+                            // 閲覧できるアカウントのときだけ、届いた分を見られる
+                            if (_isInquiryAdmin)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: Icon(
+                                  Icons.inbox_outlined,
+                                  color: s.accentOnSurface,
+                                ),
+                                tooltip: '届いた問い合わせ',
+                                onPressed: _openInquiryList,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Flexible(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  '不具合の報告や要望をお送りください。'
+                                  'スクリーンショット（png / jpg）やPDFを添付できます。',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: s.secondaryTextColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: controller,
+                                  minLines: 4,
+                                  maxLines: null,
+                                  keyboardType: TextInputType.multiline,
+                                  textInputAction: TextInputAction.newline,
+                                  onChanged: (_) => refresh(() {}),
+                                  decoration: InputDecoration(
+                                    hintText: '内容を入力（添付だけでも送信できます）',
+                                    filled: true,
+                                    fillColor: s.fieldColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.all(16),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildInquiryAttachmentRow(pending, refresh),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
-                        _buildInquiryAttachmentRow(pending, refresh),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: canSend ? send : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: s.primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: isSending
+                                  ? null
+                                  : () => Navigator.pop(context),
+                              child: const Text(
+                                'キャンセル',
+                                style: TextStyle(color: Colors.grey),
+                              ),
                             ),
-                          ),
-                          child: isSending
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  '送信',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: canSend ? send : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: s.primaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
                                 ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isSending
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      '送信',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
     controller.dispose();
