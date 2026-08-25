@@ -405,61 +405,113 @@ extension _TodoHomeInquiry on _TodoHomePageState {
   // ─────────────────────────────────────────────
   // 受信一覧（運営アカウントのみ）
   // ─────────────────────────────────────────────
+  // 届いた問い合わせの一覧。送信フォームと同じくモーダルで出す。
   Future<void> _openInquiryList() async {
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text(
-              '受信した問い合わせ',
-              style: TextStyle(fontWeight: FontWeight.bold),
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        final mediaQuery = MediaQuery.of(context);
+        final topOffset = mediaQuery.padding.top + 4;
+        final maxModalHeight =
+            (mediaQuery.size.height - topOffset - 16)
+                .clamp(240.0, mediaQuery.size.height * 0.85);
+
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: topOffset,
+              left: 16,
+              right: 16,
+              bottom: 16,
             ),
-            centerTitle: true,
-            backgroundColor: s.primaryColor,
-            foregroundColor: Colors.white,
-          ),
-          body: SafeArea(
-            child: Center(
+            child: Material(
+              color: Colors.transparent,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _inquiriesCollection
-                      .orderBy('createdAt', descending: true)
-                      .limit(200)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return _buildInquiryListMessage(
-                        Icons.error_outline,
-                        '読み込めませんでした\n（閲覧できるアカウントか確認してください）',
-                      );
-                    }
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-                    final docs = snapshot.data!.docs;
-                    if (docs.isEmpty) {
-                      return _buildInquiryListMessage(
-                        Icons.inbox_outlined,
-                        '問い合わせはまだありません',
-                      );
-                    }
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) =>
-                          _buildInquiryCard(docs[index]),
-                    );
-                  },
+                constraints: BoxConstraints(
+                  maxHeight: maxModalHeight,
+                  maxWidth: 720,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  decoration: BoxDecoration(
+                    color: s.surfaceColor,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '届いた問い合わせ',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: s.accentOnSurface,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: Icon(Icons.close, color: s.secondaryTextColor),
+                            tooltip: '閉じる',
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child:
+                            StreamBuilder<
+                              QuerySnapshot<Map<String, dynamic>>
+                            >(
+                              stream: _inquiriesCollection
+                                  .orderBy('createdAt', descending: true)
+                                  .limit(200)
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return _buildInquiryListMessage(
+                                    Icons.error_outline,
+                                    '読み込めませんでした\n（閲覧できるアカウントか確認してください）',
+                                  );
+                                }
+                                if (!snapshot.hasData) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(32),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+                                final docs = snapshot.data!.docs;
+                                if (docs.isEmpty) {
+                                  return _buildInquiryListMessage(
+                                    Icons.inbox_outlined,
+                                    '問い合わせはまだありません',
+                                  );
+                                }
+                                return ListView.builder(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  itemCount: docs.length,
+                                  itemBuilder: (context, index) =>
+                                      _buildInquiryCard(docs[index]),
+                                );
+                              },
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
