@@ -208,6 +208,10 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
       SnackBar(
         content: Text('「${item.title}」をゴミ箱に移動しました'),
         duration: const Duration(seconds: 5),
+        // Flutter 3.38 以降、アクション付きの SnackBar は既定で自動的に
+        // 消えなくなった（persist が action != null で真になる）。
+        // 時間で消えてほしいので明示的に打ち消す。
+        persist: false,
         action: SnackBarAction(
           label: '元に戻す',
           onPressed: () => _restoreFromTrash(item),

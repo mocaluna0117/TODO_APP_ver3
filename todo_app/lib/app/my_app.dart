@@ -54,6 +54,9 @@ class _MyAppState extends State<MyApp> {
         backgroundColor: _settings.accentColor,
         foregroundColor: Colors.white,
       ),
+      // トーストに×ボタンを出す（Flutter 3.38 以降の SnackBar.showCloseIcon）。
+      // テーマで指定できるので、全ての表示箇所にまとめて効く。
+      snackBarTheme: const SnackBarThemeData(showCloseIcon: true),
       // ダイアログ・シートは明示的に指定しないと明るいままになる
       dialogTheme: DialogThemeData(backgroundColor: surface),
       bottomSheetTheme: BottomSheetThemeData(backgroundColor: surface),

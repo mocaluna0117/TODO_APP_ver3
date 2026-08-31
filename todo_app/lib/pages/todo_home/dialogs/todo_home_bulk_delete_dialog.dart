@@ -40,10 +40,8 @@ extension _TodoHomeBulkDeleteDialog on _TodoHomePageState {
 
     if (result != true) return;
 
+    // 件数の通知と「元に戻す」は _deleteCompletedItems 側で出すので、
+    // ここでは出さない（2つ並ぶと後ろのぶんが待たされる）
     _deleteCompletedItems(items);
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('完了済みタスク ${items.length}件を削除しました')));
   }
 }
