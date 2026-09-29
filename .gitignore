@@ -1,3 +1,5 @@
 docs/**/*.png
 docs/**/*.pdf
+# 作品説明資料の画像は公開する
+!docs/portfolio/images/*.png
 .DS_Store
