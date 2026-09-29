@@ -262,7 +262,3 @@ TODO_APP_ver3/
 ├── .github/workflows/deploy-web.yml   # 解析・テスト・ビルド・Hosting へのデプロイ
 └── docs/portfolio/                    # 本資料・画像・動画
 ```
-
----
-
-*本資料は提出用の説明資料である。ソースコードは上記GitHubリポジトリで全文公開している。*
