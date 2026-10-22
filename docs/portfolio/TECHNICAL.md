@@ -372,7 +372,7 @@ const due = await db
   .get();
 ```
 
-`MAX_DOCS_PER_RUN` は200で、取りこぼしは次の実行で拾う。各ドキュメントの `entries` を「時刻が来た分」と「残り」に分け、時刻が来た分が複数たまっていても**送るのは最後の1件だけ**にする。送ったあとは残りで `entries` と `nextSendAt` を更新し、残りが無ければドキュメントごと消す。同じ利用者の端末一覧は、1回の実行の中では `Map` に覚えて使い回す。
+`MAX_DOCS_PER_RUN` は200で、取りこぼしは次の実行で拾う。各ドキュメントの `entries` を「時刻が来た分」と「残り」に分け、時刻が来た分が複数たまっていても**送るのは最後の1件だけ**にする。その1件が**1日より古ければ送らずに捨てる**（Web へ送るときの TTL と同じ長さ。理由は 4.7）。この振り分けは Firebase に依存しない `planDelivery`（[`functions/schedule.js`][schedule]）にまとめてある。送ったあとは残りで `entries` と `nextSendAt` を更新し、残りが無ければドキュメントごと消す。同じ利用者の端末一覧は、1回の実行の中では `Map` に覚えて使い回す。
 
 ### 4.4 「通知が2件届く」の原因と修正
 
@@ -458,6 +458,19 @@ await _setupPush(requestPermission: !kIsWeb);
 ### 4.6 端末内の予約通知
 
 プッシュを使えない端末では、タスク1件に複数の予約を作る。通知 ID は `Object.hash(itemId, minutes) & 0x7FFFFFFF`、payload はタスク ID である。取り消しは ID を計算し直さず、`pendingNotificationRequests()` から payload が一致する予約をすべて消す（旧版の「タスク ID をそのまま通知 ID にした予約」も合わせて消す）。予約は `AndroidScheduleMode.exactAllowWhileIdle` で入れ、タイムゾーンは `Asia/Tokyo` に固定している。
+
+### 4.7 「通知が来ない」の原因（課金の停止）と、再開したときの扱い
+
+2026年10月に、設定した通知が届かなくなった。原因はコードではなく、Firebase プロジェクトの課金が止まったことだった。調べた結果は次のとおり。
+
+- `gcloud billing projects describe` が `billingEnabled: false` を返し、紐づいている請求先アカウントは閉じていた（`open: false`）
+- Cloud Scheduler のログは 2026-10-11 13:27（UTC）の呼び出しが最後で、それ以降はプロジェクトのログ自体が無い。Scheduler の API も、課金を有効にするよう求めて呼び出しを拒否する
+- 請求先アカウントを紐づけたのは 2026-07-12（Cloud Storage を使うために Blaze プランにしたとき）で、止まったのはその約90日後だった。無料トライアルの請求先アカウントが、期間の終わりに閉じたと考えられる
+- アプリ側は動いていた。送信予定は書かれ続け、端末のトークンも登録し直されていた。止まった後に時刻が来た予定は、送られないまま残っていた
+
+`sendDueNotifications` は Cloud Scheduler が毎分呼ぶ作りなので、課金が止まると、関数のコードにかかわらず通知は1件も出ない。直すには、有効な請求先アカウントを紐づけて Blaze プランに戻すしかない。
+
+コードでは、再開したときの振る舞いだけを変えた。修正前は、止まっていた間に時刻が来た予定を、再開後の最初の実行でそのまま送っていた（10月中旬の「期限が近づいています」が、10日以上遅れて届く）。いまは 4.3 のとおり1日より古い予定は送らずに片付け、片付けた件数を `logger.info` に残す。
 
 ## 5. 同期
 
@@ -686,7 +699,9 @@ double _visibleCardLineOffset(double viewportHeight, ScrollMetrics metrics) {
 | 表示ラベル | 4 | 「2週ごと 火曜日」「毎月第2火曜日」「あと7回」など、期限が無くても落ちない |
 | プリセット | 2 | JSON で往復しても同じプリセットと判定される、期限が無くてもラベルが重ならない |
 
-GitHub Actions（[`deploy-web.yml`][workflow]）は `main` への push で `flutter analyze`（失敗してもデプロイは止めない設定）、`flutter test test/recurrence_test.dart`、`flutter build web --release` を順に実行し、シークレットが設定されていれば Hosting へデプロイする。[`test/widget_test.dart`][widget_test] は Firebase を入れる前の古いテストで、ワークフローのコメントのとおり実行対象から外している。同期・通知・2ペインの追従を自動で確かめるテストは無い。
+GitHub Actions（[`deploy-web.yml`][workflow]）は `main` への push で `flutter analyze`（失敗してもデプロイは止めない設定）、`flutter test test/recurrence_test.dart`、`flutter build web --release` を順に実行し、シークレットが設定されていれば Hosting へデプロイする。[`test/widget_test.dart`][widget_test] は Firebase を入れる前の古いテストで、ワークフローのコメントのとおり実行対象から外している。
+
+Cloud Functions の送信予定の振り分け（`planDelivery`）は、[`functions/test/schedule.test.js`][schedule_test] の7件で確かめている。最後の1件だけを送ること、1日より古い予定は送らないこと（ちょうど1日遅れまでは送る）、並び順が崩れていても時刻順で決めること、壊れた `entries` を無視することを固定している。Node 標準の `node:test` で書いてあるので、依存を入れずに `todo_app/functions` で `npm test` を実行すれば動く（CI では実行していない）。同期・通知の送受信・2ペインの追従を自動で確かめるテストは無い。
 
 ## 9. 本資料について
 
@@ -714,6 +729,8 @@ GitHub Actions（[`deploy-web.yml`][workflow]）は `main` への push で `flut
 [push_display]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/lib/push_notification_display.dart
 [sw]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/web/firebase-messaging-sw.js
 [functions]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/functions/index.js
+[schedule]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/functions/schedule.js
+[schedule_test]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/functions/test/schedule.test.js
 [rules]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/firestore.rules
 [indexes]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/firestore.indexes.json
 [firebase_json]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/firebase.json

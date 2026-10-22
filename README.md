@@ -155,6 +155,7 @@ todo_app/
 │   │       └── media/              # 画像・PDF の添付と Storage への送信
 │   └── settings/                   # 設定画面（セクション/アクション/部品）
 ├── functions/index.js              # 通知を送る Cloud Function
+├── functions/schedule.js           # 送信予定のうち、何を送り何を残すか（テストは functions/test/）
 ├── firestore.rules                 # Firestore のセキュリティルール
 ├── web/firebase-messaging-sw.js    # Web のプッシュ通知を表示する Service Worker
 └── test/recurrence_test.dart       # 繰り返しの単体テスト（40件）
@@ -240,6 +241,8 @@ flutter run -d <デバイスID> --release
 - **Cloud Functions・Firestore のルール**:
 
 ```bash
-cd todo_app
-firebase deploy --only functions,firestore:rules
+cd todo_app/functions && npm ci && npm test   # 送信予定の振り分けのテスト
+cd .. && firebase deploy --only functions,firestore:rules
 ```
+
+- **課金について**: 通知を送る関数は Cloud Scheduler から毎分呼ばれるため、プロジェクトに課金が有効な請求先アカウント（Blaze プラン）が必要です。請求先アカウントが閉じると（無料トライアルの終了など）関数が呼ばれなくなり、通知は1件も届きません（2026年10月に実際に起きた。経緯は [TECHNICAL.md](docs/portfolio/TECHNICAL.md) の 4.7）

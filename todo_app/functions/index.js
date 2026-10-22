@@ -5,9 +5,11 @@
 // この関数は毎分 nextSendAt を見て、時刻が来たものを users/{uid}/devices の
 // 全トークンへ送り、送った分を entries から取り除く。
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
+const { planDelivery } = require('./schedule');
 
 initializeApp();
 const db = getFirestore();
@@ -36,31 +38,29 @@ exports.sendDueNotifications = onSchedule(
 
     // 同じユーザーの端末一覧は使い回す（毎回引かない）
     const tokensByUid = new Map();
+    let expiredDocs = 0;
 
     for (const doc of due.docs) {
       const uid = doc.ref.parent.parent && doc.ref.parent.parent.id;
       if (!uid) continue;
 
       const data = doc.data();
-      const entries = Array.isArray(data.entries) ? data.entries : [];
-      const dueEntries = entries.filter(
-        (entry) => entry.sendAt && entry.sendAt.toMillis() <= now.toMillis(),
+      // 送るのは時刻が来た分の最後の1件だけ。1日より古いものは送らない
+      // （関数が止まっていた間の予定を、再開時にまとめて鳴らさない）。
+      const { toSend, remaining, expired } = planDelivery(
+        data.entries,
+        now.toMillis(),
       );
-      const remaining = entries.filter(
-        (entry) => entry.sendAt && entry.sendAt.toMillis() > now.toMillis(),
-      );
+      if (expired) expiredDocs++;
 
-      if (dueEntries.length > 0) {
+      if (toSend) {
         if (!tokensByUid.has(uid)) {
           tokensByUid.set(uid, await loadDeviceTokens(uid));
         }
         const tokens = tokensByUid.get(uid);
-        // 同じタスクで複数件たまっていても、鳴らすのは最後の1件だけにする
-        // （通知が一度に何度も出るのを避ける）
-        const entry = dueEntries[dueEntries.length - 1];
         await sendToDevices(uid, tokens, {
           title: data.title || '期限が近づいています',
-          body: entry.body || '',
+          body: toSend.body || '',
           taskId: String(data.taskId || ''),
         });
       }
@@ -74,6 +74,10 @@ exports.sendDueNotifications = onSchedule(
           nextSendAt: remaining[0].sendAt,
         });
       }
+    }
+
+    if (expiredDocs > 0) {
+      logger.info('古すぎる通知の予定を送らずに片付けた', { expiredDocs });
     }
   },
 );
