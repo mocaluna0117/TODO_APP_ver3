@@ -60,6 +60,7 @@ class Recurrence {
   final Set<int> weekdays;
   final MonthlyMode monthlyMode;
   // 月単位・日付指定のときの日（1〜31）。null なら期限の日を使う。
+  // 年単位では 2/29 の期限を確定させたときだけ 29 が入る（resolvedFor）。
   final int? monthDay;
   // 月単位・曜日指定のときの第n週（1〜5、lastWeekdayOrdinal は最終）。
   // null なら期限の日付から判定する。
@@ -109,6 +110,17 @@ class Recurrence {
     final isWeekly = freq == RecurrenceFreq.weekly;
     final isMonthly = freq == RecurrenceFreq.monthly;
     final byWeekday = isMonthly && monthlyMode == MonthlyMode.nthWeekday;
+    // 年単位で丸めが起きるのは 2/29 だけ。平年に 2/28 へ丸めた後も、うるう年に
+    // 2/29 へ戻れるよう日を固定する。ほかの日は固定せず、プリセットのまま保つ。
+    final isLeapDay = dueDate.month == DateTime.february && dueDate.day == 29;
+    final int? resolvedDay;
+    if (isMonthly && !byWeekday) {
+      resolvedDay = monthDay ?? dueDate.day;
+    } else if (freq == RecurrenceFreq.yearly && isLeapDay) {
+      resolvedDay = monthDay ?? 29;
+    } else {
+      resolvedDay = monthDay;
+    }
     return Recurrence(
       freq: freq,
       interval: interval,
@@ -116,7 +128,7 @@ class Recurrence {
           ? <int>{dueDate.weekday}
           : weekdays,
       monthlyMode: monthlyMode,
-      monthDay: isMonthly && !byWeekday ? (monthDay ?? dueDate.day) : monthDay,
+      monthDay: resolvedDay,
       weekOrdinal: byWeekday
           ? (weekOrdinal ?? recurrenceWeekdayOrdinal(dueDate))
           : weekOrdinal,
@@ -364,11 +376,12 @@ DateTime? _rawNextRecurrenceDate(
       return null;
 
     case RecurrenceFreq.yearly:
+      final target = _yearlyDay(recurrence, dueDate);
       for (var step = 0; step < _recurrenceSearchLimit; step++) {
         final year = dueDate.year + interval * step;
         final daysInMonth = DateUtils.getDaysInMonth(year, dueDate.month);
         // 2/29 が無い年は 2/28 に丸める
-        final day = dueDate.day > daysInMonth ? daysInMonth : dueDate.day;
+        final day = target > daysInMonth ? daysInMonth : target;
         final candidate = DateTime(
           year,
           dueDate.month,
@@ -383,6 +396,19 @@ DateTime? _rawNextRecurrenceDate(
       }
       return null;
   }
+}
+
+// 年単位の繰り返しで目指す日。2/29 を固定した設定（resolvedFor）なら、平年に
+// 2/28 へ丸めた後の期限からでも 29 日を目指す。固定した日を使うのは期限が
+// 2月の末日（平年は28日、うるう年は29日）のときだけで、期限を別の日へ
+// 動かしたとき（2/10 や別の月）は期限の日に従う。
+int _yearlyDay(Recurrence recurrence, DateTime dueDate) {
+  final pinned = recurrence.monthDay;
+  final isEndOfFebruary =
+      dueDate.month == DateTime.february &&
+      dueDate.day == DateUtils.getDaysInMonth(dueDate.year, DateTime.february);
+  if (pinned != null && isEndOfFebruary) return pinned;
+  return dueDate.day;
 }
 
 // 期限の [monthsAhead] か月後の月における発生日。時刻は期限のものを引き継ぐ。
@@ -486,7 +512,8 @@ String _recurrenceBaseLabel(Recurrence recurrence, DateTime? dueDate) {
       final head = isEvery ? '毎年' : '${recurrence.interval}年ごと';
       if (dueDate == null) return head;
       final sep = isEvery ? '' : ' ';
-      return '$head$sep${dueDate.month}月${dueDate.day}日';
+      // 2/29 を固定した設定は、平年の 2/28 の期限でも「2月29日」と出す
+      return '$head$sep${dueDate.month}月${_yearlyDay(recurrence, dueDate)}日';
   }
 }
 

@@ -101,12 +101,19 @@ class _RecurrenceSheetState extends State<_RecurrenceSheet> {
     final isWeekly = _freq == RecurrenceFreq.weekly;
     final isMonthly = _freq == RecurrenceFreq.monthly;
     final byWeekday = isMonthly && _monthlyMode == MonthlyMode.nthWeekday;
+    // 年単位のまま保存するときは、2/29 の固定（resolvedFor）を消さない。
+    // 消すと、平年の 2/28 からうるう年の 2/29 へ戻れなくなる。
+    final keepsYearlyDay =
+        _freq == RecurrenceFreq.yearly &&
+        initial?.freq == RecurrenceFreq.yearly;
     return Recurrence(
       freq: _freq,
       interval: _interval,
       weekdays: isWeekly ? {..._weekdays} : const <int>{},
       monthlyMode: _monthlyMode,
-      monthDay: isMonthly && !byWeekday ? _monthDay : null,
+      monthDay: isMonthly && !byWeekday
+          ? _monthDay
+          : (keepsYearlyDay ? initial?.monthDay : null),
       weekOrdinal: byWeekday ? _weekOrdinal : null,
       monthWeekday: byWeekday ? _monthWeekday : null,
       end: _end,

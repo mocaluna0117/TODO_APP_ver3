@@ -157,7 +157,7 @@ todo_app/
 ├── functions/index.js              # 通知を送る Cloud Function
 ├── firestore.rules                 # Firestore のセキュリティルール
 ├── web/firebase-messaging-sw.js    # Web のプッシュ通知を表示する Service Worker
-└── test/recurrence_test.dart       # 繰り返しの単体テスト（37件）
+└── test/recurrence_test.dart       # 繰り返しの単体テスト（40件）
 ```
 
 ---

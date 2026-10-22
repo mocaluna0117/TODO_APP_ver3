@@ -222,6 +222,50 @@ void main() {
       );
       expect(next, DateTime(2029, 2, 28, 9, 0));
     });
+
+    test('2/29 は平年に 2/28 へ丸めても、次のうるう年に 2/29 へ戻る', () {
+      var recurrence = const Recurrence(freq: RecurrenceFreq.yearly);
+      var current = DateTime(2028, 2, 29, 9, 0);
+      final dates = <DateTime>[];
+      // _toggleItem と同じ手順（確定 → 次回算出 → 確定後の設定を保存）
+      for (var i = 0; i < 4; i++) {
+        final resolved = recurrence.resolvedFor(current);
+        final next = nextRecurrenceDate(resolved, current, current)!;
+        dates.add(next);
+        recurrence = resolved;
+        current = next;
+      }
+      expect(_iso(dates), [
+        DateTime(2029, 2, 28, 9, 0).toIso8601String(), // 平年は 2/28
+        DateTime(2030, 2, 28, 9, 0).toIso8601String(),
+        DateTime(2031, 2, 28, 9, 0).toIso8601String(),
+        DateTime(2032, 2, 29, 9, 0).toIso8601String(), // うるう年で 2/29 に戻る
+      ]);
+      expect(recurrence.monthDay, 29);
+      // 平年の 2/28 の期限でも、設定どおり 2月29日 と表示する
+      expect(recurrenceLabel(recurrence, DateTime(2029, 2, 28)), '毎年2月29日');
+    });
+
+    test('2/29 を固定しても、期限を別の月へ動かせばその日に従う', () {
+      final pinned = const Recurrence(
+        freq: RecurrenceFreq.yearly,
+      ).resolvedFor(DateTime(2028, 2, 29, 9, 0));
+      final next = nextRecurrenceDate(
+        pinned,
+        DateTime(2029, 3, 10, 9, 0),
+        DateTime(2029, 3, 10, 9, 0),
+      );
+      expect(next, DateTime(2030, 3, 10, 9, 0));
+    });
+
+    test('2/29 を固定しても、期限を2月の別の日へ動かせばその日に従う', () {
+      final pinned = const Recurrence(
+        freq: RecurrenceFreq.yearly,
+      ).resolvedFor(DateTime(2028, 2, 29, 9, 0));
+      final due = DateTime(2029, 2, 10, 9, 0);
+      expect(nextRecurrenceDate(pinned, due, due), DateTime(2030, 2, 10, 9, 0));
+      expect(recurrenceLabel(pinned, due), '毎年2月10日');
+    });
   });
 
   group('期限が過去でも現在より後へ進む', () {
@@ -493,11 +537,26 @@ void main() {
       ).resolvedFor(due);
       expect(weekly.weekdays, {2}); // 火曜
       expect(weekly.monthDay, isNull);
+
+      // 年単位は 2/29 のときだけ日を固定する
+      final yearly = const Recurrence(
+        freq: RecurrenceFreq.yearly,
+      ).resolvedFor(due);
+      expect(yearly.monthDay, isNull);
     });
 
     test('確定後は対応するプリセットとして認識される', () {
       final due = DateTime(2026, 8, 11, 9, 0); // 火曜・第2週
       final presets = recurrencePresets(due);
+      expect(
+        presets.any(
+          (preset) => preset.hasSameConfig(
+            const Recurrence(freq: RecurrenceFreq.yearly).resolvedFor(due),
+          ),
+        ),
+        isTrue,
+        reason: '2/29 以外の毎年がプリセットと一致しない',
+      );
       for (final legacy in ['weekly', 'monthly', 'monthlyNthWeekday']) {
         final resolved = recurrenceFromLegacyRule(legacy)!.resolvedFor(due);
         expect(

@@ -206,12 +206,21 @@ Recurrence resolvedFor(DateTime dueDate) {
   final isWeekly = freq == RecurrenceFreq.weekly;
   final isMonthly = freq == RecurrenceFreq.monthly;
   final byWeekday = isMonthly && monthlyMode == MonthlyMode.nthWeekday;
+  final isLeapDay = dueDate.month == DateTime.february && dueDate.day == 29;
+  final int? resolvedDay;
+  if (isMonthly && !byWeekday) {
+    resolvedDay = monthDay ?? dueDate.day;
+  } else if (freq == RecurrenceFreq.yearly && isLeapDay) {
+    resolvedDay = monthDay ?? 29;
+  } else {
+    resolvedDay = monthDay;
+  }
   return Recurrence(
     ...
     weekdays: isWeekly && weekdays.isEmpty
         ? <int>{dueDate.weekday}
         : weekdays,
-    monthDay: isMonthly && !byWeekday ? (monthDay ?? dueDate.day) : monthDay,
+    monthDay: resolvedDay,
     weekOrdinal: byWeekday
         ? (weekOrdinal ?? recurrenceWeekdayOrdinal(dueDate))
         : weekOrdinal,
@@ -220,6 +229,8 @@ Recurrence resolvedFor(DateTime dueDate) {
 ```
 
 null の項目を毎回「その時点の期限」から補うと、丸めた後の日付が次の基準になってしまう。たとえば `monthDay` が null の「毎月」で期限が1/31 なら、次回は2/28 になり、その次は `28` を基準に計算して3/28 になる。`resolvedFor` は最初の完了で `monthDay = 31` を書き込むので、以降は 2/28 → 3/31 → 4/30 と進む。このとおりの遷移と `monthDay == 31` をテストで固定している。
+
+年単位で丸めが起きるのは 2/29 だけなので、年単位では **期限が 2/29 のときだけ** `monthDay = 29` を書き込む。2/28 へ丸めた後もこの 29 を目指して計算するので、うるう年に 2/29 へ戻る（3.4）。
 
 関係の無い項目は埋めない（月単位なら `weekdays` は空のまま）。テストでは、旧形式から移行した「毎週」「毎月」「毎月第n曜日」を `resolvedFor` で確定すると、期限から作ったプリセットのどれかと `hasSameConfig` で一致することも確かめている。
 
@@ -282,10 +293,20 @@ $$k = (m - 1) + \mathrm{interval}\cdot\mathrm{step},\qquad y' = y + \lfloor k / 
 - **第n曜日**: 1日の曜日を $w_1$ として $\mathrm{day} = 1 + (w - w_1 + 7) \bmod 7 + 7(n - 1)$。$D$ を超えたら7ずつ引く（第5週の無い月は、その月で最後の同じ曜日に丸める）
 - **最終曜日**: 月末日の曜日を $w_L$ として $\mathrm{day} = D - (w_L - w + 7) \bmod 7$
 
-**年単位**。$y + \mathrm{interval} \times \mathrm{step}$ 年の、期限と同じ月日である。2/29 は平年なら 2/28 にする。
+**年単位**。$y + \mathrm{interval} \times \mathrm{step}$ 年の、期限と同じ月の日である。日は `_yearlyDay` が決める。2/29 を固定した設定（`monthDay == 29`）で期限が2月の末日（平年は28日、うるう年は29日）なら 29、それ以外は期限の日を使う。その年の2月に29日が無ければ 28 に丸める。
 
-> [!NOTE]
-> `resolvedFor` が固定するのは週・月単位の項目だけで、年単位には固定する項目が無い。年単位は毎回「その時点の期限」の月日を使うので、2/29 の期限は平年に 2/28 へ丸めたあと、次のうるう年になっても 2/28 のままになる。テストが固定しているのは 2028/2/29 → 2029/2/28 の1回分である。
+```dart
+int _yearlyDay(Recurrence recurrence, DateTime dueDate) {
+  final pinned = recurrence.monthDay;
+  final isEndOfFebruary =
+      dueDate.month == DateTime.february &&
+      dueDate.day == DateUtils.getDaysInMonth(dueDate.year, DateTime.february);
+  if (pinned != null && isEndOfFebruary) return pinned;
+  return dueDate.day;
+}
+```
+
+これで 2028/2/29 → 2029/2/28 → 2030/2/28 → 2031/2/28 → 2032/2/29 と進む。固定した日を使うのは期限が2月の末日のときだけなので、期限を別の日（2/10 や別の月）へ動かせばその日に従う。表示も同じ関数を使い、平年の 2/28 の期限でも「毎年2月29日」と出す。カスタム設定のシートで年単位のまま保存したときも、この固定は消さない。
 
 ### 3.5 600回の打ち切りと終了条件
 
@@ -649,14 +670,14 @@ double _visibleCardLineOffset(double viewportHeight, ScrollMetrics metrics) {
 
 ## 8. テスト
 
-単体テストは [`test/recurrence_test.dart`][test] の37件で、繰り返しの計算と、データの読み込みを固定している。多くのテストは `_sequence` という補助関数で、アプリと同じく「進んだ先の期限を次の基準にする」遷移列を作って比べる。
+単体テストは [`test/recurrence_test.dart`][test] の40件で、繰り返しの計算と、データの読み込みを固定している。多くのテストは `_sequence` という補助関数で、アプリと同じく「進んだ先の期限を次の基準にする」遷移列を作って比べる。
 
 | グループ | 件数 | 固定している振る舞い |
 |---|---|---|
 | 週単位 | 4 | 2週ごと 月・水の位相、平日は土日を飛ばす、曜日未指定は期限の曜日、期限の曜日が対象外の場合 |
 | 月単位（日付指定） | 3 | 毎月31日が短い月の後に31日へ戻る、2か月ごと15日（同月が次回）、日付未指定は期限の日 |
 | 月単位（曜日指定） | 3 | 3か月ごと第2火曜日、毎月最終金曜日、第5月曜日の丸めと復帰 |
-| 年単位 | 2 | 同じ月日、2/29 → 平年は 2/28 |
+| 年単位 | 5 | 同じ月日、2/29 → 平年は 2/28 → うるう年に 2/29 へ戻る、期限を別の月・2月の別の日へ動かせばその日に従う |
 | 期限が過去 | 4 | 毎日・3日ごと・7日ごとの位相、週・月・年も現在より後になる |
 | 終了日 | 2 | 終了日と同じ日の回は繰り返す、過ぎる回は null |
 | JSON | 4 | 全項目の往復、終了日の往復、壊れた値の丸め、`freq` が無い値は null |
