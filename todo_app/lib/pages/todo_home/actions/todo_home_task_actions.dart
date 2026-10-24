@@ -55,7 +55,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty) return;
     final hadDueDate = item.dueDate != null;
-    // 編集で外された画像・添付ファイルは、あとで Storage からも削除する
+    // 編集で外された画像・添付ファイルは、あとで置き場からも削除する
     final keptFileUrls = attachments.map((file) => file.url).toSet();
     final removedUrls = [
       ...item.imageBase64List.where(
@@ -124,7 +124,7 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
 
   // 複製先へ画像・PDFを引き継ぐ。
   //
-  // URLをそのままコピーすると Storage 上の実体を2つのタスクで共有してしまい、
+  // URLをそのままコピーすると置き場の実体を2つのタスクで共有してしまい、
   // 片方を削除・編集したときにもう片方の画像まで消える。そのため実体を
   // 読み込んで「未アップロードの添付」として渡し、複製側のフォルダへ
   // アップロードし直す（アップロード自体は保存処理が行う）。
@@ -244,11 +244,12 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
 
   // ゴミ箱から完全に削除する（添付ファイルも消す）
   void _deleteItemPermanently(TodoItem item) {
+    final hasAttachments = _hasStoredAttachments(item);
     _updateState(() {
       _allItems.remove(item);
     });
     _saveData();
-    _deleteTaskImages(item.id);
+    if (hasAttachments) _deleteTaskImages(item.id);
     NotificationService().cancelNotification(item.id);
   }
 
@@ -257,12 +258,19 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
     final items = _trashedItems;
     if (items.isEmpty) return;
     final ids = items.map((item) => item.id).toList();
+    // 添付のあるタスクだけ置き場のフォルダを消す（無料枠の操作回数を無駄にしない）
+    final attachmentIds = items
+        .where(_hasStoredAttachments)
+        .map((item) => item.id)
+        .toList();
     _updateState(() {
       _allItems.removeWhere((item) => item.isDeleted);
     });
     _saveData();
-    for (final id in ids) {
+    for (final id in attachmentIds) {
       _deleteTaskImages(id);
+    }
+    for (final id in ids) {
       NotificationService().cancelNotification(id);
     }
   }
@@ -278,11 +286,15 @@ extension _TodoHomeTaskActions on _TodoHomePageState {
         .toList();
     if (expired.isEmpty) return;
     final ids = expired.map((item) => item.id).toSet();
+    final attachmentIds = expired
+        .where(_hasStoredAttachments)
+        .map((item) => item.id)
+        .toList();
     _updateState(() {
       _allItems.removeWhere((item) => ids.contains(item.id));
     });
     _saveData();
-    for (final id in ids) {
+    for (final id in attachmentIds) {
       _deleteTaskImages(id);
     }
   }

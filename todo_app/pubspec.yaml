@@ -26,8 +26,8 @@ dependencies:
   firebase_core: ^4.11.0
   firebase_auth: ^6.5.4
   cloud_firestore: ^6.6.0
-  firebase_storage: ^13.4.3
   firebase_messaging: ^16.0.0 # 端末をまたいだ通知（プッシュ）
+  http: ^1.6.0 # 添付ファイルの置き場（Cloudflare Worker）とのやり取り
   google_sign_in: ^7.2.0
   cached_network_image: ^3.4.1
   flutter_image_compress: ^2.4.0

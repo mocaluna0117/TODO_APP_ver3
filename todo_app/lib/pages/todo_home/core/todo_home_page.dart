@@ -55,8 +55,12 @@ class _TodoHomePageState extends State<TodoHomePage>
   final Map<String, String> _syncedTodoJson = {};
   // 設定（タグ等）のリアルタイム同期リスナー
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
-  // 画像をStorageにアップロード中のタスクID（「アップロード中」表示用）
+  // 画像・PDFをアップロード中のタスクID（「アップロード中」表示用）
   final Set<int> _uploadingImageItemIds = {};
+  // 保存処理の中でいまアップロードしているタスクID（重ねて送らないため）
+  final Set<int> _sendingAttachmentItemIds = {};
+  // 添付をアップロードできなかったときに、少し待ってから保存をやり直すタイマー
+  Timer? _attachmentRetryTimer;
   // 2ペイン（広い画面）用: 詳細ペインで選択中のタスクとその編集ドラフト。
   // 選択はタブごとに覚えて、タブを戻したときにそのタブで見ていた詳細へ戻す。
   final Map<String, int> _selectedDetailItemIds = {};
@@ -149,6 +153,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     _searchController.dispose();
     _todosSub?.cancel();
     _settingsSub?.cancel();
+    _attachmentRetryTimer?.cancel();
     _tabController?.dispose();
     super.dispose();
   }

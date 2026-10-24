@@ -7,9 +7,9 @@ extension _TodoHomeBulkDeleteActions on _TodoHomePageState {
     }
 
     final itemIds = _allItems.map((item) => item.id).toList();
-    // 画像を持つタスクのIDを控えておき、Storageの画像も削除する
+    // 添付（画像・PDF）を持つタスクのIDを控えておき、置き場の実体も削除する
     final imageItemIds = _allItems
-        .where((item) => item.imageBase64List.any(_isImageUrl))
+        .where(_hasStoredAttachments)
         .map((item) => item.id)
         .toList();
     _updateState(() {

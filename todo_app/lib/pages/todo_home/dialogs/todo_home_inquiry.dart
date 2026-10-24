@@ -370,8 +370,8 @@ extension _TodoHomeInquiry on _TodoHomePageState {
     );
   }
 
-  // 添付を Storage へ上げてから、問い合わせを1件作る。
-  // 添付は本人のフォルダに置くので、既存のルールのままで書き込める。
+  // 添付を置き場（Cloudflare Worker）へ上げてから、問い合わせを1件作る。
+  // 添付は本人の inquiries フォルダに置き、URL を問い合わせに書いておく。
   Future<bool> _submitInquiry({
     required String message,
     required List<PendingTaskFile> files,
@@ -382,20 +382,14 @@ extension _TodoHomeInquiry on _TodoHomePageState {
       final uploaded = <Map<String, String>>[];
       for (var i = 0; i < files.length; i++) {
         final file = files[i];
-        final ref = FirebaseStorage.instance.ref(
-          'users/${user.uid}/inquiries/'
-          '${DateTime.now().microsecondsSinceEpoch}_$i${_inquiryExtension(file.name)}',
+        final url = await _attachmentStore.upload(
+          folder: 'inquiries',
+          bytes: file.bytes,
+          contentType: _inquiryContentType(file.name),
+          // ブラウザで開いたときに元のファイル名で見えるようにする
+          fileName: file.name,
         );
-        await ref.putData(
-          file.bytes,
-          SettableMetadata(
-            contentType: _inquiryContentType(file.name),
-            cacheControl: kAttachmentCacheControl,
-            contentDisposition:
-                'inline; filename="${file.name.replaceAll('"', '')}"',
-          ),
-        );
-        uploaded.add({'url': await ref.getDownloadURL(), 'name': file.name});
+        uploaded.add({'url': url, 'name': file.name});
       }
 
       await _inquiriesCollection.add({
