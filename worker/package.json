@@ -1,0 +1,17 @@
+{
+  "name": "todo-app-worker",
+  "description": "期限の通知を毎分送り、添付ファイルを預かる Cloudflare Worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

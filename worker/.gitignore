@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+# ローカルで wrangler dev に渡す変数（鍵を入れることがあるので絶対に入れない）
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+# 旧 Storage から移すときの作業ファイル（利用者のファイルが入る）
+rescue/

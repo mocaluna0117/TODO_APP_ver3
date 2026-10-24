@@ -1,0 +1,26 @@
+# TODO アプリの Worker（通知の送信と添付ファイルの置き場）。
+# Cloudflare の Workers Free プランだけで動かす（カードの登録は不要）。
+#
+# アカウント ID・API トークン・サービスアカウントの鍵はここに書かない。
+#   - 鍵: npx wrangler secret put GOOGLE_SERVICE_ACCOUNT（README の手順）
+#   - KV: 下の kv_namespaces に id を書かずにおくと、最初の wrangler deploy で
+#         作られ、id がこのファイルに書き戻される（自動プロビジョニング）
+name = "todo-app-worker"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+# 利用状況の送信はしない
+send_metrics = false
+
+# 毎分、時刻が来た通知を送る（Cron Triggers は UTC。毎分なので時差は関係ない）
+[triggers]
+crons = ["* * * * *"]
+
+# 添付ファイルの実体と、Google のアクセストークンの控え
+[[kv_namespaces]]
+binding = "FILES"
+
+[vars]
+FIREBASE_PROJECT_ID = "todo-app-mokuson"
+# 1回の実行で読む送信予定の上限と、外部への fetch の上限（Free は50回）
+MAX_DOCS_PER_RUN = "25"
+SUBREQUEST_LIMIT = "48"
