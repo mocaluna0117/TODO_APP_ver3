@@ -53,6 +53,15 @@ jobs:
       # 実行するファイルを明示している。
       - run: flutter test test/recurrence_test.dart test/attachment_store_test.dart
 
+      # 添付の置き場（Cloudflare Worker）の URL が空のまま出さない。
+      # 空だと画像・PDF を付けたタスクが保存されないため（README の「デプロイ」）。
+      - name: 添付の置き場の URL を確かめる
+        run: |
+          if grep -q "kDefaultAttachmentApiBase = '';" lib/attachment_store.dart; then
+            echo "::error::lib/attachment_store.dart の kDefaultAttachmentApiBase が空です。Worker を公開して URL を書いてから push してください"
+            exit 1
+          fi
+
       - run: flutter build web --release
 
       - name: Deploy to Firebase Hosting

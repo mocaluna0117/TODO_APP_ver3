@@ -266,7 +266,7 @@ npx wrangler secret put GOOGLE_SERVICE_ACCOUNT < ~/Downloads/<サービスアカ
 npx wrangler deploy         # 初回は KV が作られ、wrangler.toml に id が書き戻される
 ```
 
-  公開すると `https://todo-app-worker.<アカウントのサブドメイン>.workers.dev` になります。この URL を [`attachment_store.dart`](todo_app/lib/attachment_store.dart) の `kDefaultAttachmentApiBase` に書いてアプリを出し直してください。
+  公開すると `https://todo-app-worker.<アカウントのサブドメイン>.workers.dev` になります。この URL を [`attachment_store.dart`](todo_app/lib/attachment_store.dart) の `kDefaultAttachmentApiBase` に書いてアプリを出し直してください（空のままだと画像・PDF を付けたタスクが保存されないので、CI は空のままの Web 版をデプロイしない）。URL はあとから変えないでください（変えると、それまでの添付を消せなくなる）。
   サービスアカウントには **Cloud Datastore ユーザー**（`roles/datastore.user`）と **Firebase Cloud Messaging API 管理者**（`roles/firebasecloudmessaging.admin`）の2つだけを付けます。
 
 - **費用について**: すべて無料枠で動きます（0円）。
