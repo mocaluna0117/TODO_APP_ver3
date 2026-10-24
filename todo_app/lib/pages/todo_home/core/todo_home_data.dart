@@ -96,6 +96,20 @@ extension _TodoHomeData on _TodoHomePageState {
           .map((doc) => TodoItem.fromJson(doc.data()))
           .toList();
       _knownTodoDocIds = snapshot.docs.map((d) => d.id).toSet();
+      // 添付をまだアップロードできていない（＝まだ書いていない）タスクは、
+      // 受信した内容で置き換えずに端末側を残す（オフラインで画像を付けたタスクが
+      // 別の変更の受信で消えないように）。アップロードできたら次の保存で書く。
+      final pendingLocal = {
+        for (final item in _allItems)
+          if (_hasPendingUploads(item)) item.id: item,
+      };
+      if (pendingLocal.isNotEmpty) {
+        for (var i = 0; i < items.length; i++) {
+          final local = pendingLocal.remove(items[i].id);
+          if (local != null) items[i] = local;
+        }
+        items.addAll(pendingLocal.values);
+      }
       // 受信した内容＝Firestore の中身なので、これを基準に差分を判定する
       _syncedTodoJson
         ..clear()
@@ -151,39 +165,56 @@ extension _TodoHomeData on _TodoHomePageState {
   }
 
   // 現在の _allItems を Firestore に反映する（追加/更新 + 削除された分を消す）。
-  Future<void> _saveData() async {
+  // [quietUploadErrors] は、添付のアップロードの自動再試行から呼ぶとき true
+  // （送れないあいだ毎回スナックバーを出さないため）。
+  Future<void> _saveData({bool quietUploadErrors = false}) async {
     final col = _todosCollection();
 
-    // base64画像とPDFを Storage にアップロードし URL に置き換える（Firestoreの1MB制限対策）。
+    // base64画像とPDFを添付の置き場へアップロードし URL に置き換える（Firestoreの1MB制限対策）。
     // アップロード中は「アップロード中」表示のためタスクIDを記録する。
+    var uploadFailed = false;
     for (final item in _allItems) {
-      final hasPendingImage = item.imageBase64List.any(
-        (e) => e.isNotEmpty && !_isImageUrl(e),
-      );
-      final hasPendingFile = item.pendingFiles.isNotEmpty;
-      if (!hasPendingImage && !hasPendingFile) continue;
+      if (!_hasPendingUploads(item)) continue;
+      // 別の保存処理がアップロード中なら任せる（同じファイルを二重に送らない）
+      if (!_sendingAttachmentItemIds.add(item.id)) continue;
       if (mounted) {
         _updateState(() => _uploadingImageItemIds.add(item.id));
       }
       try {
-        if (hasPendingImage) {
-          final updated = await _uploadPendingImages(item);
-          if (!identical(updated, item.imageBase64List)) {
-            item.imageBase64List = updated;
-          }
-        }
-        if (hasPendingFile) {
-          // PDF は base64 のまま持たず、ここで Storage へ送って URL に置き換える
-          item.attachments = await _uploadPendingFiles(item);
-          item.pendingFiles = [];
-        }
+        await _uploadPendingImages(item);
+        // PDF は base64 のまま持たず、ここで置き場へ送って URL に置き換える
+        await _uploadPendingFiles(item);
+      } catch (error) {
+        // オフライン・置き場の無料枠切れなど。送れなかった分は端末に持ったまま、
+        // 次の保存でもう一度送る（このタスクは下で Firestore へ書かない）。
+        debugPrint('Failed to upload attachments: $error');
+        uploadFailed = true;
+      } finally {
+        _sendingAttachmentItemIds.remove(item.id);
         // 2ペインで開いたままなら、URLに置き換わった結果をドラフトにも反映する
         _syncOpenDetailDraftAttachments(item);
-      } finally {
         if (mounted) {
           _updateState(() => _uploadingImageItemIds.remove(item.id));
         }
       }
+    }
+    if (uploadFailed && mounted && _attachmentStore.isConfigured) {
+      // 1分後にもう一度送る（オフラインから戻ったときに、操作しなくても保存されるように）
+      _attachmentRetryTimer ??= Timer(const Duration(minutes: 1), () {
+        _attachmentRetryTimer = null;
+        if (mounted) _saveData(quietUploadErrors: true);
+      });
+    }
+    if (uploadFailed && mounted && !quietUploadErrors) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _attachmentStore.isConfigured
+                ? '画像・PDFをアップロードできませんでした。次に保存するときにもう一度送ります'
+                : '画像・PDFの保存先が設定されていないため、添付を保存できません',
+          ),
+        ),
+      );
     }
 
     final batch = FirebaseFirestore.instance.batch();
@@ -199,6 +230,8 @@ extension _TodoHomeData on _TodoHomePageState {
 
     for (final item in _allItems) {
       final id = item.id.toString();
+      // アップロードし終えていないタスクは書かない（base64 を Firestore に入れない）
+      if (_hasPendingUploads(item)) continue;
       final encoded = _encodeTodo(item);
       if (_syncedTodoJson[id] == encoded) continue;
       batch.set(col.doc(id), item.toJson());

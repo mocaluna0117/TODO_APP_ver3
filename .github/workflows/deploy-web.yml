@@ -48,10 +48,10 @@ jobs:
         run: flutter analyze
         continue-on-error: true
 
-      # 繰り返しロジックの単体テスト。
+      # 繰り返しロジックと、添付の置き場（Cloudflare Worker）とのやり取りの単体テスト。
       # widget_test.dart は Firebase 前提の古いテストで動かないため、
       # 実行するファイルを明示している。
-      - run: flutter test test/recurrence_test.dart
+      - run: flutter test test/recurrence_test.dart test/attachment_store_test.dart
 
       - run: flutter build web --release
 

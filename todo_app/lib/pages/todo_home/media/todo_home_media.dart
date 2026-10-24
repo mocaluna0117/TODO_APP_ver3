@@ -1,8 +1,13 @@
 part of '../../../main.dart';
 
-// 添付ファイルのキャッシュ指定。アップロード先のパスは毎回ユニークで
-// 中身が変わらないので、長期間キャッシュしても古いものは出てこない。
-const String kAttachmentCacheControl = 'public, max-age=31536000, immutable';
+// 添付ファイル（画像・PDF）の置き場（Cloudflare Worker。attachment_store.dart）。
+// アップロードと削除は、ログイン中の利用者の ID トークンで本人を確かめる。
+// 読み出しの URL は毎回一意で中身が変わらないので、Worker が長期キャッシュを
+// 指定して返す（2回目以降の表示でダウンロードが発生しない）。
+final AttachmentStore _attachmentStore = AttachmentStore(
+  baseUrl: attachmentApiBase,
+  idToken: () async => FirebaseAuth.instance.currentUser?.getIdToken(),
+);
 
 extension _TodoHomeMedia on _TodoHomePageState {
   Future<List<String>> _pickImageBase64List() async {
@@ -58,7 +63,7 @@ extension _TodoHomeMedia on _TodoHomePageState {
     return encodedImages;
   }
 
-  // 画像の先頭バイトから Storage 用の Content-Type を判定する。
+  // 画像の先頭バイトから、アップロード時の Content-Type を判定する。
   String _detectImageContentType(Uint8List bytes) {
     if (bytes.length >= 3 &&
         bytes[0] == 0xFF &&
@@ -167,37 +172,41 @@ extension _TodoHomeMedia on _TodoHomePageState {
     return Image.memory(bytes, fit: fit, width: width, height: height);
   }
 
-  // base64 の画像を Firebase Storage にアップロードして URL に置き換えたリストを返す。
-  // 既に URL のものはそのまま。変更が無ければ元のリストをそのまま返す。
-  Future<List<String>> _uploadPendingImages(TodoItem item) async {
-    final entries = item.imageBase64List;
-    // すべて URL（または空）なら何もしない
-    if (entries.every((e) => e.isEmpty || _isImageUrl(e))) return entries;
+  // 保存していない画像・PDF が残っているか（残っていれば、そのタスクは
+  // まだ Firestore へ書かない。base64 を Firestore に入れないため）。
+  bool _hasPendingUploads(TodoItem item) =>
+      item.pendingFiles.isNotEmpty ||
+      item.imageBase64List.any((e) => e.isNotEmpty && !_isImageUrl(e));
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final result = <String>[];
-    for (var i = 0; i < entries.length; i++) {
+  // 置き場に添付があるか（完全削除のときに、まとめて消す必要があるか）。
+  bool _hasStoredAttachments(TodoItem item) =>
+      item.imageBase64List.any(_attachmentStore.ownsUrl) ||
+      item.attachments.any((file) => _attachmentStore.ownsUrl(file.url));
+
+  // base64 の画像を置き場へアップロードし、1枚ずつ URL に置き換える。
+  // 途中で失敗しても、送れた分は URL に置き換わっているので、次の保存では
+  // 残りだけを送る（同じ画像を二重にアップロードしない）。
+  Future<void> _uploadPendingImages(TodoItem item) async {
+    final entries = [...item.imageBase64List];
+    var i = 0;
+    while (i < entries.length) {
       final entry = entries[i];
       if (_isImageUrl(entry)) {
-        result.add(entry);
+        i++;
         continue;
       }
       final bytes = _decodeImage(entry);
-      if (bytes == null) continue; // 不正なデータはスキップ
-      final ref = FirebaseStorage.instance.ref(
-        'users/$uid/todos/${item.id}/'
-        '${DateTime.now().microsecondsSinceEpoch}_$i.jpg',
+      if (bytes == null) {
+        // 空・不正なデータは捨てる
+        entries.removeAt(i);
+        item.imageBase64List = [...entries];
+        continue;
+      }
+      final url = await _attachmentStore.upload(
+        folder: 'todos/${item.id}',
+        bytes: bytes,
+        contentType: _detectImageContentType(bytes),
       );
-      await ref.putData(
-        bytes,
-        SettableMetadata(
-          contentType: _detectImageContentType(bytes),
-          // 保存先のパスは毎回ユニークで中身も変わらないため、長期キャッシュを
-          // 明示する。2回目以降の表示でダウンロードが発生しなくなる。
-          cacheControl: kAttachmentCacheControl,
-        ),
-      );
-      final url = await ref.getDownloadURL();
       // アップロード直後にキャッシュへ先読みしておく。
       // これで表示切り替え時に読み込み待ちが起きず、「アップロード中」表示も
       // ネット読み込み完了まで出し続けられる。
@@ -209,38 +218,30 @@ extension _TodoHomeMedia on _TodoHomePageState {
           onError: (error, stackTrace) {},
         );
       }
-      result.add(url);
+      entries[i] = url;
+      item.imageBase64List = [...entries];
+      i++;
     }
-    return result;
   }
 
-  // 添付ファイル（PDF）を Storage へアップロードし、URL付きの一覧を返す。
+  // 添付ファイル（PDF）を置き場へアップロードし、1件ずつ attachments へ移す。
   // 画像と同じくタスクのフォルダに置くので、タスク削除時にまとめて消える。
-  Future<List<TaskFile>> _uploadPendingFiles(TodoItem item) async {
-    if (item.pendingFiles.isEmpty) return item.attachments;
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final uploaded = <TaskFile>[...item.attachments];
-    for (var i = 0; i < item.pendingFiles.length; i++) {
-      final pending = item.pendingFiles[i];
-      final ref = FirebaseStorage.instance.ref(
-        'users/$uid/todos/${item.id}/'
-        '${DateTime.now().microsecondsSinceEpoch}_$i.pdf',
+  Future<void> _uploadPendingFiles(TodoItem item) async {
+    while (item.pendingFiles.isNotEmpty) {
+      final pending = item.pendingFiles.first;
+      final url = await _attachmentStore.upload(
+        folder: 'todos/${item.id}',
+        bytes: pending.bytes,
+        contentType: 'application/pdf',
+        // ブラウザで開いたときに元のファイル名で見えるようにする
+        fileName: pending.name,
       );
-      await ref.putData(
-        pending.bytes,
-        SettableMetadata(
-          contentType: 'application/pdf',
-          cacheControl: kAttachmentCacheControl,
-          // ブラウザで開いたときに元のファイル名で見えるようにする
-          contentDisposition:
-              'inline; filename="${pending.name.replaceAll('"', '')}"',
-        ),
-      );
-      uploaded.add(
-        TaskFile(url: await ref.getDownloadURL(), name: pending.name),
-      );
+      item.attachments = [
+        ...item.attachments,
+        TaskFile(url: url, name: pending.name),
+      ];
+      item.pendingFiles = item.pendingFiles.sublist(1);
     }
-    return uploaded;
   }
 
   // 画像アップロード中に画像へ重ねる半透明オーバーレイ。
@@ -273,37 +274,35 @@ extension _TodoHomeMedia on _TodoHomePageState {
     );
   }
 
-  // Storage 上のファイルを読み込む（タスク複製で実体をコピーするために使う）。
+  // 置き場のファイルを読み込む（タスク複製で実体をコピーするために使う）。
   // 失敗しても致命的ではないので null を返して呼び出し側に任せる。
   Future<Uint8List?> _downloadStorageFile(String url) async {
     try {
-      return await FirebaseStorage.instance
-          .refFromURL(url)
-          .getData(kMaxAttachmentBytes);
+      return await _attachmentStore.download(
+        url,
+        maxBytes: kMaxAttachmentBytes,
+      );
     } catch (error) {
       debugPrint('Failed to read attachment for copy: $error');
       return null;
     }
   }
 
-  // タスクの添付（画像・PDF）を Storage からすべて削除する（フォルダごと）。
+  // タスクの添付（画像・PDF）を置き場からすべて削除する（フォルダごと）。
   // 失敗しても致命的ではない（孤立ファイルが残るだけ）ので握りつぶす。
   Future<void> _deleteTaskImages(int itemId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (FirebaseAuth.instance.currentUser == null) return;
     try {
-      final folder = FirebaseStorage.instance.ref('users/$uid/todos/$itemId');
-      final list = await folder.listAll();
-      await Future.wait(list.items.map((ref) => ref.delete()));
+      await _attachmentStore.deleteTaskFolder(itemId);
     } catch (_) {}
   }
 
-  // 指定したURLのファイルを Storage から削除する（編集で外された添付用）。
+  // 指定したURLのファイルを置き場から削除する（編集で外された添付用）。
+  // 旧 Firebase Storage の URL など、この置き場のものでなければ何もしない。
   Future<void> _deleteStorageFilesByUrls(Iterable<String> urls) async {
     for (final url in urls) {
-      if (!_isImageUrl(url)) continue; // http(s) のものだけ消す
       try {
-        await FirebaseStorage.instance.refFromURL(url).delete();
+        await _attachmentStore.deleteUrl(url);
       } catch (_) {}
     }
   }

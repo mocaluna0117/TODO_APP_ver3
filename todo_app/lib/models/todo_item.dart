@@ -149,7 +149,8 @@ List<String> normalizeImageBase64List(Map<String, dynamic> json) {
     for (final image in imageList) {
       final value = image?.toString();
       if (value != null && value.isNotEmpty) {
-        images.add(value);
+        // 旧 Firebase Storage の URL は、移した先（Worker）の URL に読み替える
+        images.add(migrateLegacyAttachmentUrl(value));
       }
     }
   }
@@ -168,7 +169,8 @@ List<String> normalizeImageBase64List(Map<String, dynamic> json) {
 // ─────────────────────────────────────────────
 // タスクに添付したファイル（PDF）
 //
-// 実体は Firebase Storage に置き、タスクには URL と表示名だけを持たせる。
+// 実体は添付の置き場（Cloudflare Worker。attachment_store.dart）に置き、
+// タスクには URL と表示名だけを持たせる。
 // 画像のように base64 で持つと Firestore の1ドキュメント1MB制限に掛かるため。
 // ─────────────────────────────────────────────
 class TaskFile {
@@ -185,13 +187,14 @@ class TaskFile {
     if (url == null || url.isEmpty) return null;
     final name = value['name']?.toString();
     return TaskFile(
-      url: url,
+      // 旧 Firebase Storage の URL は、移した先（Worker）の URL に読み替える
+      url: migrateLegacyAttachmentUrl(url),
       name: (name == null || name.isEmpty) ? 'ファイル' : name,
     );
   }
 }
 
-// まだアップロードしていない添付ファイル。保存時に Storage へ送るまで
+// まだアップロードしていない添付ファイル。保存時に置き場へ送るまで
 // メモリ上だけで持ち、JSON には出さない（Firestore に実体を入れないため）。
 class PendingTaskFile {
   const PendingTaskFile({required this.name, required this.bytes});
@@ -227,7 +230,7 @@ class TodoItem {
   Recurrence? recurrence;
   List<String> imageBase64List;
   // 添付ファイル（PDF）。attachments は保存済み、pendingFiles は
-  // まだアップロードしていないもの（保存時に Storage へ送る）。
+  // まだアップロードしていないもの（保存時に添付の置き場へ送る）。
   List<TaskFile> attachments;
   List<PendingTaskFile> pendingFiles;
   TaskPriority priority;
