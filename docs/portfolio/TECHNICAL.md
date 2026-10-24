@@ -50,10 +50,12 @@ void _updateState(VoidCallback fn) => setState(fn);
 |---|---|---|
 | Authentication | Google ログイン | [`sign_in_page.dart`][sign_in] |
 | Cloud Firestore | タスク・設定・通知の送信予定・端末トークン。`snapshots()` で購読 | [`todo_home_data.dart`][data] |
-| Cloud Storage | 画像・PDF の実体（`users/{uid}/todos/{taskId}/`） | [`todo_home_media.dart`][media] |
+| （Cloudflare Workers KV） | 画像・PDF の実体。Firebase の外に置く（5.3） | [`attachment_store.dart`][attachment_store]、[`worker/src/files.js`][worker_files] |
 | Cloud Messaging | Web・iOS・Android へのプッシュ | [`notification_service.dart`][notif]、[`firebase-messaging-sw.js`][sw] |
-| Cloud Functions | 毎分、時刻が来た通知を送る関数 `sendDueNotifications` | [`functions/index.js`][functions] |
+| （Cloudflare Workers） | 毎分、時刻が来た通知を送る（Cron Trigger）。Firestore と FCM は REST で呼ぶ | [`worker/src/notify.js`][worker_notify] |
 | Hosting | Web 版。全パスを `/index.html` へ書き換え、`Cache-Control: no-cache` | [`firebase.json`][firebase_json] |
+
+Firebase のプロジェクトは無料の Spark プランで使う。Spark では Cloud Functions も Cloud Storage も使えないため、毎分の送信と添付の置き場は Cloudflare Workers の無料プランに置いている（2026年10月に移した。経緯は 4.7）。
 
 ```mermaid
 flowchart LR
@@ -64,16 +66,20 @@ flowchart LR
   end
   subgraph Firebase
     FS[("Firestore<br/>users/{uid}/...")]
-    ST[("Storage<br/>users/{uid}/todos/{id}/")]
-    FN["Cloud Functions<br/>sendDueNotifications（毎分）"]
     FCM["Cloud Messaging"]
+  end
+  subgraph Cloudflare["Cloudflare Workers（Free）"]
+    FN["Worker の scheduled<br/>（Cron Trigger・毎分）"]
+    FILES["Worker の fetch<br/>/upload・/f・/folder"]
+    KV[("Workers KV<br/>f/{uid}/todos/{id}/…")]
   end
   UI -- "snapshots() で購読" --> FS
   UI -- "変わったタスクだけ WriteBatch" --> FS
-  UI -- "putData / delete" --> ST
+  UI -- "ID トークン付きで POST / DELETE" --> FILES
+  FILES --> KV
   NS -- "devices/{token} を登録" --> FS
-  FN -- "collectionGroup で nextSendAt ≤ now" --> FS
-  FN -- "sendEachForMulticast" --> FCM
+  FN -- "REST の runQuery（collectionGroup・nextSendAt ≤ now）" --> FS
+  FN -- "HTTP v1 の messages:send（1台ずつ）" --> FCM
   FCM -- "ネイティブ: notification 付き" --> NS
   FCM -- "Web: data のみ" --> SW
 ```
@@ -96,7 +102,7 @@ match /users/{userId}/{document=**} {
 }
 ```
 
-Cloud Functions は Admin SDK で全利用者の `notifications` を横断して読む。この collectionGroup クエリのために、`nextSendAt` の単一フィールドインデックスを COLLECTION_GROUP のスコープにも張っている（[`firestore.indexes.json`][indexes]）。
+Worker はサービスアカウントの権限（IAM）で Firestore の REST API を呼び、全利用者の `notifications` を横断して読む。ルールは利用者のアプリにだけ掛かるもので、Worker のためにルールを変える必要は無い。この collectionGroup クエリのために、`nextSendAt` の単一フィールドインデックスを COLLECTION_GROUP のスコープにも張っている（[`firestore.indexes.json`][indexes]）。
 
 ## 2. データモデル
 
@@ -114,7 +120,7 @@ Cloud Functions は Admin SDK で全利用者の `notifications` を横断して
 | `taskTag` | `String?` | 追加・編集・移動のとき、カテゴリ側のタグ一覧に無いタグは外す |
 | `dueDate` | `DateTime?` | ISO 8601 の文字列 |
 | `recurrence` | `Recurrence?` | Map または null（3章） |
-| `imageBase64List` | `List<String>` | 要素は Storage の URL か、アップロード前の Base64。`startsWith('http')` で見分ける |
+| `imageBase64List` | `List<String>` | 要素は添付の置き場の URL か、アップロード前の Base64。`startsWith('http')` で見分ける |
 | `attachments` | `List<TaskFile>` | PDF。`[{url, name}]` |
 | `pendingFiles` | `List<PendingTaskFile>` | アップロード前の PDF のバイト列。**JSON には出さない** |
 | `priority` | `TaskPriority` | enum 名 |
@@ -132,6 +138,7 @@ Cloud Functions は Admin SDK で全利用者の `notifications` を横断して
 | `imageBase64` / `picture` | `imageBase64List` に追加 | `normalizeImageBase64List` |
 | `recurrenceRule`（enum 名または番号） | `recurrence` | `recurrenceFromLegacyRule` |
 | `notificationTimings`（enum 名の配列） | `notificationOffsets`（分数） | `normalizeNotificationOffsets` |
+| 旧 Firebase Storage のダウンロード URL（画像・PDF） | Worker の URL（5.3） | `migrateLegacyAttachmentUrl` |
 
 ### 2.3 端末内に残すもの
 
@@ -326,7 +333,7 @@ int _yearlyDay(Recurrence recurrence, DateTime dueDate) {
 |---|---|---|
 | 対象 | トークンを取れた端末（Web を含む） | プッシュを使えない iOS / Android |
 | 予定の置き場所 | Firestore の `users/{uid}/notifications/{taskId}` | OS の予約（`flutter_local_notifications` の `zonedSchedule`） |
-| 鳴らすもの | 毎分動く Cloud Functions | OS |
+| 鳴らすもの | 毎分動く Worker（Cloudflare Workers の Cron Trigger） | OS |
 | 他の端末で作ったタスク | そのまま届く | 同期の受信時に `rescheduleAll` で予約し直す |
 
 どちらを使うかは [`NotificationService`][notif] の `usesPush`（トークンを取れたか）だけで決まる。送信予定は端末の種類にかかわらず Firestore に書く。
@@ -359,20 +366,40 @@ batch.set(docRef, {
 
 `entries` は `_pendingNotificationEntries` が作る `{sendAt, body}` の配列である。通知タイミング（期限までの分数）を降順に並べてから `sendAt = dueDate − 分数` を求めるので、**送信時刻の昇順**になり、先頭が `nextSendAt` になる。過ぎた時刻、完了済み、ゴミ箱、期限なしは含めず、空ならドキュメントを消す。全体の既定タイミングを設定で変えたときと、起動後の最初の同期では、タスクは書かずに送信予定だけを全件作り直す（`_resyncAllNotifications`）。
 
-### 4.3 Cloud Functions の送信処理
+### 4.3 Worker の送信処理
 
-[`functions/index.js`][functions] の `sendDueNotifications` は `onSchedule`（`every 1 minutes`、`Asia/Tokyo`、`asia-northeast1`、`retryCount: 0`）で動く。
+[`worker/src/notify.js`][worker_notify] の `sendDueNotifications` を、[`wrangler.toml`][wrangler_toml] の Cron Trigger（`* * * * *`）が毎分呼ぶ。Cloud Functions の `retryCount: 0` と同じく、失敗しても再実行しない（`controller.noRetry()`。送った後に失敗すると、再実行で二重に送るため）。
+
+Admin SDK は Workers では動かないので、Firestore は REST API の `runQuery`、FCM は HTTP v1 API の `messages:send` を `fetch` で呼ぶ。認証はサービスアカウントの鍵で RS256 の JWT を WebCrypto で署名し、Google の token エンドポイントでアクセストークンに換える（[`google-auth.js`][worker_auth]。スコープは `datastore` と `firebase.messaging` の2つ）。
 
 ```js
-const due = await db
-  .collectionGroup('notifications')
-  .where('nextSendAt', '<=', now)
-  .orderBy('nextSendAt')
-  .limit(MAX_DOCS_PER_RUN)
-  .get();
+structuredQuery: {
+  from: [{ collectionId: 'notifications', allDescendants: true }],
+  where: {
+    fieldFilter: {
+      field: { fieldPath: 'nextSendAt' },
+      op: 'LESS_THAN_OR_EQUAL',
+      value: { timestampValue: new Date(nowMillis).toISOString() },
+    },
+  },
+  orderBy: [{ field: { fieldPath: 'nextSendAt' }, direction: 'ASCENDING' }],
+  limit,
+},
 ```
 
-`MAX_DOCS_PER_RUN` は200で、取りこぼしは次の実行で拾う。各ドキュメントの `entries` を「時刻が来た分」と「残り」に分け、時刻が来た分が複数たまっていても**送るのは最後の1件だけ**にする。その1件が**1日より古ければ送らずに捨てる**（Web へ送るときの TTL と同じ長さ。理由は 4.7）。この振り分けは Firebase に依存しない `planDelivery`（[`functions/schedule.js`][schedule]）にまとめてある。送ったあとは残りで `entries` と `nextSendAt` を更新し、残りが無ければドキュメントごと消す。同じ利用者の端末一覧は、1回の実行の中では `Map` に覚えて使い回す。
+各ドキュメントの `entries` を「時刻が来た分」と「残り」に分け、時刻が来た分が複数たまっていても**送るのは最後の1件だけ**にする。その1件が**1日より古ければ送らずに捨てる**（Web へ送るときの TTL と同じ長さ。理由は 4.7）。この振り分けは Firebase にも Workers にも依存しない `planDelivery`（[`worker/src/schedule.js`][worker_schedule]。Cloud Functions 版の [`functions/schedule.js`][schedule] と同じ中身）にまとめてある。REST の `timestampValue` は `{ toMillis }` に包んで渡し、書き戻すときは元の値をそのまま使うので、`sendAt` と `nextSendAt` は Timestamp のまま残る（文字列にするとアプリのクエリに掛からなくなる）。送ったあとは残りで `entries` と `nextSendAt` を更新し、残りが無ければドキュメントごと消す。同じ利用者の端末一覧は、1回の実行の中では `Map` に覚えて使い回す。
+
+Workers の無料プランに合わせて、Cloud Functions 版から次の点を変えている。
+
+| 制限（Workers Free） | 合わせ方 |
+|---|---|
+| 1回の実行の CPU 時間は 10ms | アクセストークンは1時間有効なので KV に控え、毎分の署名を省く（期限の5分前に作り直す） |
+| 外部への `fetch` は1回50回まで | `SubrequestBudget` で残り回数を数え、1件の予定を全端末へ送り切れないところで打ち切る。打ち切った予定は触らずに残し、次の分で拾う。1回に読む予定は25件（`MAX_DOCS_PER_RUN`） |
+| FCM の v1 にはまとめて送る口が無い | 1台ずつ `messages:send` を呼ぶ（Admin SDK の `sendEachForMulticast` も中では1台ずつ送っている） |
+
+書き戻しは `batchWrite` の1回にまとめる。`commit` と違って1件ずつ独立に成否が決まるので、1件の失敗で他の予定の書き戻しまで取り消されない。各ドキュメントには、読んだときの `updateTime` を前提条件（`currentDocument`）に付け、その間にアプリが送信予定を書き直していたら上書きしない。途中で失敗しても、それまでに送った分の書き戻しは必ず行う（書き戻さないと、次の分で同じ通知をもう一度送ってしまう）。
+
+`users/{uid}/notifications/{taskId}` 以外の場所にある `notifications` は扱わない。ルールは本人の配下に何でも書けるので、Cloud Functions 版の `doc.ref.parent.parent` のように「1つ上の階層の ID」を uid とみなすと、`users/A/x/B/notifications/…` のような予定で他人（B）の端末へ送れてしまうためである。
 
 ### 4.4 「通知が2件届く」の原因と修正
 
@@ -400,12 +427,12 @@ Web では、`notification` 付きのメッセージを SDK が自動で表示�
 | 57e1d60 | 変更なし | `payload.notification` があれば何もしない | タブを閉じていると表示されなくなった（2137e28 のコミットメッセージ） |
 | 2137e28 | Web には `data` だけ、ネイティブには `notification` 付き | `data` から組み立てて1回表示 | 端末の種類ごとに経路が1つ |
 
-現在の `sendToDevices` は、`devices` の `platform` で宛先を2つに分けて送る。
+現在は、[`worker/src/fcm.js`][worker_fcm] の `buildMessage` が `devices` の `platform` で送る形を2つに分ける（Cloud Functions 版の `sendToDevices` と同じ中身）。
 
 ```js
-if (webTokens.length > 0) {
-  const response = await getMessaging().sendEachForMulticast({
-    tokens: webTokens,
+if (device.platform === 'web') {
+  return {
+    token: device.token,
     data: {
       title: payload.title,
       body: payload.body,
@@ -413,14 +440,15 @@ if (webTokens.length > 0) {
     },
     // ブラウザを閉じていた間の分も、起動後に届くようにする（1日保持）
     webpush: { headers: { Urgency: 'high', TTL: '86400' } },
-  });
-  ...
+  };
 }
-if (nativeTokens.length > 0) {
-  const response = await getMessaging().sendEachForMulticast({
-    tokens: nativeTokens,
-    notification: { title: payload.title, body: payload.body },
-    ...
+return {
+  token: device.token,
+  notification: { title: payload.title, body: payload.body },
+  data: { taskId: payload.taskId },
+  android: { priority: 'HIGH' },
+  apns: { payload: { aps: { sound: 'default' } } },
+};
 ```
 
 Web 側では、タブが裏にあるときは [`firebase-messaging-sw.js`][sw] が `data` から通知を作って `tag: data.taskId` で表示し、タブが前面にあるときは `FirebaseMessaging.onMessage` を受けた `_showForegroundMessage` がブラウザの `Notification` で表示する。どちらも `notification` が無いことを前提に `data` から組み立てる。
@@ -442,7 +470,7 @@ for (final doc in sameDevice.docs) {
 }
 ```
 
-`onTokenRefresh` でも同じ処理を通る。2137e28 のコミットメッセージには、iPhone で2件届いた原因は**こちらの可能性が高い**と書かれている。あわせて、ログアウトの前に `unregisterDevice` でこの端末のトークンを消し、関数側でも送信に失敗した無効なトークン（`registration-token-not-registered`、`invalid-registration-token`、`invalid-argument`）を消す。
+`onTokenRefresh` でも同じ処理を通る。2137e28 のコミットメッセージには、iPhone で2件届いた原因は**こちらの可能性が高い**と書かれている。あわせて、ログアウトの前に `unregisterDevice` でこの端末のトークンを消し、Worker 側でも送信に失敗した無効なトークンを消す。消すのは FCM が `UNREGISTERED` を返したときと、`INVALID_ARGUMENT` のうち原因がトークンだと示されているとき（`fieldViolations` の `message.token`、またはメッセージの "registration token"）だけである。`INVALID_ARGUMENT` は送る中身の誤りでも返る（[Firebase のドキュメント](https://firebase.google.com/docs/cloud-messaging/manage-tokens)）ので、Cloud Functions 版のように `invalid-argument` をすべて消すと、中身の誤り1つで全端末の登録が消えてしまう。
 
 ### 4.5 Web の通知許可
 
@@ -468,9 +496,20 @@ await _setupPush(requestPermission: !kIsWeb);
 - 請求先アカウントを紐づけたのは 2026-07-12（Cloud Storage を使うために Blaze プランにしたとき）で、止まったのはその約90日後だった。無料トライアルの請求先アカウントが、期間の終わりに閉じたと考えられる
 - アプリ側は動いていた。送信予定は書かれ続け、端末のトークンも登録し直されていた。止まった後に時刻が来た予定は、送られないまま残っていた
 
-`sendDueNotifications` は Cloud Scheduler が毎分呼ぶ作りなので、課金が止まると、関数のコードにかかわらず通知は1件も出ない。直すには、有効な請求先アカウントを紐づけて Blaze プランに戻すしかない。
+`sendDueNotifications` は Cloud Scheduler が毎分呼ぶ作りなので、課金が止まると、関数のコードにかかわらず通知は1件も出ない。Cloud Functions のままで直すには、有効な請求先アカウントを紐づけて Blaze プランに戻すしかない。
 
-コードでは、再開したときの振る舞いだけを変えた。修正前は、止まっていた間に時刻が来た予定を、再開後の最初の実行でそのまま送っていた（10月中旬の「期限が近づいています」が、10日以上遅れて届く）。いまは 4.3 のとおり1日より古い予定は送らずに片付け、片付けた件数を `logger.info` に残す。
+まず、再開したときの振る舞いを変えた。修正前は、止まっていた間に時刻が来た予定を、再開後の最初の実行でそのまま送っていた（10月中旬の「期限が近づいています」が、10日以上遅れて届く）。いまは 4.3 のとおり1日より古い予定は送らずに片付ける。
+
+そのうえで、Blaze には戻さず、**クレジットカードを使わない0円の構成**に移した。
+
+| 役目 | 移す前 | 移した後 | 無料で使える根拠 |
+|---|---|---|---|
+| 毎分の通知の送信 | Cloud Functions ＋ Cloud Scheduler（Blaze が必要） | Cloudflare Workers の Cron Trigger（4.3） | Workers Free は Cron Trigger を5個まで使え、最短1分ごと。登録はメールアドレスとパスワードだけ |
+| 添付の実体 | Cloud Storage for Firebase（2024年9月の変更で Blaze が必要） | Workers KV（5.3） | KV は Workers Free に含まれ、1GB・1件25MiB まで。R2 は無料枠があっても購入手続き（支払い方法の登録）が要るので使わない |
+| タスク・設定・送信予定・端末トークン | Firestore | Firestore（変わらず） | Spark の無料枠（1GiB、読み取り5万/日、書き込み2万/日） |
+| ログイン・Web 版・プッシュ | Authentication・Hosting・Cloud Messaging | 変わらず | Spark で使える（FCM は無料） |
+
+Spark に戻すと、Cloud Storage のバケットには読み書きできなくなる（Firebase のドキュメントでは、データはバケットに残るが Blaze に戻すまで触れない）。移す前の添付は、Firestore には旧 Storage のダウンロード URL（`?token=…` 付き）として入っている。そこで、旧 URL のダウンロードトークンをそのまま ID にした KV のキー（`f/{uid}/todos/{taskId}/{token}`）へ実体を移し（[`scripts/legacy-to-kv.mjs`][worker_legacy]）、アプリは読み込むときに旧 URL を Worker の URL に読み替える（`migrateLegacyAttachmentUrl`。2.2）。Firestore の URL を書き換えなくても、移したファイルはそのまま表示できる。
 
 ## 5. 同期
 
@@ -542,11 +581,11 @@ _syncedTodoJson.addAll(written);
 sequenceDiagram
   participant A as 操作（追加・編集・完了）
   participant S as _saveData
-  participant ST as Storage
+  participant ST as 添付の置き場（Worker）
   participant FS as Firestore
   A->>S: _allItems を書き換えて呼ぶ
-  S->>ST: 未アップロードの画像・PDF を putData
-  ST-->>S: ダウンロード URL
+  S->>ST: 未アップロードの画像・PDF を POST /upload
+  ST-->>S: 読み出し用の URL
   S->>S: JSON 文字列を _syncedTodoJson と比較
   S->>FS: 変わったタスクと送信予定だけを1バッチで commit
   S->>S: 成功したら _syncedTodoJson を更新
@@ -555,41 +594,49 @@ sequenceDiagram
 
 ### 5.3 添付のアップロード
 
-添付は Firestore に入れず、Storage の `users/{uid}/todos/{taskId}/` に置く。
+添付は Firestore に入れず、Cloudflare Workers KV に置く。出し入れは [`worker/`][worker_files] の Worker が行い、アプリ側は [`attachment_store.dart`][attachment_store] の `AttachmentStore` を通す。
+
+| 操作 | Worker の口 | 認証 |
+|---|---|---|
+| アップロード | `POST /upload/todos/{taskId}`（問い合わせは `/upload/inquiries`）→ `{ url }` | Firebase の ID トークン（`Authorization: Bearer`）。Worker が securetoken の公開鍵で署名と `aud`・`iss`・`exp` を確かめ、`sub` を uid とする |
+| 読み出し | `GET /f/{uid}/todos/{taskId}/{id}` | なし。`id` は推測できない128ビットの乱数で、URL を知っていることが読む権限になる |
+| 1件削除 | `DELETE /f/{uid}/…` | ID トークン。URL の uid が本人のものだけ |
+| タスクの分をまとめて削除 | `DELETE /folder/todos/{taskId}` | ID トークン。KV を `f/{uid}/todos/{taskId}/` で一覧して消す |
+
+読み出しを URL だけにしているのは、Firebase Storage のダウンロード URL（`?token=…`）と同じ考え方で、Web の `Image.network` や、PDF を外部ブラウザで開く `launchUrl` が `Authorization` ヘッダーを付けられないためである。Worker は `Access-Control-Allow-Origin: *`（Web の CanvasKit は画像を fetch で読むので CORS が要る）と `Cache-Control: private, max-age=31536000, immutable` を付けて返す。受け付けるのは JPEG・PNG・GIF・WebP・PDF だけで、1件 `kMaxAttachmentBytes`（20MB）まで。
 
 - **選ぶとき**: 画像は `pickMultiImage(maxWidth: 1600, imageQuality: 85)`。iOS / Android は `FlutterImageCompress` で JPEG（品質85）にし、Web の HEIC は heic2any で JPEG にする。クリップボードからの貼り付けも同じく JPEG に圧縮する（ネイティブのみ）。PDF は1件 `kMaxAttachmentBytes`（20MB）までで、`PendingTaskFile` としてバイト列のまま持つ
-- **保存するとき**: `_saveData` は差分の判定より先に、Base64 の画像と `pendingFiles` を [`_uploadPendingImages` / `_uploadPendingFiles`][media] で送り、URL に置き換えてから JSON を作る
+- **保存するとき**: `_saveData` は差分の判定より先に、Base64 の画像と `pendingFiles` を [`_uploadPendingImages` / `_uploadPendingFiles`][media] で送り、**1件ずつ** URL に置き換える
 
 ```dart
-final ref = FirebaseStorage.instance.ref(
-  'users/$uid/todos/${item.id}/'
-  '${DateTime.now().microsecondsSinceEpoch}_$i.jpg',
+final url = await _attachmentStore.upload(
+  folder: 'todos/${item.id}',
+  bytes: bytes,
+  contentType: _detectImageContentType(bytes),
 );
-await ref.putData(
-  bytes,
-  SettableMetadata(
-    contentType: _detectImageContentType(bytes),
-    cacheControl: kAttachmentCacheControl,
-  ),
-);
+...
+entries[i] = url;
+item.imageBase64List = [...entries];
 ```
 
-- **パスは毎回一意で、中身は変わらない**ので、`kAttachmentCacheControl = 'public, max-age=31536000, immutable'` を付ける
 - `contentType` は先頭のバイトで判定する（JPEG `FF D8 FF`、PNG `89 50 4E 47`、GIF `47 49 46`、WebP は `RIFF` と `WEBP`。それ以外は JPEG 扱い）
-- PDF には `contentDisposition: inline; filename="..."` を付け、ブラウザで開いたときに元のファイル名で見えるようにする
+- PDF は元のファイル名を `X-File-Name` で送り、Worker が `Content-Disposition`（`filename*=UTF-8''…`）に入れて、ブラウザで開いたときに元の名前で見えるようにする
 - 画像はアップロード直後に、表示と同じプロバイダ（Web は `NetworkImage`、ネイティブは `CachedNetworkImageProvider`）で `precacheImage` する
 - アップロード中のタスク ID は `_uploadingImageItemIds` に入れてカードに「アップロード中」を重ねる。右の詳細ペインで同じタスクを開いていれば、`_syncOpenDetailDraftAttachments` で下書きも URL に置き換え、古い Base64 のまま保存し直されないようにする
+- **送れなかったとき**（オフライン、KV の無料枠切れなど）: 送れた分はもう URL に置き換わっているので、残りは端末に持ったまま次の保存で送る（同じファイルを二重に送らない）。1分後にも一度だけ自動で保存し直す。**送り終えていないタスクは Firestore に書かない**（Base64 を Firestore に入れないため）。そのあいだに別の変更を受信しても、`_loadData` は送り終えていないタスクを端末側のまま残す（受信で丸ごと置き換える 5.1 の作りのままだと、まだ書いていないタスクが消えるため）
+
+KV は書き込みが「1日1,000回まで」の無料枠なので、アップロードは全利用者の合計で1日1,000件までになる。KV は結果整合で、書いた場所以外の拠点からは最大60秒ほど見えないことがある（[Cloudflare のドキュメント](https://developers.cloudflare.com/kv/concepts/how-kv-works/)）。アップロードした端末では直後の `precacheImage` で読めるが、別の端末では、同期で URL を受け取った直後の数十秒、画像が読み込めずに表示されないことがある。
 
 ### 5.4 消すとき・複製するとき
 
-| 操作 | Storage の扱い | 関数 |
+| 操作 | 置き場の扱い | 関数 |
 |---|---|---|
-| 編集で添付を外す | 外した URL だけを `refFromURL(url).delete()` | `_editItem` → `_deleteStorageFilesByUrls` |
+| 編集で添付を外す | 外した URL だけを `DELETE`（旧 Storage の URL など、置き場のものでなければ何もしない） | `_editItem` → `_deleteStorageFilesByUrls` |
 | ゴミ箱へ移す | 消さない（元に戻せるように残す） | `_deleteItem` |
-| 完全削除・ゴミ箱を空にする・期限切れ | タスクのフォルダを `listAll()` して全部消す | `_deleteTaskImages` |
+| 完全削除・ゴミ箱を空にする・期限切れ・全削除 | 置き場に添付があるタスクだけ、フォルダを `DELETE /folder/todos/{taskId}` | `_deleteTaskImages` |
 | 複製 | 実体を読み込み直し、複製側のフォルダへアップロードし直す | `_copyAttachmentsToDuplicate` |
 
-Storage の削除の失敗は握りつぶす（残るのは参照されないファイルだけで、タスクは壊れない）。複製では URL をコピーせず、`getData(kMaxAttachmentBytes)` で読み込んだ画像を Base64 に、PDF を `PendingTaskFile` に戻してから `_saveData` に渡す。こうすると複製側のタスク ID のフォルダに別の実体ができるので、片方を消しても、もう片方の添付は残る。読み込めなかった件数はスナックバーで知らせる。
+削除の失敗は握りつぶす（残るのは参照されないファイルだけで、タスクは壊れない）。添付の無いタスクではフォルダの削除を呼ばない（KV の一覧と削除も1日1,000回までなので、無駄に使わない）。複製では URL をコピーせず、`download(url, maxBytes: kMaxAttachmentBytes)` で読み込んだ画像を Base64 に、PDF を `PendingTaskFile` に戻してから `_saveData` に渡す。こうすると複製側のタスク ID のフォルダに別の実体ができるので、片方を消しても、もう片方の添付は残る。読み込めなかった件数はスナックバーで知らせる。
 
 ### 5.5 端末内データの移行と設定の同期
 
@@ -663,7 +710,7 @@ double _visibleCardLineOffset(double viewportHeight, ScrollMetrics metrics) {
 
 削除は `deletedAt` に日時を入れるだけで、タスクは `_allItems` に残る（[`_deleteItem`][task_actions]）。`_itemsByCategory` はどのタブでも `isDeleted` を除き、書き出しと端末内の予約は `_liveItems`（ゴミ箱以外）だけを対象にし、送信予定もゴミ箱のタスクには作らない。削除直後のスナックバーは5秒で、「元に戻す」で `deletedAt = null` に戻す。Flutter 3.38 以降はアクション付きの SnackBar が既定で消えなくなったため、`persist: false` を明示している（コメントより）。削除の前の確認ダイアログは設定の `showDeleteConfirm` で切り替えられる。
 
-保持期間は `kTrashRetention = Duration(days: 7)` で、起動後の最初の受信で `_purgeExpiredTrash` が期限を過ぎたものを `_allItems` から取り除く。取り除いたタスクは次の `_saveData` で 5.2 の削除の検出に掛かり、Firestore のタスクと送信予定が消え、`_deleteTaskImages` で Storage のフォルダも消える。
+保持期間は `kTrashRetention = Duration(days: 7)` で、起動後の最初の受信で `_purgeExpiredTrash` が期限を過ぎたものを `_allItems` から取り除く。取り除いたタスクは次の `_saveData` で 5.2 の削除の検出に掛かり、Firestore のタスクと送信予定が消え、添付があれば `_deleteTaskImages` で置き場のフォルダも消える。
 
 ### 7.2 検索
 
@@ -699,13 +746,26 @@ double _visibleCardLineOffset(double viewportHeight, ScrollMetrics metrics) {
 | 表示ラベル | 4 | 「2週ごと 火曜日」「毎月第2火曜日」「あと7回」など、期限が無くても落ちない |
 | プリセット | 2 | JSON で往復しても同じプリセットと判定される、期限が無くてもラベルが重ならない |
 
-GitHub Actions（[`deploy-web.yml`][workflow]）は `main` への push で `flutter analyze`（失敗してもデプロイは止めない設定）、`flutter test test/recurrence_test.dart`、`flutter build web --release` を順に実行し、シークレットが設定されていれば Hosting へデプロイする。[`test/widget_test.dart`][widget_test] は Firebase を入れる前の古いテストで、ワークフローのコメントのとおり実行対象から外している。
+添付の置き場とのやり取りは [`test/attachment_store_test.dart`][attachment_test] の12件で固定している。旧 Storage の URL を Worker の URL へ読み替えること（`TodoItem.fromJson` を通した場合を含む）、アップロードに ID トークン・種類・ファイル名を付けること、失敗・未ログイン・未設定のときに例外にすること、置き場の URL でなければ削除しないことを、通信を `MockClient` に差し替えて確かめる。
 
-Cloud Functions の送信予定の振り分け（`planDelivery`）は、[`functions/test/schedule.test.js`][schedule_test] の7件で確かめている。最後の1件だけを送ること、1日より古い予定は送らないこと（ちょうど1日遅れまでは送る）、並び順が崩れていても時刻順で決めること、壊れた `entries` を無視することを固定している。Node 標準の `node:test` で書いてあるので、依存を入れずに `todo_app/functions` で `npm test` を実行すれば動く（CI では実行していない）。同期・通知の送受信・2ペインの追従を自動で確かめるテストは無い。
+GitHub Actions（[`deploy-web.yml`][workflow]）は `main` への push で `flutter analyze`（失敗してもデプロイは止めない設定）、`flutter test test/recurrence_test.dart test/attachment_store_test.dart`、`flutter build web --release` を順に実行し、シークレットが設定されていれば Hosting へデプロイする。[`test/widget_test.dart`][widget_test] は Firebase を入れる前の古いテストで、ワークフローのコメントのとおり実行対象から外している。
+
+Worker は [`worker/test/`][worker_tests] の35件で確かめている。Node 標準の `node:test` で書いてあり、`fetch` と KV を差し替えて動かすので、依存を入れずに `worker` で `node --test test/*.test.js` を実行すれば動く（Google・Cloudflare にはつながない。CI では実行していない）。
+
+| ファイル | 件数 | 固定している振る舞い |
+|---|---|---|
+| `schedule.test.js` | 7 | Cloud Functions 版から移した `planDelivery` のテスト。最後の1件だけを送ること、1日より古い予定は送らないこと（ちょうど1日遅れまでは送る）、並び順が崩れていても時刻順で決めること、壊れた `entries` を無視すること |
+| `notify.test.js` | 14 | クエリの形、JWT の署名とスコープ、トークンの使い回し、Web とネイティブで送る中身、書き戻し（`updateTime` の前提条件、`nextSendAt` を Timestamp のまま）、無効なトークンの削除、`fetch` の上限での打ち切り、認証エラーと読み込み失敗のときの扱い、他人の uid を名乗る予定を無視すること |
+| `files.test.js` | 11 | アップロードと読み出し、ID トークンの検証（無い・偽造・別プロジェクト・期限切れ・`alg: none`）、種類と大きさの制限、本人だけが消せること、フォルダごとの削除、公開鍵のキャッシュ、旧 Storage のキーの対応づけ |
+| `legacy.test.js` | 3 | 旧 Storage から KV へ移すときの対応づけ |
+
+あわせて、`wrangler dev`（ローカルの workerd）で Worker を動かし、Google の token・Firestore・FCM をローカルの偽サーバーに向けて、Cron の1回分（送信・書き戻し・無効なトークンの削除・2回目はトークンを使い回すこと）と、3MB の画像のアップロード・読み出し・削除を通しで確かめた。workerd では `fetch` をオブジェクトのメソッドとして呼ぶと `Illegal invocation` になることがこれで分かり、単体テストの `fetch` の差し替えも同じ条件で失敗するようにしてある。
+
+移行前の [`functions/test/schedule.test.js`][schedule_test]（7件）も残してある。同期・通知の送受信・2ペインの追従を自動で確かめるテストは無い。
 
 ## 9. 本資料について
 
-本資料の数値や設定は、コード（6d4fcc2時点）から引いている。
+本資料の数値や設定は、コード（6d4fcc2時点）から引いている。通知の送信と添付の置き場を Cloudflare Workers に移した部分（1.3、1.4、2.2、4.3、4.4、4.7、5.3、5.4、8章）は、移行のコミットに合わせて書き直した。
 
 [main]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/lib/main.dart
 [pubspec]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/pubspec.yaml
@@ -737,3 +797,13 @@ Cloud Functions の送信予定の振り分け（`planDelivery`）は、[`functi
 [test]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/test/recurrence_test.dart
 [widget_test]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/test/widget_test.dart
 [workflow]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/.github/workflows/deploy-web.yml
+[attachment_store]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/lib/attachment_store.dart
+[attachment_test]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/test/attachment_store_test.dart
+[wrangler_toml]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/wrangler.toml
+[worker_notify]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/src/notify.js
+[worker_schedule]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/src/schedule.js
+[worker_auth]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/src/google-auth.js
+[worker_fcm]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/src/fcm.js
+[worker_files]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/src/files.js
+[worker_legacy]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/worker/scripts/legacy-to-kv.mjs
+[worker_tests]: https://github.com/mocaluna0117/TODO_APP_ver3/tree/main/worker/test
