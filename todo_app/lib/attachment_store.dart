@@ -164,7 +164,7 @@ final RegExp _fileIdPattern = RegExp(r'^[A-Za-z0-9_-]{16,64}$');
 ///
 /// ダウンロードトークン（推測できない UUID）を、そのまま新しい URL の ID にする。
 /// worker/src/files.js の legacyKeyFromObject と同じ規則なので、
-/// worker/scripts/legacy-to-kv-bulk.mjs で移したファイルがこの URL で読める。
+/// worker/scripts/legacy-to-kv.mjs で移したファイルがこの URL で読める。
 /// 旧 URL でなければ null。
 String? legacyStorageUrlToFilesUrl(String url, String baseUrl) {
   if (baseUrl.isEmpty) return null;

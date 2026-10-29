@@ -511,6 +511,8 @@ await _setupPush(requestPermission: !kIsWeb);
 
 Spark に戻すと、Cloud Storage のバケットには読み書きできなくなる（Firebase のドキュメントでは、データはバケットに残るが Blaze に戻すまで触れない）。移す前の添付は、Firestore には旧 Storage のダウンロード URL（`?token=…` 付き）として入っている。そこで、旧 URL のダウンロードトークンをそのまま ID にした KV のキー（`f/{uid}/todos/{taskId}/{token}`）へ実体を移し（[`scripts/legacy-to-kv.mjs`][worker_legacy]）、アプリは読み込むときに旧 URL を Worker の URL に読み替える（`migrateLegacyAttachmentUrl`。2.2）。Firestore の URL を書き換えなくても、移したファイルはそのまま表示できる。
 
+実際の移行（2026年10月）では、この手順を使わなかった。バケットを読むには課金を一時的に戻す必要があり、無料のまま移すことを優先して、移す前の添付44件（26.6MB）は諦めた。これらの添付は、アプリでは表示できない（画像は読み込めない印、PDF は開けない）。
+
 ## 5. 同期
 
 ### 5.1 受信 — スナップショットで丸ごと置き換える
