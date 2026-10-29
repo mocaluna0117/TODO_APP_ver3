@@ -705,7 +705,7 @@ Cloud Functions の送信予定の振り分け（`planDelivery`）は、[`functi
 
 ## 9. 本資料について
 
-本資料は、Claude Code（Anthropic）がこのリポジトリのコードを読んで下書きしたものである。数値や設定はコード（6d4fcc2時点）から引いている。
+本資料の数値や設定は、コード（6d4fcc2時点）から引いている。
 
 [main]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/lib/main.dart
 [pubspec]: https://github.com/mocaluna0117/TODO_APP_ver3/blob/main/todo_app/pubspec.yaml
